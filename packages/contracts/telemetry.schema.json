@@ -6,7 +6,7 @@
   "required": ["schema_version", "device_id", "collected_at", "source", "metrics"],
   "properties": {
     "schema_version": {"const": "device-audit.v1"},
-    "device_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
+    "device_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}(?![\\s\\S])"},
     "collected_at": {"type": "string", "format": "date-time"},
     "source": {"enum": ["fixture", "endpoint"]},
     "metrics": {

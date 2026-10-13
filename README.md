@@ -15,10 +15,13 @@ PDF verification is the first item in the [backlog](docs/backlog.md).
 ## Start locally
 
 Install Go 1.27.1 and Python 3.12+. Go's toolchain auto-selection can download
-the version in `go.mod`. No third-party runtime dependencies are needed yet.
+the version in `go.mod`. Python dependencies are test-only; install them in a
+virtual environment before running the checks:
 
 ```sh
-make check cross-build
+python3 -m venv .venv
+.venv/bin/python -m pip install -r models/test-requirements.txt
+make PYTHON=.venv/bin/python check cross-build
 make demo
 ```
 
@@ -67,5 +70,6 @@ certainty; see [decisions](docs/decisions.md).
 Its broad configuration/MDM/build-worker scope is not part of this scaffold.
 [Network provenance](networking/README.md) records exactly what is reused.
 
-CI runs Go validation/race tests, Python aggregation tests, Windows/macOS
-cross-compilation, and the binary round-trip demo.
+CI installs the pinned test-only Python dependencies, then runs Go
+validation/race tests, Python aggregation and telemetry schema tests,
+Windows/macOS cross-compilation, and the binary round-trip demo.

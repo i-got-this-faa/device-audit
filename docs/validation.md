@@ -28,3 +28,33 @@ Mesh, database migrations, bespoke trained models, full federated coordination,
 smart-contract transactions and patent conformance have not been validated.
 CI is configured to repeat the available checks; this record describes the
 local run, not a claim about a hosted CI result.
+
+## Telemetry conformance subset of #80
+
+Validated locally on 2026-10-13 with Go 1.27.1 and Python 3.13. Go, make and
+GCC were supplied by an ephemeral Nix shell; pinned Python test dependencies
+were installed in a temporary virtual environment.
+
+```sh
+nix shell nixpkgs#go nixpkgs#gnumake nixpkgs#gcc --command \
+  make check cross-build demo PYTHON=/tmp/device-audit-contract-check/bin/python
+```
+
+All checks passed: Go vet, race tests, formatting, Python model/schema tests,
+Windows amd64 and macOS arm64 endpoint builds, and the actual fixture binary
+round-trip demo. Dependency consistency and `git diff --check` also passed.
+
+Go decoding/validation and Python Draft 2020-12 JSON Schema validation consume
+the same 21 telemetry vectors, four valid and 17 invalid. They cover nullable
+and omitted sensors, explicit units in metric names, numeric boundaries,
+required fields, unknown fields, versions, source labels and timestamps.
+The suite exposed a schema regex accepting device IDs with a terminal newline;
+the schema now rejects them consistently with Go. Date-time format checking
+requires the pinned RFC 3339 validator dependency.
+
+Go-only regressions cover two spellings of the zero time instant. JSON Schema
+checks timestamp syntax and still accepts those syntactically valid dates;
+Go validation remains authoritative at ingestion. This is telemetry-only
+coverage of #80. Signature canonicalization, replay classifications and the
+other application contracts remain outstanding. No production collector,
+patent conformance or hosted CI result is asserted by these checks.
