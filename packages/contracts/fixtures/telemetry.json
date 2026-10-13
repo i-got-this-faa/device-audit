@@ -1,0 +1,7 @@
+{
+  "schema_version": "device-audit.v1",
+  "device_id": "demo-device",
+  "collected_at": "2026-10-13T06:00:00Z",
+  "source": "fixture",
+  "metrics": {"cpu_percent": 12.5, "memory_percent": 40.0}
+}
