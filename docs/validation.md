@@ -58,3 +58,18 @@ Go validation remains authoritative at ingestion. This is telemetry-only
 coverage of #80. Signature canonicalization, replay classifications and the
 other application contracts remain outstanding. No production collector,
 patent conformance or hosted CI result is asserted by these checks.
+
+## Provisional telemetry/inventory v2, #15
+
+The same local command above passed after the separate v2 contract was added:
+Go vet/race/format checks, four Python tests, Windows/macOS endpoint builds,
+and the actual v1 fixture binary demo. The 20 shared v2 vectors include two
+valid examples and 18 invalid examples. They exercise units, missing reasons,
+null/missing/nested fields, Unicode metadata lengths, collection/byte bounds,
+version rejection and fixture versus endpoint source labels. Go-only tests
+check log-window ordering, direct DTO construction and metric decode reuse.
+
+The v2 contract is a platform-neutral proposal. It is not bound to the
+controller or an actual collector. JSON Schema does not enforce timestamp
+ordering or Go's zero-instant policy. Release scope from #14 and the patent
+PDF remain unresolved; #15's merged-PR definition of done is outstanding.

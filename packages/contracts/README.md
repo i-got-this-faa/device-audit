@@ -25,3 +25,32 @@ The demo digest is SHA-256 of `json.Marshal(Telemetry)` after validation. It is
 specific to this Go representation. Define a cross-language canonical encoding,
 domain separator, policy/schema/model version binding, signature and replay
 protocol before using a digest in security decisions or smart contracts.
+
+## Provisional telemetry and inventory v2
+
+`TelemetryV2` and `telemetry-v2.schema.json` define a separate proposed wire
+namespace, `device-audit.telemetry.v2`; v1 remains unchanged. The original
+patent PDF is still missing, and release platform/hardware scope from decision
+#14 remains unresolved. These fields are a platform-neutral contract proposal,
+not a claim of patent compliance or production collection.
+
+Each selected metric carries `{value, unit}`. A null value requires one of
+`sensor_unavailable`, `not_applicable`, `permission_denied`, or
+`collection_error`; known values cannot carry a missing reason. CPU/GPU
+utilization and memory/disk/battery usage use `percent` (0–100), temperature
+uses `celsius`, and latency uses `milliseconds` (nonnegative). At least one
+metric must be known. Inventory metadata uses opaque application IDs and
+supports optional group/network-segment IDs and at most 64 components. A
+telemetry record may contain at most 8 log references; each reference carries
+an opaque reference ID, SHA-256 digest, byte size capped at 10 MiB, and time
+window. Raw logs are never carried inline. These bounds and missing reasons are
+provisional contract decisions and do not define collection policy.
+
+The shared v2 vectors are checked by Go strict decoding plus
+`TelemetryV2.Validate()` and Python's Draft 2020-12 validator. Go also enforces
+that a log window ends at or after it starts; the selected JSON Schema draft
+has no portable date-time ordering keyword, so this semantic check has a Go-only
+regression. Fixture and endpoint are provenance labels only. Inventory/device
+IDs are application identifiers; this schema says
+nothing about network authentication, device signatures, or chain identity,
+and no device identifier or raw log belongs on-chain.

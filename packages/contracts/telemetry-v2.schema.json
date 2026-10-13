@@ -1,0 +1,363 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "device-audit.telemetry.v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "device_id",
+    "collected_at",
+    "source",
+    "metrics",
+    "inventory",
+    "log_references"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "device-audit.telemetry.v2"
+    },
+    "device_id": {
+      "$ref": "#/$defs/id"
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "enum": [
+        "fixture",
+        "endpoint"
+      ]
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "cpu_utilization": {
+          "$ref": "#/$defs/percentMetric"
+        },
+        "gpu_utilization": {
+          "$ref": "#/$defs/percentMetric"
+        },
+        "memory_percent": {
+          "$ref": "#/$defs/percentMetric"
+        },
+        "disk_used_percent": {
+          "$ref": "#/$defs/percentMetric"
+        },
+        "battery_percent": {
+          "$ref": "#/$defs/percentMetric"
+        },
+        "temperature_c": {
+          "$ref": "#/$defs/temperatureMetric"
+        },
+        "network_latency_ms": {
+          "$ref": "#/$defs/latencyMetric"
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "cpu_utilization": {
+              "$ref": "#/$defs/knownPercent"
+            }
+          },
+          "required": [
+            "cpu_utilization"
+          ]
+        },
+        {
+          "properties": {
+            "gpu_utilization": {
+              "$ref": "#/$defs/knownPercent"
+            }
+          },
+          "required": [
+            "gpu_utilization"
+          ]
+        },
+        {
+          "properties": {
+            "memory_percent": {
+              "$ref": "#/$defs/knownPercent"
+            }
+          },
+          "required": [
+            "memory_percent"
+          ]
+        },
+        {
+          "properties": {
+            "disk_used_percent": {
+              "$ref": "#/$defs/knownPercent"
+            }
+          },
+          "required": [
+            "disk_used_percent"
+          ]
+        },
+        {
+          "properties": {
+            "battery_percent": {
+              "$ref": "#/$defs/knownPercent"
+            }
+          },
+          "required": [
+            "battery_percent"
+          ]
+        },
+        {
+          "properties": {
+            "temperature_c": {
+              "$ref": "#/$defs/knownTemperature"
+            }
+          },
+          "required": [
+            "temperature_c"
+          ]
+        },
+        {
+          "properties": {
+            "network_latency_ms": {
+              "$ref": "#/$defs/knownLatency"
+            }
+          },
+          "required": [
+            "network_latency_ms"
+          ]
+        }
+      ]
+    },
+    "inventory": {
+      "$ref": "#/$defs/inventory"
+    },
+    "log_references": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/logReference"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+    },
+    "metricBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unit": {
+          "type": "string"
+        },
+        "missing_reason": {
+          "enum": [
+            "sensor_unavailable",
+            "not_applicable",
+            "permission_denied",
+            "collection_error"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "value": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "missing_reason"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "missing_reason"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "percentMetric": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/metricBase"
+        },
+        {
+          "properties": {
+            "unit": {
+              "const": "percent"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        }
+      ]
+    },
+    "temperatureMetric": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/metricBase"
+        },
+        {
+          "properties": {
+            "unit": {
+              "const": "celsius"
+            }
+          }
+        }
+      ]
+    },
+    "latencyMetric": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/metricBase"
+        },
+        {
+          "properties": {
+            "unit": {
+              "const": "milliseconds"
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "knownPercent": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "knownTemperature": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "knownLatency": {
+      "type": "object",
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "components"
+      ],
+      "properties": {
+        "group_id": {
+          "$ref": "#/$defs/id"
+        },
+        "network_segment_id": {
+          "$ref": "#/$defs/id"
+        },
+        "components": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "model": {
+                "type": "string",
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      }
+    },
+    "logReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "sha256",
+        "byte_size",
+        "window_start",
+        "window_end"
+      ],
+      "properties": {
+        "reference_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}(?![\\s\\S])"
+        },
+        "byte_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10485760
+        },
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
