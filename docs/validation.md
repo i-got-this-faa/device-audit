@@ -63,10 +63,10 @@ patent conformance or hosted CI result is asserted by these checks.
 
 The same local command above passed after the separate v2 contract was added:
 Go vet/race/format checks, four Python tests, Windows/macOS endpoint builds,
-and the actual v1 fixture binary demo. The 20 shared v2 vectors include two
-valid examples and 18 invalid examples. They exercise units, missing reasons,
+and the actual v1 fixture binary demo. The 22 shared v2 vectors include two
+valid examples and 20 invalid examples. They exercise units, missing reasons,
 null/missing/nested fields, Unicode metadata lengths, collection/byte bounds,
-version rejection and fixture versus endpoint source labels. Go-only tests
+version rejection, exact property spellings and fixture versus endpoint source labels. Go-only tests
 check log-window ordering, direct DTO construction and metric decode reuse.
 
 The v2 contract is a platform-neutral proposal. It is not bound to the
