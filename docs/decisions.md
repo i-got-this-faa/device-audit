@@ -17,6 +17,7 @@ discussion can drift and does not automatically become product scope.
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Marked proposed in handoff | Initial schema candidate only; no runtime DB binding |
 | Windows-first | Marked proposed in handoff 15 | First collector target in backlog; fixture sender cross-builds |
+| ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
 | Frontend | Explicitly not finalized | Reserve dashboard surface; no framework selected |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
 

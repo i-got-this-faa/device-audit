@@ -15,3 +15,24 @@ jobs:
         with:
           python-version: '3.12'
       - run: make check cross-build demo
+  dataset-reproduction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download the pinned public Backblaze archive
+        run: >-
+          curl --fail --location --retry 3
+          --output "$RUNNER_TEMP/backblaze-2013.zip"
+          https://f001.backblazeb2.com/file/Backblaze-Hard-Drive-Data/data_2013.zip
+      - name: Reproduce real-source partition manifests
+        env:
+          PYTHONPATH: models/src
+        run: >-
+          python -m device_audit_models.partitions
+          --archive "$RUNNER_TEMP/backblaze-2013.zip"
+          --policy models/datasets/backblaze-2013/policy.json
+          --verify models/datasets/backblaze-2013/partitions.json

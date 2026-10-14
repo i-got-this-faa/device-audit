@@ -1,0 +1,2 @@
+# The reproducibility check and published manifest digest require stable bytes.
+models/datasets/**/*.json text eol=lf
