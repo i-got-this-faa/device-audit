@@ -44,3 +44,30 @@ MiB per reference, and a time window; raw logs are excluded. These choices are
 provisional and platform-neutral pending the missing patent PDF and unresolved
 release platform/hardware scope from #14. They do not settle enrollment,
 network identity, signature, or chain policies.
+
+## Provisional prediction contract v2
+
+Task #16 proposes a separate `device-audit.prediction.v2` contract and leaves
+v1 types and fixture behavior intact. Predictions bind an opaque device ID,
+model version plus artifact SHA-256 when a model is available, evidence digest,
+telemetry schema version, generated/expiry timestamps, health state, and bounded
+fault forecasts. Evidence must reference `device-audit.telemetry.v2` in this
+proposal. `healthy`, `degraded`, and `critical` states carry a numeric probability
+from 0 through 1, the explicit `probability` unit, and a positive horizon in
+hours; they also require model and evidence references. `unknown` carries null
+probability and horizon plus `insufficient_evidence`, `model_unavailable`, or
+`stale_evidence`; a null model reference is required for `model_unavailable`.
+Unknown predictions may not carry fault forecasts. Other unknown reasons may
+retain a selected model reference as provenance.
+
+Forecasts are limited to eight entries from the provisional set
+`cpu`, `gpu`, `memory`, `storage`, `battery`, `thermal`, and `network`. Each has
+its own probability unit and positive horizon; a category may recur at
+different horizons. These fields do not claim
+calibration: no health thresholds, probability relationships, or sum-to-one
+constraint are selected. Expiry is stale at the exact `expires_at` instant;
+`IsStale(now)` takes its clock explicitly. Timestamp ordering and Go's zero-time
+instant check are semantic Go validation rules because JSON Schema checks only
+date-time syntax. Shared prediction vectors are validated by Go and Python.
+These are provisional choices pending decisions #14/#22 and the missing patent
+PDF, not patent compliance evidence or a production model capability.

@@ -54,3 +54,27 @@ regression. Fixture and endpoint are provenance labels only. Inventory/device
 IDs are application identifiers; this schema says
 nothing about network authentication, device signatures, or chain identity,
 and no device identifier or raw log belongs on-chain.
+
+## Provisional prediction v2
+
+`PredictionV2` and `prediction-v2.schema.json` define a separately versioned
+proposal; the existing v1 types and fixture demo remain available. Known health
+states (`healthy`, `degraded`, `critical`) carry probability in the explicit
+`probability` unit and a positive horizon in hours, and require a model artifact
+reference and telemetry evidence reference. Unknown health carries null risk
+and horizon with an explicit reason, and has no fault forecasts. Every payload
+requires evidence bound to `device-audit.telemetry.v2`; model reference is
+nullable for unknown output, including required null when the reason is
+`model_unavailable`.
+
+At most eight fault forecasts can use the provisional categories
+`cpu`, `gpu`, `memory`, `storage`, `battery`, `thermal`, and `network`. Each
+forecast carries an independent probability and positive horizon. No thresholds,
+calibration, relation between health and fault probabilities, or sum-to-one
+rule is defined. `IsStale(now)` returns true at and after `expires_at`; callers
+supply the clock. Go validation also rejects zero timestamps and expiry that is
+not after generation, semantic checks not expressible portably in this JSON
+Schema. Shared vectors are checked by Go strict decoding/validation and Python
+Draft 2020-12 validation. The shape and categories remain provisional pending
+#14/#22 and the missing patent PDF; this contract does not imply a trained or
+production prediction capability.

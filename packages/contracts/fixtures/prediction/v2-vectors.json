@@ -1,0 +1,1012 @@
+{
+  "vectors": [
+    {
+      "name": "known risk is numeric zero",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unknown health keeps risk null",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": "insufficient_evidence"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "fault forecast",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "thermal",
+            "probability": 0.2,
+            "probability_unit": "probability",
+            "horizon_hours": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "unsupported version",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v1",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unsupported probability unit",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "percent",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "missing horizon",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "zero horizon",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 0
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "risk above one",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 1.1,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unknown with fabricated probability",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24,
+          "unknown_reason": "model_unavailable"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unknown missing reason",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unknown with forecasts",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": "stale_evidence"
+        },
+        "forecasts": [
+          {
+            "category": "cpu",
+            "probability": 0.2,
+            "probability_unit": "probability",
+            "horizon_hours": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "unsupported category",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "disk",
+            "probability": 0.2,
+            "probability_unit": "probability",
+            "horizon_hours": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "incompatible evidence version",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v1"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "malformed model reference",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "bad"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "malformed evidence reference",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bad",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "known without model",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "missing evidence",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": null,
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "malformed timestamp",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "tomorrow",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "known without numeric risk",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "device ID trailing newline",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01\n",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "evidence digest trailing newline",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "health horizon exceeds uint32",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 4294967296
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "forecast horizon exceeds uint32",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "cpu",
+            "probability": 0.7,
+            "probability_unit": "probability",
+            "horizon_hours": 4294967296
+          }
+        ]
+      }
+    },
+    {
+      "name": "repeated category at separate horizons",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "thermal",
+            "probability": 0.8,
+            "probability_unit": "probability",
+            "horizon_hours": 6
+          },
+          {
+            "category": "thermal",
+            "probability": 0.9,
+            "probability_unit": "probability",
+            "horizon_hours": 24
+          }
+        ]
+      }
+    },
+    {
+      "name": "forecast missing probability",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "cpu",
+            "probability_unit": "probability",
+            "horizon_hours": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "forecast null probability",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          {
+            "category": "cpu",
+            "probability": null,
+            "probability_unit": "probability",
+            "horizon_hours": 6
+          }
+        ]
+      }
+    },
+    {
+      "name": "forecast scalar entry",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": [
+          "cpu"
+        ]
+      }
+    },
+    {
+      "name": "known health with unknown_reason present",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24,
+          "unknown_reason": ""
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "known health with unknown_reason non-empty",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24,
+          "unknown_reason": "stale_evidence"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "unknown empty reason",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": ""
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "model unavailable requires null model",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": "model_unavailable"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "model reference missing version",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "model version 128 unicode scalars",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "model version over 128 unicode scalars",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "model unavailable with null model",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": null,
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": "model_unavailable"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "stale evidence retains model provenance",
+      "valid": true,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "unknown",
+          "probability": null,
+          "probability_unit": "probability",
+          "horizon_hours": null,
+          "unknown_reason": "stale_evidence"
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "missing model_reference property",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": []
+      }
+    },
+    {
+      "name": "forecasts scalar",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": {
+          "status": "healthy",
+          "probability": 0,
+          "probability_unit": "probability",
+          "horizon_hours": 24
+        },
+        "forecasts": "none"
+      }
+    },
+    {
+      "name": "health scalar",
+      "valid": false,
+      "prediction": {
+        "schema_version": "device-audit.prediction.v2",
+        "device_id": "asset:opaque-01",
+        "model_reference": {
+          "version": "model-1",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "evidence": {
+          "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "telemetry_schema_version": "device-audit.telemetry.v2"
+        },
+        "generated_at": "2026-10-13T06:00:00Z",
+        "expires_at": "2026-10-14T06:00:00Z",
+        "health": "healthy",
+        "forecasts": []
+      }
+    }
+  ]
+}
