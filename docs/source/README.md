@@ -16,7 +16,15 @@ The user's browser was unavailable: T3 preview status and open both reported
 that no desktop automation host was connected. Repository/project inspection
 used GitHub/API/public web content instead.
 
-Original source pending: `file:///home/radhey/Downloads/patent.pdf`. That local
-path belongs to another machine and is not mounted in this environment. No
-source PDF or claims were fabricated or silently replaced with transcript text.
-Attach the original PDF before verifying exact patent scope.
+The supplied PDF is available at `/home/radhey/Downloads/patent.pdf` (31
+pages, 595,967 bytes). Its SHA-256 digest is
+`f06a9046a10b76495176303c228cdcfe8a0bbe560efe564782055908f8a0a771`.
+[`patent-map.md`](patent-map.md) indexes its claims, paragraphs, and figures
+with PDF and printed-page references.
+
+The supplied PDF is primary for patent-specific text, labels, and figure
+availability. The handoff transcript, earlier maps, and planning notes are
+secondary context. Project requirements and decisions govern implementation
+scope. Provenance and page indexing are complete; claim-to-scope reconciliation
+remains pending in [issue #72](https://github.com/i-got-this-faa/device-audit/issues/72).
+The inventory does not determine claim coverage.

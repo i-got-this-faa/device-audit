@@ -8,9 +8,11 @@ autonomous diagnostic workflows → federated local training and aggregation →
 audit recommendations → lifecycle and sustainability analysis.
 
 This repository is an engineering starting point. The original `patent.pdf`
-was not available when it was created. [Requirements](docs/requirements.md) are
-provisional, drawn from the supplied handoff and Shepherd's engineering map.
-PDF verification is the first item in the [backlog](docs/backlog.md).
+was not available when it was created. Its [provenance and reference
+inventory](docs/source/patent-map.md) are now verified against the supplied PDF.
+[Requirements](docs/requirements.md) remain provisional until
+[issue #72](https://github.com/i-got-this-faa/device-audit/issues/72) reconciles
+the source with project scope. No patent conformance is claimed.
 
 ## Start locally
 

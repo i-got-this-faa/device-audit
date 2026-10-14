@@ -2,9 +2,12 @@
 
 Source priority: original patent PDF → explicit current user instructions →
 latest explicit handoff decisions → earlier discussion and Shepherd documents.
-The PDF is missing from this environment. The supplied transcript and
-Shepherd's patent map are secondary interpretations, not verified claim text.
-No claim number, document date, or legal coverage is asserted here.
+The original PDF is available at `/home/radhey/Downloads/patent.pdf`. Its
+provenance and complete claim, paragraph, and available-figure index are in
+[`source/patent-map.md`](source/patent-map.md). The provenance and page index
+are complete. This capability table remains provisional until the claims and
+metric definitions are reconciled with project scope under [issue #72](https://github.com/i-got-this-faa/device-audit/issues/72).
+The table does not assert legal coverage.
 
 | Capability described in secondary sources | Owner | Scaffold status | Acceptance evidence to build |
 | --- | --- | --- | --- |
@@ -27,10 +30,11 @@ and an LLM on every device are not prerequisites.
 
 ## PDF verification gate
 
-1. Obtain the original `patent.pdf` and record its SHA-256 digest.
-2. Extract all claims, referenced embodiments, diagrams and metric definitions.
-3. Replace this provisional map with exact page/paragraph/claim references.
-4. Reconcile differences with the transcript and explicitly record scope changes.
+1. [x] Obtain the original `patent.pdf` and record its SHA-256 digest; see the source inventory.
+2. [x] Index the printed claims, paragraphs, and available figures with PDF and printed-page references; see the source inventory.
+3. [ ] Map the indexed claim and description text, referenced embodiments, and metric definitions to project requirements and acceptance criteria.
+4. [ ] Reconcile differences with the transcript and record scope decisions under [issue #72](https://github.com/i-got-this-faa/device-audit/issues/72).
 
-Keep source document dates unresolved: Shepherd's map and the transcript give
-different dates. The PDF must settle this, not a guess from chat history.
+The source shows the patent agent's signature date as 12 June 2025. Filing and
+publication dates and grant status remain unverified; do not infer them from
+the transcript or Shepherd's map.
