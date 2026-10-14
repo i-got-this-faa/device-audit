@@ -1,0 +1,2 @@
+# Keep gofmt checks consistent when Git for Windows uses core.autocrlf=true.
+*.go text eol=lf
