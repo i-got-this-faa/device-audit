@@ -16,7 +16,10 @@ discussion can drift and does not automatically become product scope.
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17 | Selected direction; chain and contract implementation open |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Marked proposed in handoff | Initial schema candidate only; no runtime DB binding |
-| Windows-first | Marked proposed in handoff 15 | First collector target in backlog; fixture sender cross-builds |
+| Windows-first | Handoff 15 marks it proposed; the backlog prioritizes a Windows collector | Proposal, not approval. No Windows version/build, architecture, hardware class, or permission model is identified; the user confirmed on 14 October 2026 that no Windows machine is available. Qualification is blocked. See [release scope](roadmap/release-scope.md). |
+| Additional platforms | No handoff decision approves macOS, Linux, or other device families | Blocked, neither included nor excluded; target OS versions, hardware classes, permissions, and real machines are not selected. See [release scope](roadmap/release-scope.md). |
+| Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31 | Blocked pending #72 (SRC05) source reconciliation and explicit product selection; no adapter is selected. See [release scope](roadmap/release-scope.md). |
+| Independent network observation | Conditional scope is noted in the release context; no product decision or acceptance boundary is recorded | Blocked pending #72 and explicit product selection; endpoint telemetry, network identity, and chain verification do not imply it. See [release scope](roadmap/release-scope.md). |
 | Frontend | Explicitly not finalized | Reserve dashboard surface; no framework selected |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
 
