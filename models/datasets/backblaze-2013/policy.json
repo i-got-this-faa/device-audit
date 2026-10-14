@@ -1,0 +1,21 @@
+{
+  "schema_version": "device-audit.partitions.v1",
+  "source": {
+    "name": "Backblaze Drive Stats 2013",
+    "url": "https://f001.backblazeb2.com/file/Backblaze-Hard-Drive-Data/data_2013.zip",
+    "sha256": "7f5a53e79b16e695b4b034955806bb3bb194534b169f6eca460dfd3dc48096fe",
+    "daily_csv_count": 266,
+    "start": "2013-04-10",
+    "end": "2013-12-31",
+    "terms_url": "https://www.backblaze.com/cloud-storage/resources/hard-drive-test-data"
+  },
+  "device_hash_salt": "device-audit.ml01.backblaze-2013.v1",
+  "history_days": 7,
+  "horizon_days": 7,
+  "feature_columns": ["smart_5_raw", "smart_9_raw", "smart_187_raw", "smart_197_raw", "smart_198_raw"],
+  "splits": [
+    {"name": "train", "start": "2013-04-10", "end": "2013-08-31", "bucket_start": 0, "bucket_end": 7000},
+    {"name": "validation", "start": "2013-09-01", "end": "2013-10-31", "bucket_start": 7000, "bucket_end": 8500},
+    {"name": "test", "start": "2013-11-01", "end": "2013-12-31", "bucket_start": 8500, "bucket_end": 10000}
+  ]
+}
