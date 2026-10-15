@@ -105,7 +105,7 @@ func main() {
 	vectors := []vector{}
 	add := func(name string, value object, valid bool, key ed25519.PrivateKey, sigValid bool, sigError string, last uint64, now, rejection string) {
 		v := vector{Name: name, Envelope: value, ContractValid: valid, VerificationKey: hex.EncodeToString(key[32:]), SignatureValid: sigValid, SignatureError: sigError, Now: now, LastSequence: last, FreshnessRejection: rejection}
-		if valid {
+		if valid || sigValid {
 			v.CanonicalHex = hex.EncodeToString(canonical(value))
 			if value["schema_version"] != ack {
 				v.RequestSHA256 = fingerprint(value)
@@ -206,6 +206,35 @@ func main() {
 		invalid.change(changed)
 		add(invalid.name, changed, false, device, false, "", 0, now, "")
 	}
+
+	var telemetry object
+	if err := json.Unmarshal(payload, &telemetry); err != nil {
+		panic(err)
+	}
+	invalidLogReference := func(includeByteSize bool, byteSize any) object {
+		changed := clone(report)
+		payloadObject := clone(telemetry)
+		logReference := object{
+			"reference_id": "log:fixture",
+			"sha256":       digest([]byte("fixture log reference")),
+			"window_start": "2026-10-14T12:00:00Z",
+			"window_end":   "2026-10-14T12:00:01Z",
+		}
+		if includeByteSize {
+			logReference["byte_size"] = byteSize
+		}
+		payloadObject["log_references"] = []object{logReference}
+		invalidPayload, err := json.Marshal(payloadObject)
+		if err != nil {
+			panic(err)
+		}
+		changed["payload_base64"] = base64.StdEncoding.EncodeToString(invalidPayload)
+		changed["payload_sha256"] = digest(invalidPayload)
+		sign(changed, device)
+		return changed
+	}
+	add("signed evidence with missing log byte size", invalidLogReference(false, nil), false, device, true, "", 1, now, "")
+	add("signed evidence with null log byte size", invalidLogReference(true, nil), false, device, true, "", 1, now, "")
 	output := object{"description": "Public RFC 8032 test keys only. No live credentials. Schema, contract, signature and freshness are separate checks; no authorization or durable storage is implemented.", "vectors": vectors}
 	encoded, err := json.MarshalIndent(output, "", "  ")
 	if err != nil {

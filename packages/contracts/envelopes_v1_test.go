@@ -80,6 +80,31 @@ func TestEnvelopeV1GoldenVectors(t *testing.T) {
 				t.Fatalf("contract valid=%t want %t: %v", err == nil, vector.ContractValid, err)
 			}
 			if !vector.ContractValid {
+				if vector.SignatureValid {
+					report, ok := envelope.(*EvidenceEnvelopeV1)
+					if !ok {
+						t.Fatal("invalid contract vector unexpectedly marked signature-valid")
+					}
+					canonical, err := report.SigningBytes()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if hex.EncodeToString(canonical) != vector.CanonicalHex {
+						t.Fatalf("canonical bytes changed: %x", canonical)
+					}
+					key, err := hex.DecodeString(vector.VerificationKey)
+					if err != nil {
+						t.Fatal(err)
+					}
+					signature, err := hex.DecodeString(report.Signature)
+					if err != nil || !ed25519.Verify(key, canonical, signature) {
+						t.Fatalf("invalid evidence fixture signature: %v", err)
+					}
+					requestDigest, err := EnvelopeRequestSHA256V1(canonical, report.Signature)
+					if err != nil || requestDigest != vector.RequestSHA256 {
+						t.Fatalf("request digest=%s want %s: %v", requestDigest, vector.RequestSHA256, err)
+					}
+				}
 				return
 			}
 			canonical, err := envelope.SigningBytes()

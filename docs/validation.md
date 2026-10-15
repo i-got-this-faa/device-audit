@@ -115,14 +115,17 @@ no repository dependency was added. The final check command was:
   CC=/nix/store/79mr0jw3qccq7hhf1hh62knxd88dwazc-gcc-wrapper-15.3.0/bin/gcc
 ```
 
-Go vet, all Go race tests, the formatting check, all eight Python tests through
-`model-check`, Windows amd64 and macOS arm64 endpoint builds passed. Python
-dependency consistency and `git diff --check` passed. Regenerating the vectors
-with `go run packages/contracts/fixtures/envelopes/generate.go` produced identical
+Go vet, all Go race tests, formatting, all 22 Python tests on the stacked
+worktree through `model-check`, Windows amd64 and macOS arm64 endpoint builds
+passed. Python dependency consistency and `git diff --check` passed.
+Regenerating the vectors with
+`go run packages/contracts/fixtures/envelopes/generate.go` produced identical
 bytes.
 
-The 59 shared vectors include 36 structurally/semantically valid envelopes and
-23 invalid envelopes. Valid structure does not mean an accepted request. Go
+The 61 shared vectors include 36 structurally/semantically valid envelopes and
+25 invalid envelopes. Valid structure does not mean an accepted request. The
+signed evidence vectors also cover missing and null telemetry log byte sizes;
+both fail Go, JSON Schema and Python validation. Go
 checks real Ed25519 signatures against fixed public RFC 8032 test keys; Python's
 test reader independently checks schemas, semantic invariants, canonical bytes,
 request fingerprints, acknowledgement correlation and pure freshness outcomes.
