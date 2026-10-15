@@ -1,9 +1,11 @@
 # Focused implementation backlog
 
-Items are unscheduled until the PDF and delivery constraints are verified.
+Items are unscheduled until claim-to-scope reconciliation and delivery constraints are verified.
 
-1. **Source verification:** obtain the PDF, hash it, map exact requirements,
-   settle patent-specific scope and acceptance criteria.
+1. **Source verification:** provenance and the printed-page index are complete
+   in [`source/patent-map.md`](source/patent-map.md). Reconcile the claims and
+   metric definitions to project requirements, and settle scope and acceptance
+   criteria under [issue #72](https://github.com/i-got-this-faa/device-audit/issues/72).
 2. **Network spike:** implement the Tailcat adapter and self-hosted DERP using
    a tested pinned revision; verify key persistence, admission, identity binding,
    revocation, reconnect, direct LAN/WAN and UDP-blocked relay operation.
