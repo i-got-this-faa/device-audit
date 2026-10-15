@@ -98,3 +98,50 @@ prediction path is supplied. Portable JSON Schema checks date-time syntax;
 Go also rejects zero instants and non-increasing validity windows. Dataset and
 horizon selection, health thresholds, release scope and the patent PDF remain
 unresolved. #16's merged-PR definition of done remains outstanding.
+
+## Provisional signed envelopes v1, #75
+
+Validated locally on 2026-10-15 in the separate `issue-75-envelopes` worktree,
+based on `f1615d8`, with Go 1.27.1 on Linux amd64 and Python 3.13.15. The
+installed Nix Go launcher resolved the module's requested toolchain. Existing
+pinned Python test dependencies were installed in a temporary virtual environment;
+no repository dependency was added. The final check command was:
+
+```sh
+/nix/store/c011mk580m964s1zxjccvdax3fcmppnl-gnumake-4.4.1/bin/make \
+  check cross-build \
+  GO=/nix/store/h3rc4y3szd0391wryw9hslrijdvni030-go-1.26.8/share/go/bin/go \
+  PYTHON=/tmp/device-audit-75-python/venv/bin/python \
+  CC=/nix/store/79mr0jw3qccq7hhf1hh62knxd88dwazc-gcc-wrapper-15.3.0/bin/gcc
+```
+
+Go vet, all Go race tests, the formatting check, all eight Python tests through
+`model-check`, Windows amd64 and macOS arm64 endpoint builds passed. Python
+dependency consistency and `git diff --check` passed. Regenerating the vectors
+with `go run packages/contracts/fixtures/envelopes/generate.go` produced identical
+bytes.
+
+The 59 shared vectors include 36 structurally/semantically valid envelopes and
+23 invalid envelopes. Valid structure does not mean an accepted request. Go
+checks real Ed25519 signatures against fixed public RFC 8032 test keys; Python's
+test reader independently checks schemas, semantic invariants, canonical bytes,
+request fingerprints, acknowledgement correlation and pure freshness outcomes.
+Python does not verify signatures. Coverage includes wrong keys, changed signing
+fields, altered payloads with stale/recomputed digests, explicit signed rejection
+reasons, consumed sequences, supplied restart high-water marks, exact expiry/skew
+boundaries, sequence gaps and limits, null versus known-zero marks, and missing
+or inconsistent acknowledgement fields.
+
+Go also checks strict JSON/duplicate rejection, payload size and UTF-8 boundaries,
+wrong signers and domains, unsigned construction, rejection correlation for an
+invalid body, invalid receiver clocks/state and decode reuse. Python independently
+rejects duplicate keys, trailing JSON and noninteger sequence tokens. Binding
+conflicts and challenge admission remain documented provisional classifications;
+the validators neither decide admission nor mutate state.
+
+This is component-level contract evidence. Restart inputs in fixtures do not
+prove real durable restart/restore, concurrency, enrollment, authenticated mesh
+traffic or key storage. Another owner's sequence/restart review is still required
+before consumers. #17 controller/fake-server behavior, the in-progress #80 harness,
+issue metadata and runtime routes are unchanged. No production or patent
+verification claim follows; #14 and the original PDF remain unresolved.

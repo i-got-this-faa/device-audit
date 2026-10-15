@@ -23,9 +23,10 @@ attestation. The supplied PDF's provenance is indexed in
 reconciliation remains #72. This conformance work makes no patent claim.
 
 The demo digest is SHA-256 of `json.Marshal(Telemetry)` after validation. It is
-specific to this Go representation. Define a cross-language canonical encoding,
-domain separator, policy/schema/model version binding, signature and replay
-protocol before using a digest in security decisions or smart contracts.
+specific to this Go representation. The separate envelope proposal below defines
+canonical signing bytes for enrollment/evidence and acknowledgements. It is not
+wired into the demo, and the demo digest is not a signed evidence commitment.
+Smart-contract commitments and policy/model binding remain separate work.
 
 ## Provisional telemetry and inventory v2
 
@@ -158,3 +159,45 @@ chain payloads or network credentials. Future chain adapters need a separate
 commitment format. Nothing here authenticates a network peer, verifies a device
 signature, implements anchoring, or establishes patent compliance. The original
 patent PDF remains unavailable.
+## Provisional signed envelopes v1, #75
+
+[The specification](envelopes-v1.md) defines `device-audit.enrollment.v1`,
+`device-audit.evidence.v1` and `device-audit.acknowledgement.v1`, with corresponding
+JSON Schemas and Go types in `envelopes_v1.go`. It specifies Ed25519, SHA-256 key
+fingerprints, length-prefixed domain-separated signing bytes, exact telemetry
+payload byte digests, bounded UTC timestamps, durable per-device sequences and
+controller-signed acceptance/rejection correlation. Application signing identities
+remain separate from bootstrap, TLS, mesh credentials and chain signing.
+
+`Validate()` checks structure and semantic invariants; `SigningBytes()` checks
+the signed fields and supports unsigned construction and rejection correlation
+even for a mismatched key fingerprint or invalid evidence body. Senders must
+validate the completed envelope. `VerifySignature(trustedKey)` validates it and
+checks the key fingerprint and real Ed25519 signature.
+`FreshnessRejection(now, durableMark)` is
+a pure policy check with an explicit clock and no state mutation. None of these
+functions enrolls, authorizes, persists, handles revocation or admits a peer.
+Consumers must atomically compare-and-commit state before accepting a request.
+Binding conflicts and challenge admission remain outside the freshness helper;
+acknowledgements carry their provisional rejection classifications explicitly.
+
+Go and the Python test reader consume `fixtures/envelopes/v1-vectors.json`.
+Go verifies signatures. Python uses the existing test-only schema dependency
+and stdlib hashing/framing to independently check semantic validity, canonical
+bytes, fingerprints, acknowledgement correlation and freshness. Python does not
+authenticate signatures. JSON Schema alone cannot enforce digest/key matches,
+payload decoding/validation, time ordering/lifetimes, field equality or durable
+replay state. Duplicate JSON keys and integer token syntax need strict readers.
+
+Regenerate the public RFC 8032 test-key vectors from the repository root:
+
+```sh
+go run packages/contracts/fixtures/envelopes/generate.go
+make check cross-build
+```
+
+These choices remain provisional and require another owner's sequence/restart
+review before consumers. Controller/fake-server work in #17 and the #80
+conformance harness are unchanged. Production key storage, bootstrap/challenge
+issuance, durable persistence, recovery/rotation and restart/restore integration
+remain dependencies, not capabilities supplied by these contract tests.

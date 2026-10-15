@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "device-audit.acknowledgement.v1",
+  "description": "Provisional #75 contract. See envelopes-v1.md for canonical bytes, semantic validation, trust, time and durable sequence rules. JSON Schema alone does not verify signatures or replay.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "deployment_id",
+    "device_id",
+    "controller_key_id",
+    "request_schema_version",
+    "request_key_id",
+    "request_sequence",
+    "request_sha256",
+    "received_at",
+    "status",
+    "rejection_reason",
+    "last_sequence",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "device-audit.acknowledgement.v1"
+    },
+    "deployment_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+    },
+    "device_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+    },
+    "controller_key_id": {
+      "type": "string",
+      "pattern": "^ed25519:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "request_schema_version": {
+      "enum": [
+        "device-audit.enrollment.v1",
+        "device-audit.evidence.v1"
+      ]
+    },
+    "request_key_id": {
+      "type": "string",
+      "pattern": "^ed25519:[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "request_sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z(?![\\s\\S])"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "rejected"
+      ]
+    },
+    "rejection_reason": {
+      "description": "Provisional reported outcome, not an admission decision by this schema. enrollment_conflict concerns binding admission; replay concerns the consumed sequence at freshness checking. See envelopes-v1.md.",
+      "enum": [
+        null,
+        "invalid_signature",
+        "key_mismatch",
+        "payload_digest_mismatch",
+        "replay",
+        "expired",
+        "future_timestamp",
+        "unknown_device",
+        "revoked_key",
+        "deployment_mismatch",
+        "bootstrap_invalid",
+        "challenge_expired",
+        "challenge_reused",
+        "enrollment_conflict",
+        "unauthorized_peer",
+        "storage_unavailable",
+        "invalid_payload"
+      ]
+    },
+    "last_sequence": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}(?![\\s\\S])"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "rejection_reason": {
+            "const": "replay"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "last_sequence": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "rejection_reason": {
+            "type": "null"
+          },
+          "last_sequence": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "rejection_reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "request_schema_version": {
+            "const": "device-audit.enrollment.v1"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "request_sequence": {
+            "const": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "request_sequence": {
+            "minimum": 2
+          }
+        }
+      }
+    }
+  ]
+}

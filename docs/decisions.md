@@ -138,3 +138,37 @@ These are provisional contract choices for review, not a production evaluator,
 validated sustainability methodology, calibrated longevity model, fleet trend
 service, or patent verification. No raw logs or device IDs are chain payloads;
 network identity, device signatures, and future commitments remain separate.
+## Provisional enrollment, evidence and acknowledgements, #75
+
+[The envelope specification](../packages/contracts/envelopes-v1.md) builds on
+#73's single-organization deployment boundary and #15's telemetry v2 proposal.
+Enrollment, evidence and controller acknowledgements have separate v1 namespaces.
+Pure Ed25519 from Go's standard library and SHA-256 key fingerprints are selected
+provisionally, with a fixed application domain separator and length-prefixed
+signing fields. Evidence binds the digest of exact telemetry JSON bytes, avoiding
+an unselected cross-language JSON number canonicalization scheme.
+[RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html) and
+[Go's Ed25519 documentation](https://pkg.go.dev/crypto/ed25519) support the
+algorithm choice; neither establishes a patent requirement, production key
+storage, release-machine suitability, or an approved organizational policy.
+
+Sequences are scoped to deployment/device across restarts and keys. Enrollment
+starts at 1, evidence at 2, gaps are allowed, and accepted responses require an
+atomic durable commit with the high-water mark. Rejection never advances it.
+A lost response can produce a replay rejection; that is not proof of receipt
+of the pending payload. Recovery and authenticated receipt lookup remain open.
+`enrollment_conflict` provisionally describes a binding admission conflict;
+`replay` describes a consumed sequence at freshness checking. The pure helpers
+cannot decide admission or challenge state, and the schemas only carry outcomes.
+Whole-second UTC timestamps, a five-minute future-skew allowance and maximum
+lifetimes of ten minutes for enrollment and 24 hours for evidence are provisional
+contract bounds. Nullable telemetry values and their explicit units are retained.
+
+Application signing keys, mesh/network credentials, bootstrap authorization and
+future chain signing remain separate. No secret bootstrap or mesh credential is
+placed in the envelopes. Another owner must review sequence, lost-response,
+restart and restore semantics before consumer implementation. Durable storage,
+challenge issuance, authorization, rotation/revocation, protected key storage and
+real restart/restore tests remain unimplemented. #17 and the in-progress #80
+harness are not implemented or changed by #75; #14 and PDF verification remain
+unresolved.
