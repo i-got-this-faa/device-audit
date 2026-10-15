@@ -15,7 +15,7 @@ discussion can drift and does not automatically become product scope.
 | Local training + central aggregation | Handoff 15–17 patent interpretation | Core product capability, exact PDF references pending |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17 | Selected direction; chain and contract implementation open |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
-| PostgreSQL | Marked proposed in handoff | Initial schema candidate only; no runtime DB binding |
+| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
 | Windows-first | Handoff 15 marks it proposed; the backlog prioritizes a Windows collector; on 14 October 2026 the owner supplied a Windows session for validation | One HP Victus development laptop is available: Windows 11 25H2 build 26200.9457, x64, standard-user access. Native fixture execution and source-availability checks are recorded in [Windows evidence](validation/windows-2026-10-14.md), superseding the earlier no-machine blocker. Final release scope, production permissions and collector/service qualification remain open. See [release scope](roadmap/release-scope.md). |
 | Additional platforms | No handoff decision approves macOS, Linux, or other device families | Blocked, neither included nor excluded; target OS versions, hardware classes, permissions, and real machines are not selected. See [release scope](roadmap/release-scope.md). |
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31 | Blocked pending #72 (SRC05) source reconciliation and explicit product selection; no adapter is selected. See [release scope](roadmap/release-scope.md). |
@@ -29,6 +29,46 @@ demo, Go 1.27.1 aligned with Shepherd/Tailcat, an ephemeral bounded sample store
 strict versioned inputs, and explicit errors for unavailable mesh transport.
 These choices do not settle production hosting, tenancy, identity, model
 runtime, chain, frontend or collector cadence.
+
+## Provisional hosting, persistence and tenancy, #73
+
+[Issue #73](https://github.com/i-got-this-faa/device-audit/issues/73) requires
+hosting and access boundaries. As of 2026-10-15, its dependency
+[#14](https://github.com/i-got-this-faa/device-audit/issues/14) remains open
+without a recorded release-platform decision. The following choices are
+provisional and reversible, made here for implementation planning rather than
+inherited as approved handoff decisions.
+
+- Use one organization per deployment, with a dedicated controller, database,
+  mesh identities and secrets. Shared multi-tenant hosting is deferred. The
+  candidate schema has no tenant boundary, so request-supplied organization IDs
+  cannot authorize access or turn this into a shared service.
+- Start with one controller service and one PostgreSQL service on a private
+  host, with a persistent database volume. Put the self-hosted DERP service on
+  a separate public host without database access or application credentials.
+  Expose authenticated bootstrap and administrator access through an HTTPS
+  proxy to the private controller. Steady-state device traffic uses the mesh.
+- Select PostgreSQL provisionally for durable controller records because a
+  relational schema candidate already exists. A controller restart must retain
+  committed records, enrollment and revocation state. Database unavailability
+  must fail writes rather than acknowledge volatile storage. Restart and backup
+  assumptions are in [the database plan](../infra/database/README.md).
+- The deployment operator owns server configuration, TLS, database and backup
+  secrets. Endpoints own their local private keys. Mesh credentials, device
+  signing keys and any future chain signer remain separate. Exposure and
+  allowed/denied request cases are in [the networking plan](../infra/networking/README.md).
+
+The current loopback fixture still loses samples on restart. Database binding,
+authentication, enrollment, relay deployment and these access rules are not
+implemented. No production capability or patent verification is established.
+The original patent PDF remains missing and its verification gate is unchanged.
+
+Final release hosting remains blocked on #14's OS/hardware, real-machine and
+conditional asset/observation scope. Revisit this plan after #14 and PDF
+verification; neither is resolved here. Provider, host OS, sizing, availability
+and recovery objectives remain open. Acceptance evidence still needs database
+restart/restore results, authenticated access denials, secret rotation/revocation
+checks and direct/relay connectivity on the selected release machines.
 
 ## Provisional telemetry/inventory contract v2
 
