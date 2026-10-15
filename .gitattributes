@@ -1,2 +1,4 @@
+# Keep gofmt checks consistent when Git for Windows uses core.autocrlf=true.
+*.go text eol=lf
 # The reproducibility check and published manifest digest require stable bytes.
 models/datasets/**/*.json text eol=lf

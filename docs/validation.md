@@ -1,5 +1,8 @@
 # Initial scaffold validation
 
+Follow-up: [Windows development-machine evidence, 14 October 2026](validation/windows-2026-10-14.md)
+records native Windows execution, available hardware and remaining qualification gates.
+
 Local run on 2026-10-13 with Go 1.27.1 on Linux amd64 and Python 3.12.3:
 
 ```text
