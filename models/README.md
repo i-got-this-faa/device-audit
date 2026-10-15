@@ -13,3 +13,9 @@ health mapping, calibration, resource budget and artifact schema. Measure a
 custom baseline before adopting a larger architecture. Local training returns
 model updates; round coordination, model promotion, privacy and poisoning
 protections remain separate work.
+
+ML01's [dataset, label and leakage-safe partition decision](datasets/backblaze-2013/README.md)
+pins a real historical HDD corpus and a seven-day recorded-event target.
+`partitions.py` builds and verifies its deterministic device/temporal evidence
+indexes. It does not train a model or map SMART values to the fixture endpoint;
+the decision records the remaining labels, telemetry and evaluation blockers.

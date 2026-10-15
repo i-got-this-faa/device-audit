@@ -1,0 +1,63 @@
+name: Reconcile project 7
+
+on:
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled, assigned, unassigned, milestoned, demilestoned, transferred]
+  # Runs trusted default-branch code, never the PR branch or its dependencies.
+  pull_request_target:
+    types: [opened, edited, closed, reopened, ready_for_review, converted_to_draft, labeled, unlabeled, assigned, unassigned, milestoned, demilestoned]
+  push:
+    branches: [main]
+    paths: [tools/project-sync.mjs, .github/workflows/project-sync.yml]
+  # Native dependency edits and project drags have no matching Actions trigger.
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the plan (false only previews it)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: device-audit-project-7
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    # Activation is explicit; credentials are never copied from a developer login.
+    if: vars.PROJECT_AUTOMATION_ENABLED == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Reconcile trusted metadata
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
+        shell: bash
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo '::error::Set PROJECT_AUTOMATION_TOKEN as documented in docs/project-automation.md.'
+            exit 1
+          fi
+          args=(--output "$RUNNER_TEMP/project-plan.json")
+          if [ "$APPLY" = true ]; then args+=(--apply); fi
+          node tools/project-sync.mjs "${args[@]}"
+      - name: Save reconciliation proof
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: project-7-plan
+          path: ${{ runner.temp }}/project-plan.json
+          if-no-files-found: ignore
+          retention-days: 14
