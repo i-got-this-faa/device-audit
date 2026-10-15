@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "device-audit.prediction.v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "device_id",
+    "model_reference",
+    "evidence",
+    "generated_at",
+    "expires_at",
+    "health",
+    "forecasts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "device-audit.prediction.v2"
+    },
+    "device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+    },
+    "model_reference": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/modelReference"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "health": {
+      "$ref": "#/$defs/health"
+    },
+    "forecasts": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/forecast"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "health": {
+            "properties": {
+              "unknown_reason": {
+                "const": "model_unavailable"
+              }
+            },
+            "required": [
+              "unknown_reason"
+            ]
+          }
+        },
+        "required": [
+          "health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "model_reference": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "health": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "health"
+        ]
+      },
+      "then": {
+        "properties": {
+          "forecasts": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "model_reference": {
+            "$ref": "#/$defs/modelReference"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}(?![\\s\\S])"
+    },
+    "modelReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "sha256"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "digest",
+        "telemetry_schema_version"
+      ],
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "telemetry_schema_version": {
+          "const": "device-audit.telemetry.v2"
+        }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "probability",
+        "probability_unit",
+        "horizon_hours"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unknown",
+            "healthy",
+            "degraded",
+            "critical"
+          ]
+        },
+        "probability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probability_unit": {
+          "const": "probability"
+        },
+        "horizon_hours": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "unknown_reason": {
+          "enum": [
+            "insufficient_evidence",
+            "model_unavailable",
+            "stale_evidence"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "unknown_reason"
+            ],
+            "properties": {
+              "probability": {
+                "type": "null"
+              },
+              "horizon_hours": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "healthy",
+                  "degraded",
+                  "critical"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "unknown_reason"
+              ]
+            },
+            "properties": {
+              "probability": {
+                "type": "number"
+              },
+              "horizon_hours": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              }
+            }
+          }
+        }
+      ]
+    },
+    "forecast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category",
+        "probability",
+        "probability_unit",
+        "horizon_hours"
+      ],
+      "properties": {
+        "category": {
+          "enum": [
+            "cpu",
+            "gpu",
+            "memory",
+            "storage",
+            "battery",
+            "thermal",
+            "network"
+          ]
+        },
+        "probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "probability_unit": {
+          "const": "probability"
+        },
+        "horizon_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    }
+  }
+}

@@ -76,3 +76,25 @@ The v2 contract is a platform-neutral proposal. It is not bound to the
 controller or an actual collector. JSON Schema does not enforce timestamp
 ordering or Go's zero-instant policy. Release scope from #14 and the patent
 PDF remain unresolved; #15's merged-PR definition of done is outstanding.
+
+## Provisional prediction/forecast v2, #16
+
+Validated locally on 2026-10-14 with Go 1.27.1 and Python 3.13.15 using the
+Nix shell and temporary Python test environment described above. The same
+`make check cross-build demo` command passed: Go vet/race/format checks, five
+Python tests, Windows/macOS endpoint builds, and the actual v1 binary fixture
+round trip. `git diff --check` also passed.
+
+Go and Python JSON Schema validation share 39 prediction vectors, seven valid
+and 32 invalid. Coverage includes unknown null risk versus known zero risk,
+model/evidence/version references, units, horizons, bounded forecasts, exact
+field spellings, null/missing fields, Unicode version lengths and identifier/
+digest boundaries. Go tests also verify direct construction, serialization,
+decode reuse, timestamp ordering, zero timestamps and the exact expiry boundary
+using a supplied clock.
+
+These are illustrative wire-contract examples. No trained model or runtime
+prediction path is supplied. Portable JSON Schema checks date-time syntax;
+Go also rejects zero instants and non-increasing validity windows. Dataset and
+horizon selection, health thresholds, release scope and the patent PDF remain
+unresolved. #16's merged-PR definition of done remains outstanding.
