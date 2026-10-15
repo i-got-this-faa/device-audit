@@ -9,10 +9,12 @@ function issue(number, changes = {}) {
   return {id:`I${number}`,databaseId:1000+number,number,title:`Task ${number}`,
     body:'## Dependencies\n\n- None\n\n## Evidence\n',state:'OPEN',stateReason:null,
     labels:connection(labels.map(name => ({name}))),blockedBy:connection([]),
+    assignees:connection([]),milestone:null,
     subIssues:connection([]),parent:null,repository:{nameWithOwner:REPOSITORY},...changes};
 }
 function pr(number, body, closing = [], changes = {}) {
   return {id:`PR${number}`,number,body,state:'OPEN',isDraft:false,headRefName:'work',
+    assignees:connection([]),milestone:null,
     labels:connection([]),closingIssuesReferences:connection(closing.map(number => ({number,repository:{nameWithOwner:REPOSITORY}}))),...changes};
 }
 function project(issues, statuses = {}) {
@@ -228,22 +230,105 @@ test('apply refuses a repository-only preview and rechecks changed PR descriptio
 });
 
 test('applying the plan converges to a no-op on the next read', () => {
-  const task = issue(1), pull = pr(8,'Refs #1');
+  const task = issue(1,{assignees:connection([{login:'owner'}]),milestone:{number:1}}), pull = pr(8,'Refs #1');
   const repository = {issues:[task],pullRequests:[pull]};
   const board = project([task],{1:'Backlog'});
   const result = buildPlan(repository,board);
   const api = (path,method,payload) => {
+    if (path.endsWith('/issues/8')) {
+      if (method === 'PATCH') pull.milestone = {number:payload.milestone};
+      return {assignees:pull.assignees.nodes,milestone:pull.milestone};
+    }
+    if (path.endsWith('/assignees')) {
+      pull.assignees.nodes.push(...payload.assignees.map(login => ({login})));
+      return {};
+    }
     if (path.endsWith('/labels')) {
       pull.labels.nodes.push(...payload.labels.map(name => ({name})));
       return [];
     }
     assert.equal(path,'graphql');
-    const {field,value} = payload.variables;
+    if (payload.query.includes('addProjectV2ItemById')) {
+      assert.equal(payload.variables.content,'PR8');
+      board.items.push({id:'ITEM8',isArchived:false,
+        content:{id:'PR8',number:8,repository:{nameWithOwner:REPOSITORY}},fieldValues:connection([])});
+      return {data:{addProjectV2ItemById:{item:{id:'ITEM8'}}}};
+    }
+    const {field,value,item} = payload.variables;
     const name = board.fields.nodes.find(item => item.id === field).name;
-    const old = board.items[0].fieldValues.nodes.find(item => item.field.name === name);
+    const target = board.items.find(target => target.id === item);
+    let old = target.fieldValues.nodes.find(item => item.field.name === name);
+    if (!old) { old = {field:{name}}; target.fieldValues.nodes.push(old); }
     old.optionId = value.singleSelectOptionId;
-    return {data:{updateProjectV2ItemFieldValue:{projectV2Item:{id:'ITEM1'}}}};
+    old.iterationId = value.iterationId;
+    return {data:{updateProjectV2ItemFieldValue:{projectV2Item:{id:item}}}};
   };
   applyPlan(result,repository,board,api);
   assert.deepEqual(buildPlan(repository,board).operations,[]);
+});
+
+test('PR ownership and milestone inherit only into blanks', () => {
+  const a = issue(1,{assignees:connection([{login:'alice'}]),milestone:{number:1}});
+  const b = issue(2,{assignees:connection([{login:'bob'},{login:'alice'}]),milestone:{number:1}});
+  const pull = pr(8,'Refs #1 and #2');
+  const changes = plan([a,b],[pull]).operations;
+  assert.deepEqual(changes.find(op => op.kind === 'assignees').add,['alice','bob']);
+  assert.equal(changes.find(op => op.kind === 'milestone').milestone,1);
+  pull.assignees = connection([{login:'manual'}]); pull.milestone = {number:3};
+  assert.ok(plan([a,b],[pull]).operations.every(op => !['assignees','milestone'].includes(op.kind)));
+});
+
+test('different or missing issue milestones never produce an arbitrary PR milestone', () => {
+  const a = issue(1,{milestone:{number:1}}), b = issue(2,{milestone:{number:2}});
+  for (const milestone of [{number:2},null]) {
+    b.milestone = milestone;
+    const result = plan([a,b],[pr(8,'Refs #1 and #2')]);
+    assert.ok(!result.operations.some(op => op.kind === 'milestone'));
+    assert.ok(result.warnings.some(warning => warning.includes('milestones')));
+  }
+});
+
+test('PR cards have their own review lifecycle without completing partial issues', () => {
+  const task = issue(1), pull = pr(8,'Refs #1');
+  for (const [state,isDraft,status] of [['OPEN',false,'In review'],['OPEN',true,'In progress'],['MERGED',false,'Done'],['CLOSED',false,'Backlog']]) {
+    Object.assign(pull,{state,isDraft});
+    const result = plan([task],[pull]);
+    assert.ok(result.operations.some(op => op.kind === 'item' && op.number === 8));
+    assert.equal(result.operations.find(op => op.kind === 'field' && op.number === 8 && op.field === 'Status').value.singleSelectOptionId,`Status:${status}`);
+    assert.notEqual(result.states[1],'Done');
+  }
+});
+
+test('archived PR cards stay archived and ambiguous taxonomy is preserved', () => {
+  const a = issue(1), b = issue(2,{labels:connection([{name:'kind:Spike'},{name:'weeks:3-4'}])});
+  const pull = pr(8,'Refs #1 and #2');
+  const board = project([a,pull]);
+  board.items[1].isArchived = true;
+  assert.ok(plan([a],[pr(8,'Refs #1')],board).operations.every(op => !['item','field'].includes(op.kind) || op.number !== 8));
+  const mixedBoard = project([a]);
+  mixedBoard.fields.nodes.find(field => field.name === 'Week').configuration.iterations.push({id:'W2',title:'Weeks 3-4: Telemetry'});
+  const result = plan([a,b],[pull],mixedBoard);
+  assert.ok(result.operations.every(op => op.number !== 8 || !['Kind','Week'].includes(op.field)));
+  assert.equal(result.warnings.filter(warning => warning.includes('multiple')).length,2);
+});
+
+test('apply preserves owners and milestone filled by a human after preview', () => {
+  const task = issue(1,{assignees:connection([{login:'alice'}]),milestone:{number:1}});
+  const repository = {issues:[task],pullRequests:[pr(8,'Refs #1')]};
+  const board = project([task]);
+  const result = buildPlan(repository,board);
+  result.operations = result.operations.filter(op => ['assignees','milestone'].includes(op.kind));
+  applyPlan(result,repository,board,(path,method = 'GET') => {
+    assert.equal(method,'GET');
+    return {assignees:[{login:'manual'}],milestone:{number:2}};
+  });
+});
+
+test('truncated assignee reads fail before planning and too many owners require triage', () => {
+  const task = issue(1,{assignees:{nodes:[],pageInfo:{hasNextPage:true}}});
+  assert.throws(() => readRepository(() => ({data:{repository:{issues:connection([task])}}})),/incomplete issues #1 assignees/);
+  task.assignees = connection(Array.from({length:11},(_,i) => ({login:`owner${i}`})));
+  const result = plan([task],[pr(8,'Refs #1')]);
+  assert.ok(!result.operations.some(op => op.kind === 'assignees'));
+  assert.ok(result.warnings.some(warning => warning.includes('ten issue owners')));
 });

@@ -13,6 +13,8 @@ const ISSUE_QUERY = `query($owner:String!,$name:String!,$after:String) {
     issues(first:100,after:$after,orderBy:{field:CREATED_AT,direction:ASC}) {
       ${CONNECTION}
       nodes { id databaseId number title body state stateReason
+        assignees(first:100) { nodes { login } pageInfo { hasNextPage } }
+        milestone { number title }
         labels(first:100) { nodes { name } pageInfo { hasNextPage } }
         parent { number repository { nameWithOwner } }
         blockedBy(first:100) { nodes { number state stateReason repository { nameWithOwner } }
@@ -28,6 +30,8 @@ const PR_QUERY = `query($owner:String!,$name:String!,$after:String) {
     pullRequests(first:100,after:$after,orderBy:{field:CREATED_AT,direction:ASC}) {
       ${CONNECTION}
       nodes { id number body state isDraft headRefName
+        assignees(first:100) { nodes { login } pageInfo { hasNextPage } }
+        milestone { number title }
         labels(first:100) { nodes { name } pageInfo { hasNextPage } }
         closingIssuesReferences(first:100) {
           nodes { number repository { nameWithOwner } } pageInfo { hasNextPage }
@@ -47,7 +51,10 @@ const PROJECT_QUERY = `query($owner:String!,$number:Int!,$after:String) {
       } }
     } }
     items(first:100,after:$after) { ${CONNECTION} nodes {
-      id isArchived content { ... on Issue { id number repository { nameWithOwner } } }
+      id isArchived content {
+        ... on Issue { id number repository { nameWithOwner } }
+        ... on PullRequest { id number repository { nameWithOwner } }
+      }
       fieldValues(first:100) { pageInfo { hasNextPage } nodes {
         ... on ProjectV2ItemFieldSingleSelectValue {
           optionId field { ... on ProjectV2SingleSelectField { name } }
@@ -92,7 +99,7 @@ export function readRepository(api = gh) {
     do {
       const page = graphql(api, query, {owner,name,after}).repository[key];
       for (const item of page.nodes) {
-        for (const field of ['labels','blockedBy','subIssues','closingIssuesReferences']) {
+        for (const field of ['labels','assignees','blockedBy','subIssues','closingIssuesReferences']) {
           if (item[field]) assertComplete(item[field], `${key} #${item.number} ${field}`);
         }
       }
@@ -219,6 +226,7 @@ export function buildPlan(repository, project) {
   assertAcyclic(new Map([...deps].map(([number,nodes]) => [number,nodes.filter(local).map(node => node.number)])), 'Dependency');
   assertAcyclic(new Map([...parents].map(([child,parent]) => [child,[parent]])), 'Parent');
   const activity = new Map();
+  const projectPRs = [];
   for (const pr of repository.pullRequests) {
     const closing = pr.closingIssuesReferences.nodes.filter(local).map(node => node.number);
     let refs = [...new Set([...references(pr.body), ...closing])];
@@ -237,6 +245,21 @@ export function buildPlan(repository, project) {
       const add = desiredLabels.filter(label => !oldLabels.includes(label));
       const remove = oldLabels.filter(label => PREFIXES.some(prefix => label.startsWith(prefix)) && !desiredLabels.includes(label));
       if (add.length || remove.length) operations.push({kind:'labels',number:pr.number,add,remove});
+      // Bootstrap missing ownership without replacing intentional assignments.
+      const owners = [...new Set(known.flatMap(number =>
+        (issues.get(number).assignees?.nodes || []).map(owner => owner.login)))].sort();
+      if (!(pr.assignees?.nodes.length) && owners.length) {
+        if (owners.length > 10) warnings.push(`PR #${pr.number}: more than ten issue owners; assign manually`);
+        else operations.push({kind:'assignees',number:pr.number,add:owners});
+      }
+      const milestones = known.map(number => issues.get(number).milestone?.number);
+      const milestone = milestones[0];
+      if (!pr.milestone && milestone && milestones.every(number => number === milestone)) {
+        operations.push({kind:'milestone',number:pr.number,milestone});
+      } else if (!pr.milestone && milestones.some(Boolean)) {
+        warnings.push(`PR #${pr.number}: referenced issues have different or missing milestones; choose one manually`);
+      }
+      projectPRs.push({...pr,labels:{nodes:desiredLabels.map(name => ({name}))}});
     }
     if (pr.state === 'OPEN') for (const number of known) {
       const previous = activity.get(number);
@@ -281,15 +304,23 @@ export function buildPlan(repository, project) {
     for (const name of ['Backlog','Ready','In progress','In review','Blocked','Done']) {
       if (!statusField?.options?.some(option => option.name === name)) throw new Error(`Missing Status option ${name}`);
     }
-    for (const issue of issues.values()) {
+    for (const issue of [...issues.values(),...projectPRs]) {
+      const isPR = !issues.has(issue.number);
       const item = items.get(issue.number);
       // Do not resurrect intentionally archived work.
       if (item?.isArchived) continue;
       if (!item) operations.push({kind:'item',number:issue.number});
-      const values = [['Status',{singleSelectOptionId:statusField.options.find(option => option.name === states.get(issue.number)).id}]];
+      const desiredStatus = isPR
+        ? issue.state === 'MERGED' ? 'Done' : issue.state === 'OPEN' ? issue.isDraft ? 'In progress' : 'In review' : 'Backlog'
+        : states.get(issue.number);
+      const values = [['Status',{singleSelectOptionId:statusField.options.find(option => option.name === desiredStatus).id}]];
       for (const [prefix,fieldName] of [['kind:','Kind'],['lane:','Lane'],['area:','Area'],['priority:','Priority']]) {
         const matches = names(issue).filter(name => name.startsWith(prefix));
-        if (matches.length > 1) throw new Error(`Conflicting ${prefix} labels on #${issue.number}`);
+        if (matches.length > 1) {
+          if (!isPR) throw new Error(`Conflicting ${prefix} labels on #${issue.number}`);
+          warnings.push(`PR #${issue.number}: multiple ${fieldName} values; preserve its project field`);
+          continue;
+        }
         if (!matches.length) continue;
         const field = fields.get(fieldName);
         const option = field?.options?.find(option => option.name === matches[0].slice(prefix.length));
@@ -297,8 +328,11 @@ export function buildPlan(repository, project) {
         values.push([fieldName,{singleSelectOptionId:option.id}]);
       }
       const weeks = names(issue).filter(name => name.startsWith('weeks:'));
-      if (weeks.length > 1) throw new Error(`Conflicting weeks labels on #${issue.number}`);
-      if (weeks.length) {
+      if (weeks.length > 1) {
+        if (!isPR) throw new Error(`Conflicting weeks labels on #${issue.number}`);
+        warnings.push(`PR #${issue.number}: multiple Week values; preserve its project field`);
+      }
+      if (weeks.length === 1) {
         const field = fields.get('Week');
         const iterations = [...(field?.configuration?.iterations || []),...(field?.configuration?.completedIterations || [])];
         const iteration = iterations.find(value => value.title.startsWith(`Weeks ${weeks[0].slice(6)}:`));
@@ -320,6 +354,7 @@ export function buildPlan(repository, project) {
 export function applyPlan(plan, repository, project, api = gh) {
   if (!project || !plan.projectVerified) throw new Error('Apply requires a complete project read');
   const issues = new Map(repository.issues.map(issue => [issue.number,issue]));
+  const content = new Map([...repository.issues,...(repository.pullRequests || [])].map(item => [item.number,item]));
   const ids = new Map(project.items.filter(item => item.content?.repository && local(item.content))
     .map(item => [item.content.number,item.id]));
   for (const op of plan.operations) {
@@ -334,10 +369,18 @@ export function applyPlan(plan, repository, project, api = gh) {
     else if (op.kind === 'labels') {
       if (op.add.length) api(`${path}/labels`,'POST',{labels:op.add});
       for (const label of op.remove) api(`${path}/labels/${encodeURIComponent(label)}`,'DELETE');
+    } else if (op.kind === 'assignees' || op.kind === 'milestone') {
+      // A human may have filled the blank after the preview. Preserve that edit.
+      const latest = api(path);
+      if (op.kind === 'assignees' && !latest.assignees.length) {
+        api(`${path}/assignees`,'POST',{assignees:op.add});
+      } else if (op.kind === 'milestone' && !latest.milestone) {
+        api(path,'PATCH',{milestone:op.milestone});
+      }
     } else if (op.kind === 'item') {
       const data = graphql(api,`mutation($project:ID!,$content:ID!) {
         addProjectV2ItemById(input:{projectId:$project,contentId:$content}) { item { id } }
-      }`,{project:project.id,content:issues.get(op.number).id});
+      }`,{project:project.id,content:content.get(op.number).id});
       ids.set(op.number,data.addProjectV2ItemById.item.id);
     } else if (op.kind === 'field') {
       graphql(api,`mutation($project:ID!,$item:ID!,$field:ID!,$value:ProjectV2FieldValue!) {
