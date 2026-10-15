@@ -56,7 +56,19 @@ triage rather than guessing an issue or completion claim.
 PRs inherit the referenced issues' `area:`, `kind:`, `lane:`, `priority:` and
 `weeks:` labels. Multi-issue PRs receive their union; unrelated labels are
 preserved. Issue labels maintain project Kind, Lane, Area, Priority and Week.
-Native issue assignees and labels already appear in Projects automatically.
+Referenced PRs are also added to Project 7. Their Status is In review for an
+open non-draft, In progress for a draft, Done for a merge, and Backlog for a
+closed, unmerged PR. This tracks the PR's review lifecycle separately from its
+issue's completion. Archived PR cards stay archived. PR taxonomy fields use the
+same labels; multiple values for a single-select field are reported for manual
+selection rather than arbitrarily choosing one.
+
+An unassigned PR inherits the union of its referenced issues' owners (up to
+GitHub's ten-assignee limit). A PR without a milestone inherits it only when
+every referenced issue has the same milestone. Existing PR assignments and
+milestones are preserved, including edits made between preview and apply.
+Missing or conflicting source metadata remains a manual triage decision.
+Native assignees, milestones and labels then appear in Projects automatically.
 An issue's `## Dependencies` list and `Parent: #N` declaration add missing native
 links. Conflicting parents, cycles, missing targets/options and truncated API
 connections stop the run before writes. Removing a declaration does not delete
