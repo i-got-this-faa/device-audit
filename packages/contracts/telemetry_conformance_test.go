@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 type telemetryVector struct {
@@ -60,5 +61,68 @@ func TestTelemetryRejectsZeroTimeInstant(t *testing.T) {
 				t.Fatal("Validate() accepted the zero time instant")
 			}
 		})
+	}
+}
+
+func TestTelemetryV2JSONVectors(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("fixtures", "telemetry", "v2-vectors.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var collection struct {
+		Vectors []telemetryVector `json:"vectors"`
+	}
+	if err := json.Unmarshal(data, &collection); err != nil {
+		t.Fatal(err)
+	}
+	if len(collection.Vectors) == 0 {
+		t.Fatal("no v2 telemetry vectors")
+	}
+	for _, vector := range collection.Vectors {
+		t.Run(vector.Name, func(t *testing.T) {
+			decoder := json.NewDecoder(bytes.NewReader(vector.Telemetry))
+			decoder.DisallowUnknownFields()
+			var telemetry TelemetryV2
+			err := decoder.Decode(&telemetry)
+			if err == nil {
+				err = telemetry.Validate()
+			}
+			if got := err == nil; got != vector.Valid {
+				t.Fatalf("valid = %t, want %t (error: %v)", got, vector.Valid, err)
+			}
+		})
+	}
+}
+
+func TestTelemetryV2RejectsReversedLogWindow(t *testing.T) {
+	start, _ := time.Parse(time.RFC3339, "2026-10-13T06:00:00Z")
+	end, _ := time.Parse(time.RFC3339, "2026-10-13T05:00:00Z")
+	value := 1.0
+	telemetry := TelemetryV2{
+		SchemaVersion: TelemetryV2Version, DeviceID: "node-1", CollectedAt: start, Source: "fixture",
+		Metrics:   MetricsV2{MemoryPercent: &MetricV2{Value: &value, Unit: "percent"}},
+		Inventory: InventoryV2{Components: []ComponentV2{}}, LogReferences: []LogReferenceV2{{
+			ReferenceID: "log-1", SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			ByteSize: 1, WindowStart: start, WindowEnd: end,
+		}},
+	}
+	telemetry.LogReferences[0].WindowEnd = start
+	if err := telemetry.Validate(); err != nil {
+		t.Fatalf("valid log window rejected: %v", err)
+	}
+	telemetry.LogReferences[0].WindowEnd = end
+	if err := telemetry.Validate(); err == nil {
+		t.Fatal("Validate() accepted a reversed log time window")
+	}
+}
+
+func TestMetricV2UnmarshalClearsReusedValue(t *testing.T) {
+	value := 50.0
+	metric := MetricV2{Value: &value, Unit: "percent"}
+	if err := json.Unmarshal([]byte(`{"value":null,"unit":"percent","missing_reason":"sensor_unavailable"}`), &metric); err != nil {
+		t.Fatal(err)
+	}
+	if metric.Value != nil {
+		t.Fatalf("reused metric value = %v, want nil", *metric.Value)
 	}
 }

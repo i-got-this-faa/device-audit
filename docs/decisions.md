@@ -29,3 +29,18 @@ demo, Go 1.27.1 aligned with Shepherd/Tailcat, an ephemeral bounded sample store
 strict versioned inputs, and explicit errors for unavailable mesh transport.
 These choices do not settle production hosting, tenancy, identity, model
 runtime, chain, frontend or collector cadence.
+
+## Provisional telemetry/inventory contract v2
+
+Task #15 adds a separately named `device-audit.telemetry.v2` proposal alongside
+v1. The metric set and explicit units are CPU/GPU utilization, memory/disk/
+battery percent, Celsius temperature, and millisecond network latency. Null
+metrics require one of `sensor_unavailable`, `not_applicable`,
+`permission_denied`, or `collection_error`; known metrics cannot include a
+missing reason, and at least one metric must be known. Inventory supports
+opaque group/network-segment IDs and up to 64 component records. Telemetry
+supports up to 8 bounded log references with opaque IDs, SHA-256, at most 10
+MiB per reference, and a time window; raw logs are excluded. These choices are
+provisional and platform-neutral pending the missing patent PDF and unresolved
+release platform/hardware scope from #14. They do not settle enrollment,
+network identity, signature, or chain policies.

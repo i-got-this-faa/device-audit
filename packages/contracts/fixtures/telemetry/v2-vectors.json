@@ -1,0 +1,955 @@
+{
+  "vectors": [
+    {
+      "name": "all selected metrics and endpoint provenance",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "asset:opaque-01",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "endpoint",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 15,
+            "unit": "percent"
+          },
+          "gpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "not_applicable"
+          },
+          "memory_percent": {
+            "value": 64,
+            "unit": "percent"
+          },
+          "disk_used_percent": {
+            "value": 48,
+            "unit": "percent"
+          },
+          "battery_percent": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "temperature_c": {
+            "value": -10.5,
+            "unit": "celsius"
+          },
+          "network_latency_ms": {
+            "value": 3.2,
+            "unit": "milliseconds"
+          }
+        },
+        "inventory": {
+          "group_id": "group:a",
+          "network_segment_id": "segment:blue",
+          "components": [
+            {
+              "id": "component:cpu0",
+              "type": "processor",
+              "model": "Example CPU"
+            },
+            {
+              "id": "component:unicode",
+              "type": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+              "model": "λλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλλ"
+            }
+          ]
+        },
+        "log_references": [
+          {
+            "reference_id": "log:boot-01",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 4096,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "fixture provenance and unavailable sensor reasons",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "missing reason for null",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "reason forbidden for known value",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 2,
+            "unit": "percent",
+            "missing_reason": "collection_error"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "wrong unit",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 2,
+            "unit": "milliseconds"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "percent above range",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 100.1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "wrong version",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v1",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "no known metric",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "unknown inventory property",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": [],
+          "unused": 1
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "log reference exceeds byte bound",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log-1",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 10485761,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null metric object",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": null
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "missing metric value",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "known metric with empty reason",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent",
+            "missing_reason": ""
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "unknown nested metric property",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent",
+            "raw": 1
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "more than 64 components",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": [
+            {
+              "id": "part-0",
+              "type": "disk"
+            },
+            {
+              "id": "part-1",
+              "type": "disk"
+            },
+            {
+              "id": "part-2",
+              "type": "disk"
+            },
+            {
+              "id": "part-3",
+              "type": "disk"
+            },
+            {
+              "id": "part-4",
+              "type": "disk"
+            },
+            {
+              "id": "part-5",
+              "type": "disk"
+            },
+            {
+              "id": "part-6",
+              "type": "disk"
+            },
+            {
+              "id": "part-7",
+              "type": "disk"
+            },
+            {
+              "id": "part-8",
+              "type": "disk"
+            },
+            {
+              "id": "part-9",
+              "type": "disk"
+            },
+            {
+              "id": "part-10",
+              "type": "disk"
+            },
+            {
+              "id": "part-11",
+              "type": "disk"
+            },
+            {
+              "id": "part-12",
+              "type": "disk"
+            },
+            {
+              "id": "part-13",
+              "type": "disk"
+            },
+            {
+              "id": "part-14",
+              "type": "disk"
+            },
+            {
+              "id": "part-15",
+              "type": "disk"
+            },
+            {
+              "id": "part-16",
+              "type": "disk"
+            },
+            {
+              "id": "part-17",
+              "type": "disk"
+            },
+            {
+              "id": "part-18",
+              "type": "disk"
+            },
+            {
+              "id": "part-19",
+              "type": "disk"
+            },
+            {
+              "id": "part-20",
+              "type": "disk"
+            },
+            {
+              "id": "part-21",
+              "type": "disk"
+            },
+            {
+              "id": "part-22",
+              "type": "disk"
+            },
+            {
+              "id": "part-23",
+              "type": "disk"
+            },
+            {
+              "id": "part-24",
+              "type": "disk"
+            },
+            {
+              "id": "part-25",
+              "type": "disk"
+            },
+            {
+              "id": "part-26",
+              "type": "disk"
+            },
+            {
+              "id": "part-27",
+              "type": "disk"
+            },
+            {
+              "id": "part-28",
+              "type": "disk"
+            },
+            {
+              "id": "part-29",
+              "type": "disk"
+            },
+            {
+              "id": "part-30",
+              "type": "disk"
+            },
+            {
+              "id": "part-31",
+              "type": "disk"
+            },
+            {
+              "id": "part-32",
+              "type": "disk"
+            },
+            {
+              "id": "part-33",
+              "type": "disk"
+            },
+            {
+              "id": "part-34",
+              "type": "disk"
+            },
+            {
+              "id": "part-35",
+              "type": "disk"
+            },
+            {
+              "id": "part-36",
+              "type": "disk"
+            },
+            {
+              "id": "part-37",
+              "type": "disk"
+            },
+            {
+              "id": "part-38",
+              "type": "disk"
+            },
+            {
+              "id": "part-39",
+              "type": "disk"
+            },
+            {
+              "id": "part-40",
+              "type": "disk"
+            },
+            {
+              "id": "part-41",
+              "type": "disk"
+            },
+            {
+              "id": "part-42",
+              "type": "disk"
+            },
+            {
+              "id": "part-43",
+              "type": "disk"
+            },
+            {
+              "id": "part-44",
+              "type": "disk"
+            },
+            {
+              "id": "part-45",
+              "type": "disk"
+            },
+            {
+              "id": "part-46",
+              "type": "disk"
+            },
+            {
+              "id": "part-47",
+              "type": "disk"
+            },
+            {
+              "id": "part-48",
+              "type": "disk"
+            },
+            {
+              "id": "part-49",
+              "type": "disk"
+            },
+            {
+              "id": "part-50",
+              "type": "disk"
+            },
+            {
+              "id": "part-51",
+              "type": "disk"
+            },
+            {
+              "id": "part-52",
+              "type": "disk"
+            },
+            {
+              "id": "part-53",
+              "type": "disk"
+            },
+            {
+              "id": "part-54",
+              "type": "disk"
+            },
+            {
+              "id": "part-55",
+              "type": "disk"
+            },
+            {
+              "id": "part-56",
+              "type": "disk"
+            },
+            {
+              "id": "part-57",
+              "type": "disk"
+            },
+            {
+              "id": "part-58",
+              "type": "disk"
+            },
+            {
+              "id": "part-59",
+              "type": "disk"
+            },
+            {
+              "id": "part-60",
+              "type": "disk"
+            },
+            {
+              "id": "part-61",
+              "type": "disk"
+            },
+            {
+              "id": "part-62",
+              "type": "disk"
+            },
+            {
+              "id": "part-63",
+              "type": "disk"
+            },
+            {
+              "id": "part-64",
+              "type": "disk"
+            }
+          ]
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "more than 8 log references",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log-0",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-1",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-2",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-3",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-4",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-5",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-6",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-7",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          },
+          {
+            "reference_id": "log-8",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 1,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null optional inventory ID",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": [],
+          "group_id": null
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "empty optional inventory ID",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": [],
+          "group_id": ""
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "null optional component model",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": [
+            {
+              "id": "part-1",
+              "type": "disk",
+              "model": null
+            }
+          ]
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "device ID with trailing newline",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-1\n",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "case-varied top-level field",
+      "valid": false,
+      "telemetry": {
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "value": 22,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [],
+        "SCHEMA_VERSION": "device-audit.telemetry.v2"
+      }
+    },
+    {
+      "name": "case-varied metric field",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-node",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "memory_percent": {
+            "unit": "percent",
+            "VALUE": 22
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "name": "missing log byte_size",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null log byte_size",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": null,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero log byte_size",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 0,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    }
+  ]
+}
