@@ -41,8 +41,9 @@ missing reason, and at least one metric must be known. Inventory supports
 opaque group/network-segment IDs and up to 64 component records. Telemetry
 supports up to 8 bounded log references with opaque IDs, SHA-256, at most 10
 MiB per reference, and a time window; raw logs are excluded. These choices are
-provisional and platform-neutral pending the missing patent PDF and unresolved
-release platform/hardware scope from #14. They do not settle enrollment,
+provisional and platform-neutral pending claim-to-scope reconciliation (#72)
+and release platform/hardware scope (#14). PDF provenance is now indexed in
+[the source inventory](source/patent-map.md). They do not settle enrollment,
 network identity, signature, or chain policies.
 
 ## Provisional prediction contract v2
@@ -69,5 +70,7 @@ constraint are selected. Expiry is stale at the exact `expires_at` instant;
 `IsStale(now)` takes its clock explicitly. Timestamp ordering and Go's zero-time
 instant check are semantic Go validation rules because JSON Schema checks only
 date-time syntax. Shared prediction vectors are validated by Go and Python.
-These are provisional choices pending decisions #14/#22 and the missing patent
-PDF, not patent compliance evidence or a production model capability.
+These are provisional choices pending #14/#72 and endpoint model qualification.
+#22 selected a historical HDD dataset study; the source PDF is indexed, with
+claim-to-scope reconciliation still open. These contracts provide neither patent
+compliance evidence nor a production model capability.

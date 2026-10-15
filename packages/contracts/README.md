@@ -18,8 +18,9 @@ as its zero instant; Go's `Telemetry.Validate()` rejects that instant, with a
 Go-only regression test for equivalent spellings. These checks do not cover
 signatures, replay protection, inventory, transport identity, or production
 sensor collection. The fixture source label is provenance metadata, not
-attestation. The original patent PDF has not been supplied, so this conformance
-work is not a patent implementation or verification claim.
+attestation. The supplied PDF's provenance is indexed in
+[`docs/source/patent-map.md`](../../docs/source/patent-map.md); claim-to-scope
+reconciliation remains #72. This conformance work makes no patent claim.
 
 The demo digest is SHA-256 of `json.Marshal(Telemetry)` after validation. It is
 specific to this Go representation. Define a cross-language canonical encoding,
@@ -30,8 +31,8 @@ protocol before using a digest in security decisions or smart contracts.
 
 `TelemetryV2` and `telemetry-v2.schema.json` define a separate proposed wire
 namespace, `device-audit.telemetry.v2`; v1 remains unchanged. The original
-patent PDF is still missing, and release platform/hardware scope from decision
-#14 remains unresolved. These fields are a platform-neutral contract proposal,
+patent PDF is indexed, while claim-to-scope reconciliation (#72) and release
+platform/hardware scope (#14) remain unresolved. These fields are a platform-neutral contract proposal,
 not a claim of patent compliance or production collection.
 
 Each selected metric carries `{value, unit}`. A null value requires one of
@@ -76,5 +77,6 @@ supply the clock. Go validation also rejects zero timestamps and expiry that is
 not after generation, semantic checks not expressible portably in this JSON
 Schema. Shared vectors are checked by Go strict decoding/validation and Python
 Draft 2020-12 validation. The shape and categories remain provisional pending
-#14/#22 and the missing patent PDF; this contract does not imply a trained or
+#14/#72 and endpoint model qualification. #22 selected a historical HDD dataset
+study, not an endpoint predictor; this contract does not imply a trained or
 production prediction capability.
