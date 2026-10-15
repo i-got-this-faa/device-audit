@@ -17,9 +17,9 @@ The table does not assert legal coverage.
 | Assign local agents based on health | controller + workflows | diagnostic task/runner interfaces | Health-triggered bounded, authenticated read-only job |
 | Train locally and aggregate model updates | models + federated | training interface and vector weighted-average primitive | At least two endpoints train locally; version-compatible updates aggregate and improve evaluated model |
 | Run autonomous diagnostic workflows | workflows + endpoint | interface | Scheduled/event-triggered diagnostics with evidence and budget limits |
-| Recommend repair, upgrade or replacement | lifecycle + audit | report/recommendation types | Recommendations grounded in telemetry, prediction and cost inputs |
-| Estimate sustainability and longevity | lifecycle | nullable methodology-tagged outputs | Documented assumptions, units, uncertainty and measured inputs |
-| Fleet/component trend analysis and asset integration | controller + integrations (future) | backlog only | Cross-device aggregation and an asset adapter where PDF requires them |
+| Recommend repair, upgrade or replacement | lifecycle + audit | v2 batch/evidence/cost/age contract; no evaluator | Recommendations grounded in telemetry, prediction and cost inputs |
+| Estimate sustainability and longevity | lifecycle | v2 nullable quantities, provisional methodology and uncertainty contract | Documented assumptions, units, uncertainty and measured inputs |
+| Fleet/component trend analysis and asset integration | controller + integrations (future) | v2 cohort/window trend contract; no aggregator or asset adapter | Cross-device aggregation and an asset adapter where PDF requires them |
 
 Custom prediction models and smart-contract audit verification are explicit
 handoff decisions. Whether smart contracts, independent network observation,

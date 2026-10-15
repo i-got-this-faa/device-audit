@@ -114,3 +114,27 @@ These are provisional choices pending #14/#72 and endpoint model qualification.
 #22 selected a historical HDD dataset study; the source PDF is indexed, with
 claim-to-scope reconciliation still open. These contracts provide neither patent
 compliance evidence nor a production model capability.
+
+## Provisional lifecycle contract v2
+
+Issue #78 adds a separate `device-audit.lifecycle.v2` report proposal without
+changing v1 or the lifecycle evaluator interface. It binds batch recommendations
+and component fault-rate comparisons to cohort, baseline/current windows, and
+off-chain evidence. Actionable recommendations require v2 telemetry/prediction
+references, age in months, and per-device repair/upgrade/replacement costs in a
+declared currency's major units. Missing inputs remain explicit null and force
+`insufficient_evidence`; independent analyses can also remain unavailable.
+
+The only supported sustainability proposal is `carbon-reduction.v1`: compare
+replacement-baseline and recommended-scenario batch totals over a declared
+month horizon, subtract carbon in kg CO2e and e-waste in kg, and score the
+nonnegative percent reduction in baseline carbon. It makes no overall
+environmental-quality claim. Zero baseline carbon cannot yield a complete score.
+Longevity uses months and a confidence probability with ordered bounds.
+Component fault rates use percent and changes use percentage points. The
+contract README defines the assumptions and semantic validation boundaries.
+
+These are provisional contract choices for review, not a production evaluator,
+validated sustainability methodology, calibrated longevity model, fleet trend
+service, or patent verification. No raw logs or device IDs are chain payloads;
+network identity, device signatures, and future commitments remain separate.

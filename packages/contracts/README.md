@@ -80,3 +80,81 @@ Draft 2020-12 validation. The shape and categories remain provisional pending
 #14/#72 and endpoint model qualification. #22 selected a historical HDD dataset
 study, not an endpoint predictor; this contract does not imply a trained or
 production prediction capability.
+
+## Provisional lifecycle and component trends v2
+
+Issue #78 adds `LifecycleV2`, `lifecycle-v2.schema.json`, and shared vectors in
+`fixtures/lifecycle/v2-vectors.json`. This is an off-chain report contract;
+the lifecycle evaluator, longevity model, evidence resolver, and fleet
+aggregation service remain unimplemented. All fixture values are synthetic,
+including recommendations. Existing contracts and interfaces are unchanged.
+
+Provenance binds an opaque cohort ID and size, baseline/current observation
+windows, and a nullable SHA-256 evidence-manifest digest. Windows are
+start-inclusive/end-exclusive, positive in duration, ordered, non-overlapping,
+and end by report generation. The off-chain manifest must record cohort
+membership/selection, input sources, aggregation rules, cost quote dates,
+prediction/model references, carbon factors, and scenario assumptions. Digests
+declare references; validation does not fetch them or prove their truth.
+
+Up to 64 recommendations identify batches by unique opaque batch ID and affected
+device count within the cohort. Batches must have common cost/age and scenario
+assumptions; heterogeneous batches must be split. Costs are per device in major
+units of the declared three-uppercase-letter currency code; age is months since
+entry into service. Validation checks currency code shape, not a currency registry
+or conversion rate. Repair, upgrade, replacement costs and age are independently
+nullable. `repair`, `upgrade`, `replace`, and `retain` require all those inputs,
+cohort evidence, and telemetry/prediction digests bound to their v2 schema versions.
+`insufficient_evidence` permits partial inputs and forces all analysis outputs to
+that state. A future evaluator must resolve and validate evidence, including
+prediction availability, before recommending an action. This validator does not
+choose actions or implement cost optimization.
+
+Sustainability supports only the provisional `carbon-reduction.v1` methodology,
+including for insufficient-evidence payloads. Its baseline is replacement of the
+batch, compared with the recommended scenario over the same positive
+`assessment_horizon_months`. Carbon and e-waste inputs are totals for the affected
+batch over that horizon, in kilograms CO2 equivalent and kilograms respectively.
+The manifest records lifecycle boundaries and factors used for both scenarios.
+Complete output requires all quantities and positive baseline carbon, plus the
+recommendation prerequisites. The arithmetic is:
+
+- `carbon_avoided_kg_co2e = baseline_carbon_kg_co2e - scenario_carbon_kg_co2e`
+- `e_waste_avoided_kg = baseline_e_waste_kg - scenario_e_waste_kg`
+- `score_percent = max(0, carbon_avoided_kg_co2e / baseline_carbon_kg_co2e * 100)`
+
+The score measures carbon reduction only; it is not a validated overall
+environmental rating. Negative avoided quantities preserve scenario increases.
+A zero-carbon baseline cannot produce a complete score. This methodology is a
+contract proposal, not an approved lifecycle assessment standard.
+
+Longevity carries remaining, lower-bound, and upper-bound months plus an explicit
+confidence probability in `(0, 1]`. Complete estimates require the recommendation
+prerequisites and an ordered interval containing the estimate. The manifest must
+identify the estimator, its uncertainty method, and the population to which the
+interval applies. No interval calibration or remaining-life estimator is supplied.
+
+Up to eight component trends compare observed fault rates for the same cohort and
+component category across the provenance windows. Sample counts are eligible
+component observations, not cohort device counts; repeat observations follow the
+manifest's sampling/deduplication rule. Rates use percent and the signed change
+uses percentage points, current minus baseline. Complete trends require evidence,
+a nonempty cohort, and positive sample counts in both windows. Aggregation and
+sampling are future work.
+
+All fields are required. Unknown quantities use explicit null, never invented
+zero. Sustainability, longevity, and trends use `complete` or
+`insufficient_evidence`; the latter requires every output quantity to be null.
+Known recommendations may still carry insufficient sustainability or longevity.
+Go strict decoding/`Validate()` and Python Draft 2020-12 validation share the wire
+fixtures. Go additionally checks window ordering, batch/cohort count relationships
+and unique batch IDs, uncertainty ordering, and derived arithmetic with
+relative/absolute tolerance `1e-9`; JSON Schema cannot portably express those
+cross-field rules. Python schema validation alone is not semantic report validation.
+
+The full report and manifest remain off-chain. Raw logs and device identifiers
+are excluded from this report; cohort and batch IDs are application metadata, not
+chain payloads or network credentials. Future chain adapters need a separate
+commitment format. Nothing here authenticates a network peer, verifies a device
+signature, implements anchoring, or establishes patent compliance. The original
+patent PDF remains unavailable.
