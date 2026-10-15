@@ -1,0 +1,248 @@
+{
+  "vectors": [
+    {
+      "name": "all metrics known including negative Celsius and percent boundaries",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-01",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "endpoint",
+        "metrics": {
+          "cpu_percent": 0,
+          "memory_percent": 100,
+          "disk_used_percent": 50,
+          "battery_percent": 1,
+          "temperature_c": -20.5,
+          "network_latency_ms": 0
+        }
+      }
+    },
+    {
+      "name": "nullable sensors with one known metric",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-02",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_percent": null,
+          "memory_percent": 25,
+          "disk_used_percent": null,
+          "battery_percent": null,
+          "temperature_c": null,
+          "network_latency_ms": null
+        }
+      }
+    },
+    {
+      "name": "nullable memory sensor at percent boundary",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-21",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "endpoint",
+        "metrics": {
+          "cpu_percent": 100,
+          "memory_percent": null
+        }
+      }
+    },
+    {
+      "name": "omitted unavailable sensors",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-03",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 12.5}
+      }
+    },
+    {
+      "name": "only null metrics is not known telemetry",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-04",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": null, "temperature_c": null}
+      }
+    },
+    {
+      "name": "percent below range",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-05",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": -0.1}
+      }
+    },
+    {
+      "name": "percent above range",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-06",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"battery_percent": 100.1}
+      }
+    },
+    {
+      "name": "negative latency",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-07",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"network_latency_ms": -1}
+      }
+    },
+    {
+      "name": "wrong schema version",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v2",
+        "device_id": "node-08",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "wrong source",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-09",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "trusted",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "invalid device ID",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "bad device id",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "device ID with trailing newline",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-17\n",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "missing required source",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-11",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "missing required schema version",
+      "valid": false,
+      "telemetry": {
+        "device_id": "node-18",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "missing required device ID",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "missing required collection time",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-19",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    },
+    {
+      "name": "missing required metrics",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-20",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture"
+      }
+    },
+    {
+      "name": "unknown top-level property",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-12",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1},
+        "extra": true
+      }
+    },
+    {
+      "name": "unknown metric property",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-13",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1, "gpu_percent": 50}
+      }
+    },
+    {
+      "name": "boolean is not a number",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-14",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {"cpu_percent": true}
+      }
+    },
+    {
+      "name": "malformed timestamp",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.v1",
+        "device_id": "node-15",
+        "collected_at": "not-a-time",
+        "source": "fixture",
+        "metrics": {"cpu_percent": 1}
+      }
+    }
+  ]
+}

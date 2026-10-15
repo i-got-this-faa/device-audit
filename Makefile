@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check demo
+.PHONY: build test lint fmt check cross-build model-check telemetry-check demo
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -20,5 +20,7 @@ cross-build:
 	GOOS=darwin GOARCH=arm64 $(GO) build -o bin/endpoint-agent-darwin ./apps/endpoint-agent
 model-check:
 	PYTHONPATH=models/src $(PYTHON) -m unittest discover -s models/tests
+telemetry-check:
+	$(PYTHON) -m unittest discover -s models/tests -p 'test_telemetry_schema.py'
 demo: build
 	$(PYTHON) tools/demo.py
