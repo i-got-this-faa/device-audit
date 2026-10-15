@@ -170,6 +170,16 @@ func (r *LogReferenceV2) UnmarshalJSON(data []byte) error {
 	if err := requireJSONFieldNames(data, "reference_id", "sha256", "byte_size", "window_start", "window_end"); err != nil {
 		return err
 	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	for _, name := range []string{"reference_id", "sha256", "byte_size", "window_start", "window_end"} {
+		value, ok := fields[name]
+		if !ok || bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+			return fmt.Errorf("log reference %s is required and cannot be null", name)
+		}
+	}
 	type logReferenceAlias LogReferenceV2
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()

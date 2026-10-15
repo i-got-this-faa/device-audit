@@ -867,6 +867,89 @@
         },
         "log_references": []
       }
+    },
+    {
+      "name": "missing log byte_size",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null log byte_size",
+      "valid": false,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": null,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero log byte_size",
+      "valid": true,
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "node-log-boundary",
+        "collected_at": "2026-10-13T06:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 1,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": [
+          {
+            "reference_id": "log:empty",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_size": 0,
+            "window_start": "2026-10-13T05:00:00Z",
+            "window_end": "2026-10-13T06:00:00Z"
+          }
+        ]
+      }
     }
   ]
 }
