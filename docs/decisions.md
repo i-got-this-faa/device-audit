@@ -2,17 +2,17 @@
 
 The user explicitly requested a new organization repository and selected reuse
 of Shepherd networking. The attached `chat_handoff_full_transcript.md` ends with
-Turns 15Ã¢â‚¬â€œ17 describing the current direction. Earlier security and fleet-manager
+Turns 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17 describing the current direction. Earlier security and fleet-manager
 discussion can drift and does not automatically become product scope.
 
 | Decision | Evidence | Treatment |
 | --- | --- | --- |
-| New repository under i-got-this-faa | Current user request, handoff 15Ã¢â‚¬â€œ17 | Dedicated `device-audit`; Shepherd remains separate |
+| New repository under i-got-this-faa | Current user request, handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17 | Dedicated `device-audit`; Shepherd remains separate |
 | Go controller | Handoff 15/17 | Selected |
 | Go endpoint agent | Handoff 17 | Selected |
 | Tailcat / userspace WireGuard / DERP | Current request, handoff 15/17, Shepherd spec 14 | Preserve design and package boundary; adapter absent upstream |
 | Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected; architecture and endpoint qualification open. #22 selects only a historical HDD study. |
-| Local training + central aggregation | Handoff 15Ã¢â‚¬â€œ17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
+| Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
@@ -143,6 +143,41 @@ These are provisional contract choices for review, not a production evaluator,
 validated sustainability methodology, calibrated longevity model, fleet trend
 service, or patent verification. No raw logs or device IDs are chain payloads;
 network identity, device signatures, and future commitments remain separate.
+## Provisional enrollment, evidence and acknowledgements, #75
+
+[The envelope specification](../packages/contracts/envelopes-v1.md) builds on
+#73's single-organization deployment boundary and #15's telemetry v2 proposal.
+Enrollment, evidence and controller acknowledgements have separate v1 namespaces.
+Pure Ed25519 from Go's standard library and SHA-256 key fingerprints are selected
+provisionally, with a fixed application domain separator and length-prefixed
+signing fields. Evidence binds the digest of exact telemetry JSON bytes, avoiding
+an unselected cross-language JSON number canonicalization scheme.
+[RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html) and
+[Go's Ed25519 documentation](https://pkg.go.dev/crypto/ed25519) support the
+algorithm choice; neither establishes a patent requirement, production key
+storage, release-machine suitability, or an approved organizational policy.
+
+Sequences are scoped to deployment/device across restarts and keys. Enrollment
+starts at 1, evidence at 2, gaps are allowed, and accepted responses require an
+atomic durable commit with the high-water mark. Rejection never advances it.
+A lost response can produce a replay rejection; that is not proof of receipt
+of the pending payload. Recovery and authenticated receipt lookup remain open.
+`enrollment_conflict` provisionally describes a binding admission conflict;
+`replay` describes a consumed sequence at freshness checking. The pure helpers
+cannot decide admission or challenge state, and the schemas only carry outcomes.
+Whole-second UTC timestamps, a five-minute future-skew allowance and maximum
+lifetimes of ten minutes for enrollment and 24 hours for evidence are provisional
+contract bounds. Nullable telemetry values and their explicit units are retained.
+
+Application signing keys, mesh/network credentials, bootstrap authorization and
+future chain signing remain separate. No secret bootstrap or mesh credential is
+placed in the envelopes. Another owner must review sequence, lost-response,
+restart and restore semantics before consumer implementation. Durable storage,
+challenge issuance, authorization, rotation/revocation, protected key storage and
+real restart/restore tests remain unimplemented. #17 and the in-progress #80
+harness are not implemented or changed by #75. #14 remains open; SRC05 #72
+records source reconciliation without establishing implementation or legal coverage.
+
 
 ## Source reconciliation and retained scope, SRC05 #72
 

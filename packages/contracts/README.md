@@ -7,7 +7,7 @@ decoder plus `Telemetry.Validate()`, and by Python's Draft 2020-12 validator
 with date-time format checking (`make telemetry-check`). Other types reserve
 implementation boundaries and are not exposed by HTTP endpoints yet.
 
-Percent metrics use 0â€“100; latency uses milliseconds; temperature uses Celsius.
+Percent metrics use 0Ã¢â‚¬â€œ100; latency uses milliseconds; temperature uses Celsius.
 Unavailable sensors are omitted/null rather than fabricated as zero. At least
 one known metric is required. `source` is a producer label, not attestation.
 Device IDs are opaque application IDs, not network credentials.
@@ -38,7 +38,7 @@ not a claim of patent compliance or production collection.
 Each selected metric carries `{value, unit}`. A null value requires one of
 `sensor_unavailable`, `not_applicable`, `permission_denied`, or
 `collection_error`; known values cannot carry a missing reason. CPU/GPU
-utilization and memory/disk/battery usage use `percent` (0â€“100), temperature
+utilization and memory/disk/battery usage use `percent` (0Ã¢â‚¬â€œ100), temperature
 uses `celsius`, and latency uses `milliseconds` (nonnegative). At least one
 metric must be known. Inventory metadata uses opaque application IDs and
 supports optional group/network-segment IDs and at most 64 components. A
@@ -158,3 +158,46 @@ chain payloads or network credentials. Future chain adapters need a separate
 commitment format. Nothing here authenticates a network peer, verifies a device
 signature, implements anchoring, or establishes patent compliance. SRC05 #72 records the supplied PDF reconciliation; that source mapping does
 not establish implementation or patent coverage.
+
+## Provisional signed envelopes v1, #75
+
+[The specification](envelopes-v1.md) defines `device-audit.enrollment.v1`,
+`device-audit.evidence.v1` and `device-audit.acknowledgement.v1`, with corresponding
+JSON Schemas and Go types in `envelopes_v1.go`. It specifies Ed25519, SHA-256 key
+fingerprints, length-prefixed domain-separated signing bytes, exact telemetry
+payload byte digests, bounded UTC timestamps, durable per-device sequences and
+controller-signed acceptance/rejection correlation. Application signing identities
+remain separate from bootstrap, TLS, mesh credentials and chain signing.
+
+`Validate()` checks structure and semantic invariants; `SigningBytes()` checks
+the signed fields and supports unsigned construction and rejection correlation
+even for a mismatched key fingerprint or invalid evidence body. Senders must
+validate the completed envelope. `VerifySignature(trustedKey)` validates it and
+checks the key fingerprint and real Ed25519 signature.
+`FreshnessRejection(now, durableMark)` is
+a pure policy check with an explicit clock and no state mutation. None of these
+functions enrolls, authorizes, persists, handles revocation or admits a peer.
+Consumers must atomically compare-and-commit state before accepting a request.
+Binding conflicts and challenge admission remain outside the freshness helper;
+acknowledgements carry their provisional rejection classifications explicitly.
+
+Go and the Python test reader consume `fixtures/envelopes/v1-vectors.json`.
+Go verifies signatures. Python uses the existing test-only schema dependency
+and stdlib hashing/framing to independently check semantic validity, canonical
+bytes, fingerprints, acknowledgement correlation and freshness. Python does not
+authenticate signatures. JSON Schema alone cannot enforce digest/key matches,
+payload decoding/validation, time ordering/lifetimes, field equality or durable
+replay state. Duplicate JSON keys and integer token syntax need strict readers.
+
+Regenerate the public RFC 8032 test-key vectors from the repository root:
+
+```sh
+go run packages/contracts/fixtures/envelopes/generate.go
+make check cross-build
+```
+
+These choices remain provisional and require another owner's sequence/restart
+review before consumers. Controller/fake-server work in #17 and the #80
+conformance harness are unchanged. Production key storage, bootstrap/challenge
+issuance, durable persistence, recovery/rotation and restart/restore integration
+remain dependencies, not capabilities supplied by these contract tests.
