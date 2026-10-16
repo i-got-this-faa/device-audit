@@ -13,14 +13,16 @@ Shepherd's network tree contains scaffolding, not an implemented transport.
 Its relay executable prints a placeholder message. The public project marks
 the mesh spike/library/relay/integration/connectivity tasks as open: #50, #51,
 #97, #98, #173, #174 and feature #248. No functional networking source was
-copied and no third-party network dependency is vendored here.
+copied from Shepherd. The separately versioned Tailcat lab imports pinned upstream modules; it does not vendor their
+source or enable the production adapter.
 
 Reuse is architectural: preserve a server listener and client HTTP transport
 over userspace WireGuard, persist node identity/server keys and PSK, admit only
 enrolled node keys, bind requests to peer identity, disconnect revoked nodes,
 and use self-hosted DERP when direct connectivity fails. Go 1.27.1 aligns with
-the inspected Tailcat module. The actual dependency revision will be pinned
-only after the spike proves its APIs and cross-platform behavior.
+the inspected Tailcat module. The isolated
+[NET01 direct lab](tailcat-lab/README.md) now pins and exercises the upstream API on one Linux host. Cross-platform runtime and production
+acceptance remain open.
 
 `mesh/` is the Go seam. Its constructors currently return `ErrNotImplemented`.
 It must never silently fall back from mesh to unauthenticated public HTTP.
@@ -38,3 +40,18 @@ patent implementation needs it, without importing the entire fleet manager.
 - Revoked peer actively disconnected and rejected on reconnect.
 - Explicit self-hosted DERP map; no public relay defaults in production.
 - Relay configuration, dependency revision/license and measured transport mode.
+
+## NET01 lab evidence
+
+[The pinned direct-UDP lab](tailcat-lab/README.md) proves a bounded application
+exchange before and after restarting both peer processes. It closes its private
+bootstrap relay before the measured application exchange and verifies persisted
+network keys, configured admission, and peer identity.
+[Recorded evidence](tailcat-lab/evidence/2026-10-16.md) also names failed experiments and unqualified recovery paths. Run
+`make tailcat-lab-check` and `make tailcat-lab-proof` to reproduce it.
+
+This lab is independent of the production seam and its unavailable constructors.
+The production requirements above, including real-device binding and revocation,
+remain acceptance gates for #25. The local bootstrap is not #84's deployed DERP
+qualification, and it does not implement #73/#75's bootstrap authorization or
+device-evidence signature consumers.
