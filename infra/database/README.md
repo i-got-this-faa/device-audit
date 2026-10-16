@@ -2,7 +2,8 @@
 
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 selects PostgreSQL provisionally for a single-organization deployment. This is
-reversible pending #14 and the missing patent PDF. The SQL in `migrations/`
+reversible pending #14. SRC05 #72 records the supplied PDF reconciliation;
+that source review does not select release hosting. The SQL in `migrations/`
 remains a schema candidate, not a validated migration or runtime dependency.
 The controller currently uses memory only and loses samples on restart.
 

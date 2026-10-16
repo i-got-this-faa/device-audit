@@ -7,7 +7,7 @@ decoder plus `Telemetry.Validate()`, and by Python's Draft 2020-12 validator
 with date-time format checking (`make telemetry-check`). Other types reserve
 implementation boundaries and are not exposed by HTTP endpoints yet.
 
-Percent metrics use 0–100; latency uses milliseconds; temperature uses Celsius.
+Percent metrics use 0â€“100; latency uses milliseconds; temperature uses Celsius.
 Unavailable sensors are omitted/null rather than fabricated as zero. At least
 one known metric is required. `source` is a producer label, not attestation.
 Device IDs are opaque application IDs, not network credentials.
@@ -38,7 +38,7 @@ not a claim of patent compliance or production collection.
 Each selected metric carries `{value, unit}`. A null value requires one of
 `sensor_unavailable`, `not_applicable`, `permission_denied`, or
 `collection_error`; known values cannot carry a missing reason. CPU/GPU
-utilization and memory/disk/battery usage use `percent` (0–100), temperature
+utilization and memory/disk/battery usage use `percent` (0â€“100), temperature
 uses `celsius`, and latency uses `milliseconds` (nonnegative). At least one
 metric must be known. Inventory metadata uses opaque application IDs and
 supports optional group/network-segment IDs and at most 64 components. A
@@ -156,5 +156,5 @@ The full report and manifest remain off-chain. Raw logs and device identifiers
 are excluded from this report; cohort and batch IDs are application metadata, not
 chain payloads or network credentials. Future chain adapters need a separate
 commitment format. Nothing here authenticates a network peer, verifies a device
-signature, implements anchoring, or establishes patent compliance. The original
-patent PDF remains unavailable.
+signature, implements anchoring, or establishes patent compliance. SRC05 #72 records the supplied PDF reconciliation; that source mapping does
+not establish implementation or patent coverage.

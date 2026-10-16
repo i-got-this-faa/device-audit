@@ -2,8 +2,9 @@
 
 Build the IT Operational Audit and Device Lifecycle Management system. Use
 `docs/requirements.md` for scope and `docs/decisions.md` for decision provenance.
-The original patent PDF has not yet been supplied to this environment; do not
-claim that the scaffold implements or has been checked against the patent.
+The supplied PDF's provenance and engineering claim-to-scope map are recorded
+in `docs/source/patent-map.md`. That mapping does not establish that the
+scaffold implements the claims, patent conformance, or legal coverage.
 
 - `apps/controller` and `internal/controller`: Go controller and ingestion.
 - `apps/endpoint-agent`: Go endpoint process; the initial collector is a fixture.

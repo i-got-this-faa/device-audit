@@ -82,16 +82,34 @@ The normal repository `GITHUB_TOKEN` does not authorize organization Projects.
 The workflow is inactive until explicitly enabled; it does not copy a developer's
 CLI login or extract browser credentials.
 
-1. Have an organization owner provide an approved Projects automation credential.
-   GitHub's documented PAT option is a **personal access token (classic)** with
-   `repo` (the private repository and issue/PR metadata) and `project` (project
-   read/write) scopes, with an expiry and any required organization/SSO approval.
-   These are broad personal-token scopes: an installed GitHub App is preferable
-   for long-lived organization automation; its token-generation step must be
-   configured before using that option. Do not store a short-lived installation
-   token as if it were permanent.
-2. Store the PAT directly in this repository's Actions secret named
-   `PROJECT_AUTOMATION_TOKEN`. Do not paste it into an issue, PR or chat.
+1. Have an organization owner register a private GitHub App owned by
+   `i-got-this-faa`. Disable webhooks and user authorization: Actions supplies
+   the triggers, and the App acts as its own bot. Grant only:
+
+   - Organization **Projects: read and write** (repository Projects is a
+     different permission and is insufficient).
+   - Repository **Issues: read and write** and **Pull requests: read and write**.
+   - Repository **Metadata: read-only**, which GitHub adds automatically.
+
+   Install it on **only `device-audit`**. Organization Projects permission is
+   organization-wide; the reconciler itself is fixed to Project 7. The App
+   does not need Contents write, Actions, Administration, Workflows, Secrets,
+   Members, or personal-account permissions.
+2. Store the App's numeric App ID in the repository Actions variable
+   `PROJECT_AUTOMATION_APP_ID`. Generate an App private key and store it
+   directly in the Actions secret `PROJECT_AUTOMATION_APP_PRIVATE_KEY`. Do not
+   paste the key into an issue, PR, chat, or tracked file. The pinned official
+   `actions/create-github-app-token` action mints a fresh installation token
+   for each run, restricted to `device-audit` and the three write permissions
+   above; its post step revokes that token when the job finishes. No personal
+   CLI credential is copied into Actions.
+
+   The existing PAT option remains available for installations that already
+   use `PROJECT_AUTOMATION_TOKEN`: a classic PAT needs `repo` and `project`
+   scopes, an expiry, and organization/SSO approval where required. App
+   authentication takes precedence. A partially configured App fails before
+   reconciliation instead of silently falling back to the PAT. Never store a
+   temporary installation token in this PAT secret as a permanent credential.
 3. Create the control labels once, if absent:
 
    ```sh
@@ -117,8 +135,11 @@ the next pass is a no-op. A failed/expired credential makes the run fail visibly
 `pull_request_target` executes only trusted **default-branch** code with a pinned
 checkout and Node setup. It never checks out a PR head, installs PR dependencies,
 or interpolates PR text into a shell. The credential is used only by `gh api`.
-The token must be rotated before expiry; a GitHub App deployment should mint an
-installation token per run instead.
+An App installation token is created per run and revoked at job completion.
+Rotate the App private key when required by the organization's credential policy:
+add the replacement Actions secret before revoking the old App key. If using
+the optional PAT, rotate it before its expiry. Expired or revoked credentials
+fail visibly; disabling `PROJECT_AUTOMATION_ENABLED` pauses reconciliation.
 
 ## Verification
 
