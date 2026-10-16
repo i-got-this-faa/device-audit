@@ -76,6 +76,15 @@ details in the [disposition register](source/patent-map.md#broader-embodiments-u
 The register assigns those choices to #14/#138 and the relevant existing task;
 this reconciliation selects no new capability and removes no planned work.
 
+## Provisional lifecycle wire contract, CT08 #78
+
+The separately versioned lifecycle v2 contract defines batch evidence/cost/age
+inputs, nullable sustainability and longevity quantities, and cohort/window
+component trends. Shared Go/Python vectors validate the wire shape; Go also
+checks cross-field semantics. No evaluator, calibrated model, fleet aggregator
+or external asset adapter is implemented. The implementation and evidence tasks
+in the source map above remain open.
+
 ## PDF verification gate
 
 1. [x] Obtain the original `patent.pdf` and record its SHA-256 digest; see the source inventory.

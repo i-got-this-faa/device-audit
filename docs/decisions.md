@@ -2,17 +2,17 @@
 
 The user explicitly requested a new organization repository and selected reuse
 of Shepherd networking. The attached `chat_handoff_full_transcript.md` ends with
-Turns 15â€“17 describing the current direction. Earlier security and fleet-manager
+Turns 15Ã¢â‚¬â€œ17 describing the current direction. Earlier security and fleet-manager
 discussion can drift and does not automatically become product scope.
 
 | Decision | Evidence | Treatment |
 | --- | --- | --- |
-| New repository under i-got-this-faa | Current user request, handoff 15â€“17 | Dedicated `device-audit`; Shepherd remains separate |
+| New repository under i-got-this-faa | Current user request, handoff 15Ã¢â‚¬â€œ17 | Dedicated `device-audit`; Shepherd remains separate |
 | Go controller | Handoff 15/17 | Selected |
 | Go endpoint agent | Handoff 17 | Selected |
 | Tailcat / userspace WireGuard / DERP | Current request, handoff 15/17, Shepherd spec 14 | Preserve design and package boundary; adapter absent upstream |
 | Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected; architecture and endpoint qualification open. #22 selects only a historical HDD study. |
-| Local training + central aggregation | Handoff 15â€“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
+| Local training + central aggregation | Handoff 15Ã¢â‚¬â€œ17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
@@ -119,6 +119,30 @@ SRC05 #72 records the source's warning/degraded terminology difference and
 assigns the versioned health policy to #86/#35. #22 selected a historical HDD
 dataset study; the source PDF and claim reconciliation are indexed. These contracts provide neither patent
 compliance evidence nor a production model capability.
+
+## Provisional lifecycle contract v2
+
+Issue #78 adds a separate `device-audit.lifecycle.v2` report proposal without
+changing v1 or the lifecycle evaluator interface. It binds batch recommendations
+and component fault-rate comparisons to cohort, baseline/current windows, and
+off-chain evidence. Actionable recommendations require v2 telemetry/prediction
+references, age in months, and per-device repair/upgrade/replacement costs in a
+declared currency's major units. Missing inputs remain explicit null and force
+`insufficient_evidence`; independent analyses can also remain unavailable.
+
+The only supported sustainability proposal is `carbon-reduction.v1`: compare
+replacement-baseline and recommended-scenario batch totals over a declared
+month horizon, subtract carbon in kg CO2e and e-waste in kg, and score the
+nonnegative percent reduction in baseline carbon. It makes no overall
+environmental-quality claim. Zero baseline carbon cannot yield a complete score.
+Longevity uses months and a confidence probability with ordered bounds.
+Component fault rates use percent and changes use percentage points. The
+contract README defines the assumptions and semantic validation boundaries.
+
+These are provisional contract choices for review, not a production evaluator,
+validated sustainability methodology, calibrated longevity model, fleet trend
+service, or patent verification. No raw logs or device IDs are chain payloads;
+network identity, device signatures, and future commitments remain separate.
 
 ## Source reconciliation and retained scope, SRC05 #72
 

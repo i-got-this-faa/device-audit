@@ -1,0 +1,1486 @@
+{
+  "vectors": [
+    {
+      "name": "complete fixture batch and component trend",
+      "valid": true,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing inputs remain explicit null and insufficient_evidence",
+      "valid": true,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "insufficient_evidence",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": null,
+              "prediction_digest": null
+            },
+            "inputs": {
+              "age_months": null,
+              "currency": "USD",
+              "repair_cost_major": null,
+              "upgrade_cost_major": null,
+              "replacement_cost_major": null
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "insufficient_evidence",
+              "inputs": {
+                "assessment_horizon_months": null,
+                "baseline_carbon_kg_co2e": null,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": null
+              },
+              "score_percent": null,
+              "carbon_avoided_kg_co2e": null,
+              "e_waste_avoided_kg": null
+            },
+            "longevity": {
+              "status": "insufficient_evidence",
+              "remaining_months": null,
+              "lower_bound_months": null,
+              "upper_bound_months": null,
+              "confidence_probability": null
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "insufficient_evidence",
+            "baseline_sample_count": 0,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": null,
+            "failure_rate_percent": null,
+            "change_percentage_points": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero is known and avoided quantities can be negative",
+      "valid": true,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 0,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 120,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 5
+              },
+              "score_percent": 0,
+              "carbon_avoided_kg_co2e": -20,
+              "e_waste_avoided_kg": -1
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 0,
+              "lower_bound_months": 0,
+              "upper_bound_months": 0,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 0,
+            "failure_rate_percent": 0,
+            "change_percentage_points": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "recommendation can be complete while sustainability is unavailable",
+      "valid": true,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "insufficient_evidence",
+              "inputs": {
+                "assessment_horizon_months": null,
+                "baseline_carbon_kg_co2e": null,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": null
+              },
+              "score_percent": null,
+              "carbon_avoided_kg_co2e": null,
+              "e_waste_avoided_kg": null
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "unsupported methodology even when inputs are missing",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "insufficient_evidence",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": null,
+              "prediction_digest": null
+            },
+            "inputs": {
+              "age_months": null,
+              "currency": "USD",
+              "repair_cost_major": null,
+              "upgrade_cost_major": null,
+              "replacement_cost_major": null
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v99",
+              "status": "insufficient_evidence",
+              "inputs": {
+                "assessment_horizon_months": null,
+                "baseline_carbon_kg_co2e": null,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": null
+              },
+              "score_percent": null,
+              "carbon_avoided_kg_co2e": null,
+              "e_waste_avoided_kg": null
+            },
+            "longevity": {
+              "status": "insufficient_evidence",
+              "remaining_months": null,
+              "lower_bound_months": null,
+              "upper_bound_months": null,
+              "confidence_probability": null
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "insufficient_evidence",
+            "baseline_sample_count": 0,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": null,
+            "failure_rate_percent": null,
+            "change_percentage_points": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated recommendation without age",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": null,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated recommendation without cost",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": null
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated recommendation without prediction evidence",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": null
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated trend without cohort evidence",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated sustainability without carbon input",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated sustainability without e-waste input",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "fabricated complete longevity with null interval",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": null,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing nullable field is not explicit null",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "insufficient_evidence",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": null,
+              "prediction_digest": null
+            },
+            "inputs": {
+              "currency": "USD",
+              "repair_cost_major": null,
+              "upgrade_cost_major": null,
+              "replacement_cost_major": null
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "insufficient_evidence",
+              "inputs": {
+                "assessment_horizon_months": null,
+                "baseline_carbon_kg_co2e": null,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": null
+              },
+              "score_percent": null,
+              "carbon_avoided_kg_co2e": null,
+              "e_waste_avoided_kg": null
+            },
+            "longevity": {
+              "status": "insufficient_evidence",
+              "remaining_months": null,
+              "lower_bound_months": null,
+              "upper_bound_months": null,
+              "confidence_probability": null
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "insufficient_evidence",
+            "baseline_sample_count": 0,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": null,
+            "failure_rate_percent": null,
+            "change_percentage_points": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "insufficient evidence cannot carry a fabricated score",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "insufficient_evidence",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": null,
+              "prediction_digest": null
+            },
+            "inputs": {
+              "age_months": null,
+              "currency": "USD",
+              "repair_cost_major": null,
+              "upgrade_cost_major": null,
+              "replacement_cost_major": null
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "insufficient_evidence",
+              "inputs": {
+                "assessment_horizon_months": null,
+                "baseline_carbon_kg_co2e": null,
+                "scenario_carbon_kg_co2e": null,
+                "baseline_e_waste_kg": null,
+                "scenario_e_waste_kg": null
+              },
+              "score_percent": 0,
+              "carbon_avoided_kg_co2e": null,
+              "e_waste_avoided_kg": null
+            },
+            "longevity": {
+              "status": "insufficient_evidence",
+              "remaining_months": null,
+              "lower_bound_months": null,
+              "upper_bound_months": null,
+              "confidence_probability": null
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "insufficient_evidence",
+            "baseline_sample_count": 0,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": null,
+            "failure_rate_percent": null,
+            "change_percentage_points": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "months cannot be substituted for explicit carbon units",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3,
+              "carbon_avoided_months": 40
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "trend with no samples cannot be complete",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "out of range failure rate",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 101,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "inline raw logs are rejected",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ],
+        "raw_logs": "fixture log"
+      }
+    },
+    {
+      "name": "device identifiers are not batch fields",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            },
+            "device_ids": [
+              "device:fixture"
+            ]
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero baseline carbon cannot produce a complete score",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 12,
+                "baseline_carbon_kg_co2e": 0,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "zero assessment horizon cannot produce complete sustainability",
+      "valid": false,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 10,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "recommendations": [
+          {
+            "batch_id": "batch:fixture-repair",
+            "affected_device_count": 3,
+            "action": "repair",
+            "evidence": {
+              "telemetry_schema_version": "device-audit.telemetry.v2",
+              "prediction_schema_version": "device-audit.prediction.v2",
+              "telemetry_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "prediction_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            },
+            "inputs": {
+              "age_months": 36,
+              "currency": "USD",
+              "repair_cost_major": 100,
+              "upgrade_cost_major": 200,
+              "replacement_cost_major": 1000
+            },
+            "sustainability": {
+              "methodology_version": "carbon-reduction.v1",
+              "status": "complete",
+              "inputs": {
+                "assessment_horizon_months": 0,
+                "baseline_carbon_kg_co2e": 100,
+                "scenario_carbon_kg_co2e": 60,
+                "baseline_e_waste_kg": 4,
+                "scenario_e_waste_kg": 1
+              },
+              "score_percent": 40,
+              "carbon_avoided_kg_co2e": 40,
+              "e_waste_avoided_kg": 3
+            },
+            "longevity": {
+              "status": "complete",
+              "remaining_months": 24,
+              "lower_bound_months": 12,
+              "upper_bound_months": 36,
+              "confidence_probability": 0.9
+            }
+          }
+        ],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "complete",
+            "baseline_sample_count": 10,
+            "sample_count": 10,
+            "baseline_failure_rate_percent": 10,
+            "failure_rate_percent": 30,
+            "change_percentage_points": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty cohort carries only insufficient trends",
+      "valid": true,
+      "lifecycle": {
+        "schema_version": "device-audit.lifecycle.v2",
+        "generated_at": "2026-10-15T00:00:00Z",
+        "provenance": {
+          "cohort_id": "cohort:fixture-storage",
+          "cohort_size": 0,
+          "baseline_window_start": "2026-08-01T00:00:00Z",
+          "baseline_window_end": "2026-09-01T00:00:00Z",
+          "window_start": "2026-09-01T00:00:00Z",
+          "window_end": "2026-10-01T00:00:00Z",
+          "evidence_digest": null
+        },
+        "recommendations": [],
+        "component_trends": [
+          {
+            "category": "storage",
+            "status": "insufficient_evidence",
+            "baseline_sample_count": 0,
+            "sample_count": 0,
+            "baseline_failure_rate_percent": null,
+            "failure_rate_percent": null,
+            "change_percentage_points": null
+          }
+        ]
+      }
+    }
+  ]
+}

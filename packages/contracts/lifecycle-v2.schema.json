@@ -1,0 +1,744 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "device-audit.lifecycle.v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "provenance",
+    "recommendations",
+    "component_trends"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "device-audit.lifecycle.v2"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cohort_id",
+        "cohort_size",
+        "baseline_window_start",
+        "baseline_window_end",
+        "window_start",
+        "window_end",
+        "evidence_digest"
+      ],
+      "properties": {
+        "cohort_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+        },
+        "cohort_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "baseline_window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "baseline_window_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Fa-f0-9]{64}(?![\\s\\S])"
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/recommendation"
+      }
+    },
+    "component_trends": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/trend"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "anyOf": [
+              {
+                "properties": {
+                  "evidence_digest": {
+                    "type": "null"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "cohort_size": {
+                    "const": 0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "recommendations": {
+            "items": {
+              "properties": {
+                "action": {
+                  "const": "insufficient_evidence"
+                }
+              }
+            }
+          },
+          "component_trends": {
+            "items": {
+              "properties": {
+                "status": {
+                  "const": "insufficient_evidence"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_id",
+        "affected_device_count",
+        "action",
+        "evidence",
+        "inputs",
+        "sustainability",
+        "longevity"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(?![\\s\\S])"
+        },
+        "affected_device_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        },
+        "action": {
+          "enum": [
+            "repair",
+            "upgrade",
+            "replace",
+            "retain",
+            "insufficient_evidence"
+          ]
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "telemetry_schema_version",
+            "prediction_schema_version",
+            "telemetry_digest",
+            "prediction_digest"
+          ],
+          "properties": {
+            "telemetry_schema_version": {
+              "const": "device-audit.telemetry.v2"
+            },
+            "prediction_schema_version": {
+              "const": "device-audit.prediction.v2"
+            },
+            "telemetry_digest": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Fa-f0-9]{64}(?![\\s\\S])"
+            },
+            "prediction_digest": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Fa-f0-9]{64}(?![\\s\\S])"
+            }
+          }
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "age_months",
+            "repair_cost_major",
+            "upgrade_cost_major",
+            "replacement_cost_major",
+            "currency"
+          ],
+          "properties": {
+            "age_months": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "repair_cost_major": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "upgrade_cost_major": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "replacement_cost_major": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}(?![\\s\\S])"
+            }
+          }
+        },
+        "sustainability": {
+          "$ref": "#/$defs/sustainability"
+        },
+        "longevity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "remaining_months",
+            "lower_bound_months",
+            "upper_bound_months",
+            "confidence_probability"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "complete",
+                "insufficient_evidence"
+              ]
+            },
+            "remaining_months": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lower_bound_months": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "upper_bound_months": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "confidence_probability": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "complete"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "remaining_months": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "lower_bound_months": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "upper_bound_months": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "confidence_probability": {
+                    "not": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "remaining_months": {
+                    "type": "null"
+                  },
+                  "lower_bound_months": {
+                    "type": "null"
+                  },
+                  "upper_bound_months": {
+                    "type": "null"
+                  },
+                  "confidence_probability": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "enum": [
+                  "repair",
+                  "upgrade",
+                  "replace",
+                  "retain"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "properties": {
+                  "age_months": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "repair_cost_major": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "upgrade_cost_major": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "replacement_cost_major": {
+                    "not": {
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              "evidence": {
+                "properties": {
+                  "telemetry_digest": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "prediction_digest": {
+                    "not": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "action": {
+                "const": "insufficient_evidence"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sustainability": {
+                "properties": {
+                  "status": {
+                    "const": "insufficient_evidence"
+                  }
+                }
+              },
+              "longevity": {
+                "properties": {
+                  "status": {
+                    "const": "insufficient_evidence"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sustainability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "methodology_version",
+        "inputs",
+        "score_percent",
+        "carbon_avoided_kg_co2e",
+        "e_waste_avoided_kg"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "insufficient_evidence"
+          ]
+        },
+        "methodology_version": {
+          "const": "carbon-reduction.v1"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assessment_horizon_months",
+            "baseline_carbon_kg_co2e",
+            "scenario_carbon_kg_co2e",
+            "baseline_e_waste_kg",
+            "scenario_e_waste_kg"
+          ],
+          "properties": {
+            "assessment_horizon_months": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "baseline_carbon_kg_co2e": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "scenario_carbon_kg_co2e": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "baseline_e_waste_kg": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "scenario_e_waste_kg": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "score_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "carbon_avoided_kg_co2e": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "e_waste_avoided_kg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "score_percent": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "carbon_avoided_kg_co2e": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "e_waste_avoided_kg": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "score_percent": {
+                "type": "null"
+              },
+              "carbon_avoided_kg_co2e": {
+                "type": "null"
+              },
+              "e_waste_avoided_kg": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "inputs": {
+                "properties": {
+                  "assessment_horizon_months": {
+                    "not": {
+                      "type": "null"
+                    },
+                    "exclusiveMinimum": 0
+                  },
+                  "baseline_carbon_kg_co2e": {
+                    "not": {
+                      "type": "null"
+                    },
+                    "exclusiveMinimum": 0
+                  },
+                  "scenario_carbon_kg_co2e": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "baseline_e_waste_kg": {
+                    "not": {
+                      "type": "null"
+                    }
+                  },
+                  "scenario_e_waste_kg": {
+                    "not": {
+                      "type": "null"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "trend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "category",
+        "baseline_sample_count",
+        "sample_count",
+        "baseline_failure_rate_percent",
+        "failure_rate_percent",
+        "change_percentage_points"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "insufficient_evidence"
+          ]
+        },
+        "category": {
+          "enum": [
+            "cpu",
+            "gpu",
+            "memory",
+            "storage",
+            "battery",
+            "thermal",
+            "network"
+          ]
+        },
+        "baseline_sample_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "baseline_failure_rate_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "failure_rate_percent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "change_percentage_points": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": -100,
+          "maximum": 100
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "baseline_failure_rate_percent": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "failure_rate_percent": {
+                "not": {
+                  "type": "null"
+                }
+              },
+              "change_percentage_points": {
+                "not": {
+                  "type": "null"
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "baseline_failure_rate_percent": {
+                "type": "null"
+              },
+              "failure_rate_percent": {
+                "type": "null"
+              },
+              "change_percentage_points": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "baseline_sample_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
