@@ -95,8 +95,8 @@ CLI login or extract browser credentials.
    organization-wide; the reconciler itself is fixed to Project 7. The App
    does not need Contents write, Actions, Administration, Workflows, Secrets,
    Members, or personal-account permissions.
-2. Store the App's client ID in the repository Actions variable
-   `PROJECT_AUTOMATION_APP_CLIENT_ID`. Generate an App private key and store it
+2. Store the App's numeric App ID in the repository Actions variable
+   `PROJECT_AUTOMATION_APP_ID`. Generate an App private key and store it
    directly in the Actions secret `PROJECT_AUTOMATION_APP_PRIVATE_KEY`. Do not
    paste the key into an issue, PR, chat, or tracked file. The pinned official
    `actions/create-github-app-token` action mints a fresh installation token
