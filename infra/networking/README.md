@@ -15,8 +15,8 @@ authenticated enrollment; do not expose the development controller publicly.
 
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 uses a private controller/database host and a separate public self-hosted DERP
-host per organization. These are reversible planning choices pending #14 and
-the missing patent PDF, not deployed services or a release-platform selection.
+host per organization. These are reversible planning choices pending #14, not deployed services or
+a release-platform selection. SRC05 #72 separately records source reconciliation.
 
 Expose bootstrap enrollment, administrator access and DERP map publication over
 HTTPS through a proxy. Enrollment requires a single-use, expiring bootstrap

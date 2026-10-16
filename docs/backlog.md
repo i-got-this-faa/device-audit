@@ -1,11 +1,13 @@
 # Focused implementation backlog
 
-Items are unscheduled until claim-to-scope reconciliation and delivery constraints are verified.
+The 150-issue release roadmap supplies scheduling and stable task keys. The
+source reconciliation identifies planned acceptance work, not completion.
 
 1. **Source verification:** provenance and the printed-page index are complete
-   in [`source/patent-map.md`](source/patent-map.md). Reconcile the claims and
-   metric definitions to project requirements, and settle scope and acceptance
-   criteria under [issue #72](https://github.com/i-got-this-faa/device-audit/issues/72).
+   in [`source/patent-map.md`](source/patent-map.md), together with SRC05 #72's
+   claims 1-10 map, metric gaps and broader-embodiment register. Settle the
+   remaining explicit product choices under SRC02 #14/CAP02 #138 and complete
+   the linked implementation/evidence tasks.
 2. **Network spike:** implement the Tailcat adapter and self-hosted DERP using
    a tested pinned revision; verify key persistence, admission, identity binding,
    revocation, reconnect, direct LAN/WAN and UDP-blocked relay operation.
@@ -26,7 +28,8 @@ Items are unscheduled until claim-to-scope reconciliation and delivery constrain
    implement and test authorization/replay/finality, connect the Anchorer.
 10. **Dashboard + full demonstration:** choose UI framework, health/fleet views,
     audit evidence/receipts, model-round views, asset integration where required,
-    and a traceable end-to-end demonstration of verified patent requirements.
+    and a traceable end-to-end demonstration against the selected mapped
+    requirements, without a patent-conformance claim.
 
 This backlog replaces Shepherd's configuration manager delivery plan for this
 repository. It does not migrate or close any Shepherd issue or project item.
