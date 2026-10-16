@@ -7,7 +7,7 @@ decoder plus `Telemetry.Validate()`, and by Python's Draft 2020-12 validator
 with date-time format checking (`make telemetry-check`). Other types reserve
 implementation boundaries and are not exposed by HTTP endpoints yet.
 
-Percent metrics use 0–100; latency uses milliseconds; temperature uses Celsius.
+Percent metrics use 0Ã¢â‚¬â€œ100; latency uses milliseconds; temperature uses Celsius.
 Unavailable sensors are omitted/null rather than fabricated as zero. At least
 one known metric is required. `source` is a producer label, not attestation.
 Device IDs are opaque application IDs, not network credentials.
@@ -23,10 +23,9 @@ attestation. The supplied PDF's provenance is indexed in
 reconciliation remains #72. This conformance work makes no patent claim.
 
 The demo digest is SHA-256 of `json.Marshal(Telemetry)` after validation. It is
-specific to this Go representation. The separate envelope proposal below defines
-canonical signing bytes for enrollment/evidence and acknowledgements. It is not
-wired into the demo, and the demo digest is not a signed evidence commitment.
-Smart-contract commitments and policy/model binding remain separate work.
+specific to this Go representation. Define a cross-language canonical encoding,
+domain separator, policy/schema/model version binding, signature and replay
+protocol before using a digest in security decisions or smart contracts.
 
 ## Provisional telemetry and inventory v2
 
@@ -39,7 +38,7 @@ not a claim of patent compliance or production collection.
 Each selected metric carries `{value, unit}`. A null value requires one of
 `sensor_unavailable`, `not_applicable`, `permission_denied`, or
 `collection_error`; known values cannot carry a missing reason. CPU/GPU
-utilization and memory/disk/battery usage use `percent` (0–100), temperature
+utilization and memory/disk/battery usage use `percent` (0Ã¢â‚¬â€œ100), temperature
 uses `celsius`, and latency uses `milliseconds` (nonnegative). At least one
 metric must be known. Inventory metadata uses opaque application IDs and
 supports optional group/network-segment IDs and at most 64 components. A
@@ -157,8 +156,9 @@ The full report and manifest remain off-chain. Raw logs and device identifiers
 are excluded from this report; cohort and batch IDs are application metadata, not
 chain payloads or network credentials. Future chain adapters need a separate
 commitment format. Nothing here authenticates a network peer, verifies a device
-signature, implements anchoring, or establishes patent compliance. The original
-patent PDF remains unavailable.
+signature, implements anchoring, or establishes patent compliance. SRC05 #72 records the supplied PDF reconciliation; that source mapping does
+not establish implementation or patent coverage.
+
 ## Provisional signed envelopes v1, #75
 
 [The specification](envelopes-v1.md) defines `device-audit.enrollment.v1`,

@@ -40,14 +40,45 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
+      - name: Check automation credentials
+        env:
+          APP_ID: ${{ vars.PROJECT_AUTOMATION_APP_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.PROJECT_AUTOMATION_APP_PRIVATE_KEY }}
+          LEGACY_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+        shell: bash
+        run: |
+          if [ -n "$APP_ID" ]; then
+            if [ -z "$APP_PRIVATE_KEY" ]; then
+              echo '::error::Set PROJECT_AUTOMATION_APP_PRIVATE_KEY for the configured GitHub App.'
+              exit 1
+            fi
+          elif [ -n "$APP_PRIVATE_KEY" ]; then
+            echo '::error::Set PROJECT_AUTOMATION_APP_ID for the configured private key.'
+            exit 1
+          elif [ -z "$LEGACY_TOKEN" ]; then
+            echo '::error::Configure the GitHub App as documented in docs/project-automation.md.'
+            exit 1
+          fi
+      - name: Create scoped installation token
+        if: vars.PROJECT_AUTOMATION_APP_ID != ''
+        id: app-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ vars.PROJECT_AUTOMATION_APP_ID }}
+          private-key: ${{ secrets.PROJECT_AUTOMATION_APP_PRIVATE_KEY }}
+          owner: i-got-this-faa
+          repositories: device-audit
+          permission-issues: write
+          permission-pull-requests: write
+          permission-organization-projects: write
       - name: Reconcile trusted metadata
         env:
-          GH_TOKEN: ${{ secrets.PROJECT_AUTOMATION_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token || secrets.PROJECT_AUTOMATION_TOKEN }}
           APPLY: ${{ github.event_name != 'workflow_dispatch' || inputs.apply }}
         shell: bash
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo '::error::Set PROJECT_AUTOMATION_TOKEN as documented in docs/project-automation.md.'
+            echo '::error::No automation token was produced; check docs/project-automation.md.'
             exit 1
           fi
           args=(--output "$RUNNER_TEMP/project-plan.json")

@@ -147,4 +147,5 @@ prove real durable restart/restore, concurrency, enrollment, authenticated mesh
 traffic or key storage. Another owner's sequence/restart review is still required
 before consumers. #17 controller/fake-server behavior, the in-progress #80 harness,
 issue metadata and runtime routes are unchanged. No production or patent
-verification claim follows; #14 and the original PDF remain unresolved.
+verification claim follows. #14 remains open; SRC05 #72 records the supplied
+PDF reconciliation separately from implementation and legal coverage.

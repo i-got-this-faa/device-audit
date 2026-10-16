@@ -4,8 +4,9 @@ This specifies contracts, not controller enrollment or ingestion behavior. The
 hosting/tenancy plan in `docs/decisions.md`, #73, selects one organization per
 deployment provisionally. `deployment_id` is an opaque operator-provisioned
 deployment identifier. A request cannot select its authorization boundary.
-Consumers must compare it with their configured deployment. The original
-patent PDF is absent. No patent verification or production key storage is claimed.
+Consumers must compare it with their configured deployment. SRC05 #72 records the supplied PDF reconciliation. That source mapping
+establishes neither implementation nor patent coverage; no production key storage
+is claimed.
 
 ## Signature and canonical bytes
 
@@ -183,5 +184,5 @@ semantics before consumer work. #17 controller/fake-server implementation and
 #80's conformance harness are untouched. Durable transactions, challenge and
 bootstrap issuance, peer authorization, revocation/recovery, controller trust
 distribution, protected endpoint key storage, actual clock behavior, and
-restart/restore integration remain unimplemented. #14 and the missing PDF still
-bound deployment and patent claims.
+restart/restore integration remain unimplemented. #14 still bounds deployment choices; source reconciliation under #72 does not
+establish implementation or patent coverage.
