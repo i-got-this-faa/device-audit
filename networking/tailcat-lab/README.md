@@ -25,6 +25,8 @@ this module. The test cannot skip a failed direct connection or substitute a
 relay success. A fresh run uses random keys, temporary private files, ephemeral
 UDP ports, and one loopback relay port. It takes about 12 seconds without race
 instrumentation on the measured host. The overall test timeout is 150 seconds.
+The `tailcat-lab` Ubuntu CI job runs the same module checks and real direct/restart
+experiment on pushes and pull requests, independently of the root module checks.
 
 The trace command emits only aggregate successful UDP send/receive syscall
 counts. Its temporary trace contains socket addresses, suppresses payloads with
