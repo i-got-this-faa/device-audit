@@ -22,7 +22,9 @@ Expose bootstrap enrollment, administrator access and DERP map publication over
 HTTPS through a proxy. Enrollment requires a single-use, expiring bootstrap
 credential authorized by the operator. Administrator access requires
 authentication and authorization for this deployment. Credential issuance,
-administrator identity provider and route contracts remain undecided. HTTPS
+administrator OIDC/session policy is selected in
+[decision #74](../../docs/decisions.md#console-and-administrator-identity-src04-74);
+provider registration and route implementation remain absent. HTTPS
 alone grants no access. Restrict the public
 proxy to those intended surfaces; device telemetry uses the authenticated mesh,
 and the database has no public listener. The relay receives no database access
