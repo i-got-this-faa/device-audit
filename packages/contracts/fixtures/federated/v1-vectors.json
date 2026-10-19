@@ -1,0 +1,672 @@
+{
+  "now": "2026-10-19T12:30:00Z",
+  "vectors": [
+    {
+      "name": "round",
+      "payload": {
+        "schema_version": "device-audit.federated-round.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "parameter_count": 2,
+        "opened_at": "2026-10-19T12:00:00Z",
+        "deadline": "2026-10-19T13:00:00Z",
+        "min_participants": 2,
+        "participants": [
+          {
+            "device_id": "device-a",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-b",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-c",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "ineligible",
+            "reason": "insufficient_local_data"
+          }
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "duplicate_participant",
+      "payload": {
+        "schema_version": "device-audit.federated-round.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "parameter_count": 2,
+        "opened_at": "2026-10-19T12:00:00Z",
+        "deadline": "2026-10-19T13:00:00Z",
+        "min_participants": 2,
+        "participants": [
+          {
+            "device_id": "device-a",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-b",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-c",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "ineligible",
+            "reason": "insufficient_local_data"
+          },
+          {
+            "device_id": "device-a",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          }
+        ]
+      },
+      "valid": false,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "empty_round_window",
+      "payload": {
+        "schema_version": "device-audit.federated-round.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "parameter_count": 2,
+        "opened_at": "2026-10-19T12:00:00Z",
+        "deadline": "2026-10-19T12:00:00Z",
+        "min_participants": 2,
+        "participants": [
+          {
+            "device_id": "device-a",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-b",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "eligible",
+            "reason": null
+          },
+          {
+            "device_id": "device-c",
+            "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+            "eligibility": "ineligible",
+            "reason": "insufficient_local_data"
+          }
+        ]
+      },
+      "valid": false,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "update",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "incompatible_base",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "other-base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "9ea1f83edf0cd0608af757c72a9109803ec2d185dd05494ec143f6dbb41c59467081348611006a778a83bec4ec56651795bace9f03a2293418762ec4511ba302"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d610000000d6f746865722d626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "incompatible_base_digest",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "cbae2a38db48028380ad0dd5031eaa56a94d164ae21b91bcceba3535fa9a357bacba8501831453da9e3322033f3135f43c9b07c096c8ac04ebab6704d3a1bc0e"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262620000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "incompatible_features",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v2",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "140bfc1484b3456fc64dafaa7083a8857cddf12876d45c1b53d6a34188c50d581586b4768e1f49f070357b43271a29a50fa9cf0014cbfc75b9ce35c6ee3da907"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76320000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "ineligible_participant",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-c",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "c69c15202d5798f0fa74f89950ff9f09904f4d5e1e120510ca12b2d0c096395ddcfd34db750741f6c0fd5f136c8d011414325d8df246d8eab92e8ff674c38c01"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6300000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "incompatible_dimensions",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P/AAAAAAAAA=",
+        "update_sha256": "54ade53a579f5389ecae3af42df9e96aa30fcf3fc02a7475afc18c3e4835f6f7",
+        "signature": "a75210995a6c2045112593e903ad3ce4cf889e7abbb2bc173921f96b97e6e77227f796afe29466167165cea419ddb917b8bf2a05018e8c075829453dcbf7b209"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004035346164653533613537396635333839656361653361663432646639653936616133306663663366633032613734373561666331386333653438333566366637"
+    },
+    {
+      "name": "expiry_after_round",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:01Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "5d14a397d8b99361f5f31ef95dc135fd727fb3494e8368d5a23c5ec03263dd95ab2b949f6292b354ac20c75ab441c70fa97b8c7d7b9c0954c3a0c5a3266e5104"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30315a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561"
+    },
+    {
+      "name": "tampered_sample_count",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 25,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "zero_samples",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 0,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "nonfinite_nan_update",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "f/gAAAAAAAE/8AAAAAAAAA==",
+        "update_sha256": "e7e83bd31286302da554da04c6964acc7fa6042c8f558b315eb5d1ec6fc3ec7b",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "nonfinite_infinity_update",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "f/AAAAAAAAA/8AAAAAAAAA==",
+        "update_sha256": "45bd2afe6482ce2abe1b93e7d1f5724eee61dc1f8db6a2ae3cd944ccfbd966fd",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "digest_mismatch",
+      "payload": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "round-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "candidate_id": "candidate-a",
+        "feature_version": "features.v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "raw_observations_not_in_contract",
+      "payload": {
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "base_model_version": "base.v1",
+        "candidate_id": "candidate-a",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "feature_version": "features.v1",
+        "issued_at": "2026-10-19T12:10:00Z",
+        "observations": [
+          1,
+          2
+        ],
+        "round_id": "round-a",
+        "sample_count": 24,
+        "schema_version": "device-audit.federated-update.v1",
+        "sequence": 2,
+        "signature": "8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA=="
+      },
+      "valid": false,
+      "schema_valid": false,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "promoted",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "promoted",
+        "reason": null,
+        "accepted_participants": [
+          "device-a",
+          "device-b"
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "failed_promotion",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "rejected",
+        "reason": "evaluation_failed",
+        "accepted_participants": [
+          "device-a",
+          "device-b"
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "no_quorum",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": null,
+        "candidate_model_sha256": null,
+        "evaluation_sha256": null,
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "rejected",
+        "reason": "insufficient_participants",
+        "accepted_participants": [
+          "device-a"
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "promotion_without_evaluation",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": null,
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "promoted",
+        "reason": null,
+        "accepted_participants": [
+          "device-a",
+          "device-b"
+        ]
+      },
+      "valid": false,
+      "schema_valid": false,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "duplicate_accepted_participant",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "promoted",
+        "reason": null,
+        "accepted_participants": [
+          "device-a",
+          "device-a"
+        ]
+      },
+      "valid": false,
+      "schema_valid": false,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "premature_promotion",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T12:59:59Z",
+        "decision": "promoted",
+        "reason": null,
+        "accepted_participants": [
+          "device-a",
+          "device-b"
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "promotion_with_ineligible_participant",
+      "payload": {
+        "schema_version": "device-audit.federated-promotion.v1",
+        "deployment_id": "deployment-a",
+        "round_id": "round-a",
+        "candidate_id": "candidate-a",
+        "base_model_version": "base.v1",
+        "base_model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "feature_version": "features.v1",
+        "candidate_model_version": "candidate.v2",
+        "candidate_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluation_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "policy_version": "heldout-policy.v1",
+        "decided_at": "2026-10-19T13:00:00Z",
+        "decision": "promoted",
+        "reason": null,
+        "accepted_participants": [
+          "device-a",
+          "device-c"
+        ]
+      },
+      "valid": true,
+      "schema_valid": true,
+      "context_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    }
+  ],
+  "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+}
