@@ -200,6 +200,16 @@ harness are not implemented or changed by #75. #14 remains open; SRC05 #72
 records source reconciliation without establishing implementation or legal coverage.
 
 
+## Provisional audit commitment contracts v1, #79
+
+[The audit format](../packages/contracts/audit-v1.md) keeps signed evidence and
+lifecycle manifest references off-chain. Only a random opaque ID and blinded
+SHA-256 commitment are public, under a separate version namespace. Policy,
+application signing identity and nonce remain inside the signed private manifest.
+Receipt finality and evidence integrity are separate states; missing/expired
+evidence differs from digest mismatch. This selects an encoding, not a chain,
+finality threshold, resolver, production key store or anchoring implementation.
+
 ## Source reconciliation and retained scope, SRC05 #72
 
 The [claim map and disposition register](source/patent-map.md) separate all ten

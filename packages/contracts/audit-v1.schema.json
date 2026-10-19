@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://device-audit.invalid/contracts/audit-v1.schema.json",
+  "title": "Off-chain audit manifest, opaque commitment and receipt v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/manifest"
+    },
+    {
+      "$ref": "#/$defs/commitment"
+    },
+    {
+      "$ref": "#/$defs/receipt"
+    },
+    {
+      "$ref": "#/$defs/verification"
+    }
+  ],
+  "$defs": {
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.audit-manifest.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "manifest_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "commitment_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "blinding_nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "policy_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "controller_key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{64}$"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reference_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+              },
+              "schema_version": {
+                "enum": [
+                  "device-audit.evidence.v1",
+                  "device-audit.prediction.v2",
+                  "device-audit.lifecycle.v2"
+                ]
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10485760
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              }
+            },
+            "required": [
+              "reference_id",
+              "schema_version",
+              "sha256",
+              "size_bytes",
+              "expires_at"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 64
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{128}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "manifest_id",
+        "commitment_id",
+        "blinding_nonce",
+        "policy_version",
+        "controller_key_id",
+        "created_at",
+        "expires_at",
+        "evidence",
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "commitment": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.audit-commitment.v1"
+        },
+        "commitment_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "commitment_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "commitment_id",
+        "commitment_sha256"
+      ],
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.audit-receipt.v1"
+        },
+        "commitment_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "commitment_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "adapter_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "transaction_reference": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+        },
+        "block_reference": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "finalized",
+            "reverted"
+          ]
+        },
+        "observed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "finalized_at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "transaction_failed",
+                "reorganized",
+                "commitment_absent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "commitment_id",
+        "commitment_sha256",
+        "adapter_id",
+        "transaction_reference",
+        "block_reference",
+        "state",
+        "observed_at",
+        "finalized_at",
+        "reason"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "pending"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "finalized_at": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "finalized"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "block_reference": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+              },
+              "finalized_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              },
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "reverted"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "finalized_at": {
+                "type": "null"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.audit-verification.v1"
+        },
+        "commitment_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "evidence_status": {
+          "enum": [
+            "verified",
+            "evidence_missing",
+            "evidence_expired",
+            "digest_mismatch",
+            "invalid_signature"
+          ]
+        },
+        "anchor_state": {
+          "enum": [
+            "unverified",
+            "pending",
+            "finalized",
+            "reverted"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "commitment_id",
+        "checked_at",
+        "evidence_status",
+        "anchor_state"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
