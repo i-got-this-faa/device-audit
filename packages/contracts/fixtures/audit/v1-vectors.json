@@ -1,0 +1,577 @@
+{
+  "artifacts_base64": {
+    "evidence-a": "eyJkZXBsb3ltZW50X2lkIjoiZGVwbG95bWVudDpmaXh0dXJlLTAxIiwiZGV2aWNlX2lkIjoiYXNzZXQ6Zml4dHVyZS0wMSIsImV4cGlyZXNfYXQiOiIyMDI2LTEwLTE2VDEyOjAwOjAwWiIsImlzc3VlZF9hdCI6IjIwMjYtMTAtMTVUMTI6MDA6MDBaIiwicGF5bG9hZF9iYXNlNjQiOiJleUp6WTJobGJXRmZkbVZ5YzJsdmJpSTZJbVJsZG1salpTMWhkV1JwZEM1MFpXeGxiV1YwY25rdWRqSWlMQ0prWlhacFkyVmZhV1FpT2lKaGMzTmxkRHBtYVhoMGRYSmxMVEF4SWl3aVkyOXNiR1ZqZEdWa1gyRjBJam9pTWpBeU5pMHhNQzB4TkZReE1qb3dNRG93TUZvaUxDSnpiM1Z5WTJVaU9pSm1hWGgwZFhKbElpd2liV1YwY21samN5STZleUpqY0hWZmRYUnBiR2w2WVhScGIyNGlPbnNpZG1Gc2RXVWlPakFzSW5WdWFYUWlPaUp3WlhKalpXNTBJbjBzSW1kd2RWOTFkR2xzYVhwaGRHbHZiaUk2ZXlKMllXeDFaU0k2Ym5Wc2JDd2lkVzVwZENJNkluQmxjbU5sYm5RaUxDSnRhWE56YVc1blgzSmxZWE52YmlJNkluTmxibk52Y2w5MWJtRjJZV2xzWVdKc1pTSjlmU3dpYVc1MlpXNTBiM0o1SWpwN0ltTnZiWEJ2Ym1WdWRITWlPbHQ3SW1sa0lqb2lZMjl0Y0c5dVpXNTBPbVpwZUhSMWNtVWlMQ0owZVhCbElqb2lZM0IxSWl3aWJXOWtaV3dpT2lMa3Zvc2lmVjE5TENKc2IyZGZjbVZtWlhKbGJtTmxjeUk2VzExOSIsInBheWxvYWRfc2NoZW1hX3ZlcnNpb24iOiJkZXZpY2UtYXVkaXQudGVsZW1ldHJ5LnYyIiwicGF5bG9hZF9zaGEyNTYiOiJlNWI3ZDkxOGNiNmQ2YThiMzEwMThhYzAxNjFmODAwYmViZTNlYWY3MWRhNWYzZDMwYmI0MWNmZWNkNmMzZGY0Iiwic2NoZW1hX3ZlcnNpb24iOiJkZXZpY2UtYXVkaXQuZXZpZGVuY2UudjEiLCJzZXF1ZW5jZSI6Miwic2lnbmF0dXJlIjoiNzJkMjU4MWYxYWQxMmQxNWJhNTY5ZjM1ZGQxMDA3ZjQ4N2Q0OWNkM2Y4Mzg2Y2EzODc2MzZhMWUwNjUxZTNjOTA4NDRhNTY2YTQxMDMzNzAzYTljYzQ1YWRhYzExNTEyMTUxOTVmZmFjMmNiNjQxYTBhOThlNmM4OTQ0MDBkMDkiLCJzaWduaW5nX2tleV9pZCI6ImVkMjU1MTk6MjFmZTMxZGZhMTU0YTI2MTYyNmJmODU0MDQ2ZmQyMjcxYjdiZWQ0YjZhYmU0NWFhNTg4NzdlZjQ3Zjk3MjFiOSJ9",
+    "lifecycle-a": "eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC5saWZlY3ljbGUudjIiLCJnZW5lcmF0ZWRfYXQiOiIyMDI2LTEwLTE1VDAwOjAwOjAwWiIsInByb3ZlbmFuY2UiOnsiY29ob3J0X2lkIjoiY29ob3J0OmZpeHR1cmUtc3RvcmFnZSIsImNvaG9ydF9zaXplIjoxMCwiYmFzZWxpbmVfd2luZG93X3N0YXJ0IjoiMjAyNi0wOC0wMVQwMDowMDowMFoiLCJiYXNlbGluZV93aW5kb3dfZW5kIjoiMjAyNi0wOS0wMVQwMDowMDowMFoiLCJ3aW5kb3dfc3RhcnQiOiIyMDI2LTA5LTAxVDAwOjAwOjAwWiIsIndpbmRvd19lbmQiOiIyMDI2LTEwLTAxVDAwOjAwOjAwWiIsImV2aWRlbmNlX2RpZ2VzdCI6ImFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWEifSwicmVjb21tZW5kYXRpb25zIjpbeyJiYXRjaF9pZCI6ImJhdGNoOmZpeHR1cmUtcmVwYWlyIiwiYWZmZWN0ZWRfZGV2aWNlX2NvdW50IjozLCJhY3Rpb24iOiJyZXBhaXIiLCJldmlkZW5jZSI6eyJ0ZWxlbWV0cnlfc2NoZW1hX3ZlcnNpb24iOiJkZXZpY2UtYXVkaXQudGVsZW1ldHJ5LnYyIiwicHJlZGljdGlvbl9zY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC5wcmVkaWN0aW9uLnYyIiwidGVsZW1ldHJ5X2RpZ2VzdCI6ImJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmIiLCJwcmVkaWN0aW9uX2RpZ2VzdCI6ImNjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2MifSwiaW5wdXRzIjp7ImFnZV9tb250aHMiOjM2LCJjdXJyZW5jeSI6IlVTRCIsInJlcGFpcl9jb3N0X21ham9yIjoxMDAsInVwZ3JhZGVfY29zdF9tYWpvciI6MjAwLCJyZXBsYWNlbWVudF9jb3N0X21ham9yIjoxMDAwfSwic3VzdGFpbmFiaWxpdHkiOnsibWV0aG9kb2xvZ3lfdmVyc2lvbiI6ImNhcmJvbi1yZWR1Y3Rpb24udjEiLCJzdGF0dXMiOiJjb21wbGV0ZSIsImlucHV0cyI6eyJhc3Nlc3NtZW50X2hvcml6b25fbW9udGhzIjoxMiwiYmFzZWxpbmVfY2FyYm9uX2tnX2NvMmUiOjEwMCwic2NlbmFyaW9fY2FyYm9uX2tnX2NvMmUiOjYwLCJiYXNlbGluZV9lX3dhc3RlX2tnIjo0LCJzY2VuYXJpb19lX3dhc3RlX2tnIjoxfSwic2NvcmVfcGVyY2VudCI6NDAsImNhcmJvbl9hdm9pZGVkX2tnX2NvMmUiOjQwLCJlX3dhc3RlX2F2b2lkZWRfa2ciOjN9LCJsb25nZXZpdHkiOnsic3RhdHVzIjoiY29tcGxldGUiLCJyZW1haW5pbmdfbW9udGhzIjoyNCwibG93ZXJfYm91bmRfbW9udGhzIjoxMiwidXBwZXJfYm91bmRfbW9udGhzIjozNiwiY29uZmlkZW5jZV9wcm9iYWJpbGl0eSI6MC45fX1dLCJjb21wb25lbnRfdHJlbmRzIjpbeyJjYXRlZ29yeSI6InN0b3JhZ2UiLCJzdGF0dXMiOiJjb21wbGV0ZSIsImJhc2VsaW5lX3NhbXBsZV9jb3VudCI6MTAsInNhbXBsZV9jb3VudCI6MTAsImJhc2VsaW5lX2ZhaWx1cmVfcmF0ZV9wZXJjZW50IjoxMCwiZmFpbHVyZV9yYXRlX3BlcmNlbnQiOjMwLCJjaGFuZ2VfcGVyY2VudGFnZV9wb2ludHMiOjIwfV19"
+  },
+  "checks": [
+    {
+      "bytes": "complete",
+      "manifest": "present",
+      "name": "available",
+      "now": "2026-10-19T12:05:00Z",
+      "status": "verified"
+    },
+    {
+      "bytes": "complete",
+      "manifest": "missing",
+      "name": "missing_manifest",
+      "now": "2026-10-19T12:05:00Z",
+      "status": "evidence_missing"
+    },
+    {
+      "bytes": "missing",
+      "manifest": "present",
+      "name": "missing_artifact",
+      "now": "2026-10-19T12:05:00Z",
+      "status": "evidence_missing"
+    },
+    {
+      "bytes": "complete",
+      "manifest": "present",
+      "name": "expired_artifact",
+      "now": "2026-10-19T18:00:00Z",
+      "status": "evidence_expired"
+    },
+    {
+      "bytes": "complete",
+      "manifest": "present",
+      "name": "expired_manifest",
+      "now": "2026-10-20T12:00:00Z",
+      "status": "evidence_expired"
+    },
+    {
+      "bytes": "altered",
+      "manifest": "present",
+      "name": "altered_artifact",
+      "now": "2026-10-19T12:05:00Z",
+      "status": "digest_mismatch"
+    },
+    {
+      "bytes": "complete",
+      "manifest": "tampered_signature",
+      "name": "invalid_signature",
+      "now": "2026-10-19T12:05:00Z",
+      "status": "invalid_signature"
+    }
+  ],
+  "vectors": [
+    {
+      "name": "signed_manifest",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-20T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "lifecycle-a",
+            "schema_version": "device-audit.lifecycle.v2",
+            "sha256": "8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe",
+            "size_bytes": 1560,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e61756469742d6d616e69666573742e76310000000c6465706c6f796d656e742d610000000a6d616e69666573742d61000000406363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636300000040646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464640000000f61756469742d706f6c6963792e763100000048656432353531393a3231666533316466613135346132363136323662663835343034366664323237316237626564346236616265343561613538383737656634376639373231623900000014323032362d31302d31395431323a30303a30305a00000014323032362d31302d32305431323a30303a30305a00000001320000000a65766964656e63652d61000000186465766963652d61756469742e65766964656e63652e76310000004038373631333365323239616466393134396363386533613132393062633838373430386238633735323439346635363931363766326432333830383232343239000000043131303400000014323032362d31302d31395431383a30303a30305a0000000b6c6966656379636c652d61000000196465766963652d61756469742e6c6966656379636c652e76320000004038626562623966343734306239343632323139653032393063393162346232333266313962313265346466306235313230613633396638666636663837646665000000043135363000000014323032362d31302d31395431383a30303a30305a"
+    },
+    {
+      "name": "opaque_commitment",
+      "payload": {
+        "schema_version": "device-audit.audit-commitment.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "invalid_manifest_signature",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-20T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "lifecycle-a",
+            "schema_version": "device-audit.lifecycle.v2",
+            "sha256": "8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe",
+            "size_bytes": 1560,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "duplicate_reference",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-20T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "noncanonical_reference_order",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-20T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "lifecycle-a",
+            "schema_version": "device-audit.lifecycle.v2",
+            "sha256": "8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe",
+            "size_bytes": 1560,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "empty_manifest_lifetime",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.evidence.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "lifecycle-a",
+            "schema_version": "device-audit.lifecycle.v2",
+            "sha256": "8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe",
+            "size_bytes": 1560,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "unsupported_inline_log_schema",
+      "payload": {
+        "schema_version": "device-audit.audit-manifest.v1",
+        "deployment_id": "deployment-a",
+        "manifest_id": "manifest-a",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "blinding_nonce": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "policy_version": "audit-policy.v1",
+        "controller_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "created_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-20T12:00:00Z",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "schema_version": "device-audit.raw-logs.v1",
+            "sha256": "876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429",
+            "size_bytes": 1104,
+            "expires_at": "2026-10-19T18:00:00Z"
+          },
+          {
+            "reference_id": "lifecycle-a",
+            "schema_version": "device-audit.lifecycle.v2",
+            "sha256": "8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe",
+            "size_bytes": 1560,
+            "expires_at": "2026-10-19T18:00:00Z"
+          }
+        ],
+        "signature": "3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_device_id",
+      "payload": {
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "device_id": "sensitive-value",
+        "schema_version": "device-audit.audit-commitment.v1"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_serial_number",
+      "payload": {
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "schema_version": "device-audit.audit-commitment.v1",
+        "serial_number": "sensitive-value"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_hostname",
+      "payload": {
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "hostname": "sensitive-value",
+        "schema_version": "device-audit.audit-commitment.v1"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_raw_logs",
+      "payload": {
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "raw_logs": "sensitive-value",
+        "schema_version": "device-audit.audit-commitment.v1"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_manifest_id",
+      "payload": {
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "manifest_id": "sensitive-value",
+        "schema_version": "device-audit.audit-commitment.v1"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "public_blinding_nonce",
+      "payload": {
+        "blinding_nonce": "sensitive-value",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "schema_version": "device-audit.audit-commitment.v1"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "raw_identifier_in_commitment_id",
+      "payload": {
+        "schema_version": "device-audit.audit-commitment.v1",
+        "commitment_id": "LAPTOP-serial-123",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "raw_logs_in_commitment_digest",
+      "payload": {
+        "schema_version": "device-audit.audit-commitment.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "raw log contents"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "pending",
+      "payload": {
+        "schema_version": "device-audit.audit-receipt.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "adapter_id": "unselected-adapter.v1",
+        "transaction_reference": "transaction-a",
+        "block_reference": null,
+        "state": "pending",
+        "observed_at": "2026-10-19T12:05:00Z",
+        "finalized_at": null,
+        "reason": null
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "finalized",
+      "payload": {
+        "schema_version": "device-audit.audit-receipt.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "adapter_id": "unselected-adapter.v1",
+        "transaction_reference": "transaction-a",
+        "block_reference": "block-a",
+        "state": "finalized",
+        "observed_at": "2026-10-19T12:05:00Z",
+        "finalized_at": "2026-10-19T12:04:00Z",
+        "reason": null
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "reverted_after_finality",
+      "payload": {
+        "schema_version": "device-audit.audit-receipt.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "adapter_id": "unselected-adapter.v1",
+        "transaction_reference": "transaction-a",
+        "block_reference": "block-a",
+        "state": "reverted",
+        "observed_at": "2026-10-19T12:06:00Z",
+        "finalized_at": null,
+        "reason": "reorganized"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "pending_claims_finality",
+      "payload": {
+        "schema_version": "device-audit.audit-receipt.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "adapter_id": "unselected-adapter.v1",
+        "transaction_reference": "transaction-a",
+        "block_reference": null,
+        "state": "pending",
+        "observed_at": "2026-10-19T12:05:00Z",
+        "finalized_at": "2026-10-19T12:04:00Z",
+        "reason": null
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "finality_after_observation",
+      "payload": {
+        "schema_version": "device-audit.audit-receipt.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "commitment_sha256": "504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b",
+        "adapter_id": "unselected-adapter.v1",
+        "transaction_reference": "transaction-a",
+        "block_reference": "block-a",
+        "state": "finalized",
+        "observed_at": "2026-10-19T12:05:00Z",
+        "finalized_at": "2026-10-19T12:06:00Z",
+        "reason": null
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "verified_unverified_anchor",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:05:00Z",
+        "evidence_status": "verified",
+        "anchor_state": "unverified"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "evidence_missing_unverified_anchor",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:05:00Z",
+        "evidence_status": "evidence_missing",
+        "anchor_state": "unverified"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "evidence_expired_unverified_anchor",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:05:00Z",
+        "evidence_status": "evidence_expired",
+        "anchor_state": "unverified"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "digest_mismatch_unverified_anchor",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:05:00Z",
+        "evidence_status": "digest_mismatch",
+        "anchor_state": "unverified"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "invalid_signature_unverified_anchor",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:05:00Z",
+        "evidence_status": "invalid_signature",
+        "anchor_state": "unverified"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "finalized_with_missing_evidence",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:06:00Z",
+        "evidence_status": "evidence_missing",
+        "anchor_state": "finalized"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    },
+    {
+      "name": "reverted_with_intact_evidence",
+      "payload": {
+        "schema_version": "device-audit.audit-verification.v1",
+        "commitment_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "checked_at": "2026-10-19T12:06:00Z",
+        "evidence_status": "verified",
+        "anchor_state": "reverted"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "canonical_hex": ""
+    }
+  ],
+  "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+}

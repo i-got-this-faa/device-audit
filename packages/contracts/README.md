@@ -90,6 +90,14 @@ Draft 2020-12 validation. The shape and categories remain provisional pending
 study, not an endpoint predictor; this contract does not imply a trained or
 production prediction capability.
 
+## Off-chain audit manifests and opaque commitments v1, #79
+
+[The audit specification](audit-v1.md) defines signed canonical manifests,
+blinded public commitments and independent evidence/finality states. Public
+fields exclude device identifiers and logs. Go verifies signatures, exact bytes,
+expiry and receipt correlation; Python independently checks canonical hashes and
+schemas. No chain, resolver or durable receipt/retention service is implemented.
+
 ## Provisional lifecycle and component trends v2
 
 Issue #78 adds `LifecycleV2`, `lifecycle-v2.schema.json`, and shared vectors in
