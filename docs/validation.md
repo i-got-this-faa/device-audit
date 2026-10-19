@@ -1,5 +1,9 @@
 # Initial scaffold validation
 
+Follow-up: [Windows sensor and native-check evidence, 19 October 2026](validation/windows-2026-10-19.md)
+records real development sensor measurements, probe cost, repeated native checks
+and the remaining two-machine/service/runtime gates.
+
 Follow-up: [Windows development-machine evidence, 14 October 2026](validation/windows-2026-10-14.md)
 records native Windows execution, available hardware and remaining qualification gates.
 
