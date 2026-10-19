@@ -120,6 +120,17 @@ assigns the versioned health policy to #86/#35. #22 selected a historical HDD
 dataset study; the source PDF and claim reconciliation are indexed. These contracts provide neither patent
 compliance evidence nor a production model capability.
 
+## Provisional diagnostic contracts v1, #76
+
+[The diagnostic contract](../packages/contracts/diagnostics-v1.md) selects two
+read-only probe names, explicit typed arguments and bounded wall/output budgets.
+Controller-signed single-device assignments and device-signed terminal results
+reuse #75's framing with separate version namespaces. SHA-256 correlation binds
+the exact signed assignment. Durable first-terminal-wins, duplicate receipts,
+reboot interruption and cancellation authority are consumer requirements, not
+implemented state. All examples are synthetic; execution, authorization and
+restart/race qualification remain future work.
+
 ## Provisional lifecycle contract v2
 
 Issue #78 adds a separate `device-audit.lifecycle.v2` report proposal without

@@ -201,3 +201,13 @@ review before consumers. Controller/fake-server work in #17 and the #80
 conformance harness are unchanged. Production key storage, bootstrap/challenge
 issuance, durable persistence, recovery/rotation and restart/restore integration
 remain dependencies, not capabilities supplied by these contract tests.
+
+## Diagnostic assignments and terminal results v1, #76
+
+[The diagnostic specification](diagnostics-v1.md) defines allowlisted read-only
+probes, typed arguments, controller-signed single-device assignments, wall/output
+budgets and device-signed terminal evidence references. Go strict decoding,
+semantic/correlation validation and signature tests share vectors with Python
+schema and canonical-byte checks. Duplicate, cancellation and reboot examples
+specify future durable consumer behavior. No scheduler, executor, cancellation
+transport or terminal state store is implemented.
