@@ -1,0 +1,646 @@
+{
+  "vectors": [
+    {
+      "name": "storage_assignment",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000256465766963652d61756469742e646961676e6f737469632d61737369676e6d656e742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31395431323a30303a30305a00000014323032362d31302d31395431323a30353a30305a0000000c61737369676e6d656e742d610000001173746f726167655f6865616c74682e76310000000973746f726167652d6100000000000000000000000236300000000434303936"
+    },
+    {
+      "name": "errors_assignment",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-errors",
+        "probe_id": "system_errors.v1",
+        "arguments": {
+          "component_id": null,
+          "lookback_seconds": 3600,
+          "max_entries": 32
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "422daa6dba8e77585f1d712b4375d9a42d944e5c44e72ce3ce71037a38561dcd0fe05b625b999b37f7d292aed46123860a794177c1999609201ba2baeab0670f"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000256465766963652d61756469742e646961676e6f737469632d61737369676e6d656e742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31395431323a30303a30305a00000014323032362d31302d31395431323a30353a30305a0000001161737369676e6d656e742d6572726f72730000001073797374656d5f6572726f72732e76310000000000000004333630300000000233320000000236300000000434303936"
+    },
+    {
+      "name": "tampered_target",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-b",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "zero_wall_budget",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 0,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "excess_wall_budget",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 301,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "budget_outlives_deadline",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "empty_lifetime",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:00:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "shell_probe",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "shell.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "mixed_probe_arguments",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": 1,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "arbitrary_command",
+      "payload": {
+        "arguments": {
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "assignment_id": "assignment-a",
+        "budget": {
+          "max_output_bytes": 4096,
+          "wall_seconds": 60
+        },
+        "command": "whoami",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "issued_at": "2026-10-19T12:00:00Z",
+        "probe_id": "storage_health.v1",
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "sequence": 1,
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "nested_command",
+      "payload": {
+        "arguments": {
+          "command": "whoami",
+          "component_id": "storage-a",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "assignment_id": "assignment-a",
+        "budget": {
+          "max_output_bytes": 4096,
+          "wall_seconds": 60
+        },
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "issued_at": "2026-10-19T12:00:00Z",
+        "probe_id": "storage_health.v1",
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "sequence": 1,
+        "signature": "58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "canonical_hex": ""
+    },
+    {
+      "name": "succeeded",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30303a33305a000000097375636365656465640000000000000001310000000a65766964656e63652d6100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000431303234"
+    },
+    {
+      "name": "duplicate_succeeded_same_envelope",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30303a33305a000000097375636365656465640000000000000001310000000a65766964656e63652d6100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000431303234"
+    },
+    {
+      "name": "failed",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "failed",
+        "reason": "permission_denied",
+        "evidence": [],
+        "signature": "999d89464f62d73db19b86f72ed38c51bd2799ddb5f2d5e031915207b21aaa6e5bb0ec1cf3eafac703d148f54e2bfa0f5db41852da523fa5ab4b4a9e328a8706"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30303a33305a000000066661696c6564000000117065726d697373696f6e5f64656e6965640000000130"
+    },
+    {
+      "name": "cancelled",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "cancelled",
+        "reason": "cancel_requested",
+        "evidence": [],
+        "signature": "c0fb0125279cec8395e9e2145172b26def7da1744a063b24e073763330cd763aa8aab711c7b8e7fc90fbde7c803899abee4ed0d538539143048a0a26c654690a"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30303a33305a0000000963616e63656c6c65640000001063616e63656c5f7265717565737465640000000130"
+    },
+    {
+      "name": "expired",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:05:00Z",
+        "expires_at": "2026-10-20T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:05:00Z",
+        "state": "expired",
+        "reason": "deadline_exceeded",
+        "evidence": [],
+        "signature": "da535a22a83bd93328d8ccd6aaca9679add6a3ac76e6ad062697f70cdc9fc6020924b4b0d1117b0dca820d4b772b1bbb7651a6f8c7c25d0255519e0890d3be0c"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30353a30305a00000014323032362d31302d32305431323a30353a30305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30353a30305a000000076578706972656400000011646561646c696e655f65786365656465640000000130"
+    },
+    {
+      "name": "rebooted",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:05:00Z",
+        "expires_at": "2026-10-20T12:05:00Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:05:00Z",
+        "state": "rebooted",
+        "reason": "agent_restarted",
+        "evidence": [],
+        "signature": "32504154f913f2793099da540d034d4a7db4143d967dcb1163884de8743c47876ab9e694ba51405722b75d3a942e57592fa07e7df33138ab9aa931a44db9da05"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30353a30305a00000014323032362d31302d32305431323a30353a30305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30353a30305a000000087265626f6f7465640000000f6167656e745f7265737461727465640000000130"
+    },
+    {
+      "name": "rejected",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": null,
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "rejected",
+        "reason": "assignment_denied",
+        "evidence": [],
+        "signature": "6b1ea9cba3fde465748b94993c8d351f7839b54bdc055b21727a38896fcb1e6782030edeed1a9ec4495e7b7e0504596da1e85d5fea927de5360371c243e73d0d"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "signature_valid": true,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c0000000000000014323032362d31302d31395431323a30303a33305a0000000872656a65637465640000001161737369676e6d656e745f64656e6965640000000130"
+    },
+    {
+      "name": "null_evidence",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": null,
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": ""
+    },
+    {
+      "name": "success_with_cancel_reason",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": "cancel_requested",
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "signature_valid": false,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": ""
+    },
+    {
+      "name": "finish_before_start",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:01:00Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": ""
+    },
+    {
+      "name": "duplicate_evidence",
+      "payload": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "deployment-a",
+        "device_id": "device-a",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 2,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "assignment-a",
+        "assignment_sha256": "457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559",
+        "boot_id": "boot-original",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": [
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          },
+          {
+            "reference_id": "evidence-a",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "signature_valid": false,
+      "public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
+      "canonical_hex": ""
+    }
+  ]
+}
