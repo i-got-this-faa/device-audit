@@ -195,8 +195,8 @@ future chain signing remain separate. No secret bootstrap or mesh credential is
 placed in the envelopes. Another owner must review sequence, lost-response,
 restart and restore semantics before consumer implementation. Durable storage,
 challenge issuance, authorization, rotation/revocation, protected key storage and
-real restart/restore tests remain unimplemented. #17 and the in-progress #80
-harness are not implemented or changed by #75. #14 remains open; SRC05 #72
+real restart/restore tests remain unimplemented. #17 is not changed by #75.
+The #80 shared conformance command below now runs the envelope fixtures. #14 remains open; SRC05 #72
 records source reconciliation without establishing implementation or legal coverage.
 
 
@@ -309,3 +309,15 @@ or durable role store are delivered by this decision. Follow-up console and
 security implementation must run that matrix against the real configured IdP
 and store before exposing access. This choice is provisional and reversible;
 it does not approve unresolved release scope under #14.
+
+
+## Shared contract conformance, CT05 #80
+
+[The conformance catalogue](../packages/contracts/conformance-v1.md) unifies
+existing fixture readers under `make contract-check`. JSON Schema shape,
+Go semantic/signature checks and the test-only Python readers have separately
+declared expectations. Exact raw-wire cases pin incompatible schema, null,
+canonicalization and pure replay/expiry outcomes. Python does not authenticate
+signatures, and schema validity cannot establish semantic validity. Hashes and
+classifications are retained as CI artifacts. Both owners' fixture review remains
+required before dependent implementations merge; no runtime capability is added.

@@ -23,7 +23,17 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r models/test-requirements.txt
+      - name: Check shared contract conformance
+        run: make contract-check
       - run: make check cross-build demo
+      - name: Save contract conformance evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: contract-conformance
+          path: artifacts/contracts/conformance-v1-report.json
+          if-no-files-found: warn
+          retention-days: 14
   dataset-reproduction:
     runs-on: ubuntu-latest
     timeout-minutes: 15

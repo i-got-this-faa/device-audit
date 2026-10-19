@@ -27,6 +27,16 @@ specific to this Go representation. Define a cross-language canonical encoding,
 domain separator, policy/schema/model version binding, signature and replay
 protocol before using a digest in security decisions or smart contracts.
 
+## Shared conformance command, #80
+
+`make contract-check` runs the [versioned conformance catalogue](conformance-v1.md)
+through Go, JSON Schema and the existing Python test readers. It checks 240 golden
+vectors and 52 raw-wire cases across 16 reader versions, including nullable
+measurements, canonical bytes, incompatible schemas and pure replay/expiry
+classifications. A passing report records input hashes and tool versions under
+`artifacts/contracts/`; CI retains it. Schema validity, signature authentication,
+semantic checks and durable runtime behavior remain separate.
+
 ## Provisional telemetry and inventory v2
 
 `TelemetryV2` and `telemetry-v2.schema.json` define a separate proposed wire
@@ -214,8 +224,8 @@ make check cross-build
 ```
 
 These choices remain provisional and require another owner's sequence/restart
-review before consumers. Controller/fake-server work in #17 and the #80
-conformance harness are unchanged. Production key storage, bootstrap/challenge
+review before consumers. Controller/fake-server work in #17 is unchanged. The #80
+[shared conformance command](conformance-v1.md) now includes these vectors. Production key storage, bootstrap/challenge
 issuance, durable persistence, recovery/rotation and restart/restore integration
 remain dependencies, not capabilities supplied by these contract tests.
 

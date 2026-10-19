@@ -57,9 +57,9 @@ requires the pinned RFC 3339 validator dependency.
 
 Go-only regressions cover two spellings of the zero time instant. JSON Schema
 checks timestamp syntax and still accepts those syntactically valid dates;
-Go validation remains authoritative at ingestion. This is telemetry-only
-coverage of #80. Signature canonicalization, replay classifications and the
-other application contracts remain outstanding. No production collector,
+Go validation remains authoritative at ingestion. This records the telemetry-only
+subset of #80 on that date. The shared conformance command described below now
+adds signature canonicalization, replay classifications and other contracts. No production collector,
 patent conformance or hosted CI result is asserted by these checks.
 
 ## Provisional telemetry/inventory v2, #15
@@ -145,7 +145,40 @@ the validators neither decide admission nor mutate state.
 This is component-level contract evidence. Restart inputs in fixtures do not
 prove real durable restart/restore, concurrency, enrollment, authenticated mesh
 traffic or key storage. Another owner's sequence/restart review is still required
-before consumers. #17 controller/fake-server behavior, the in-progress #80 harness,
-issue metadata and runtime routes are unchanged. No production or patent
+before consumers. #17 controller/fake-server behavior, issue metadata and runtime
+routes were unchanged by #75; #80's conformance evidence follows below. No production or patent
 verification claim follows. #14 remains open; SRC05 #72 records the supplied
 PDF reconciliation separately from implementation and legal coverage.
+
+
+## Shared contract conformance, CT05 #80
+
+Validated locally on 2026-10-19 in the #80 worktree based on the #174 stack head.
+The parent Projects flake supplies Go 1.27.1, Python 3.13.15, jsonschema 4.26.0,
+Make and the C toolchain. CI separately installs the repository-pinned Python
+test requirements; local results do not assert a hosted CI outcome.
+
+```sh
+nix develop /home/cier/Projects --command make contract-check check cross-build demo
+```
+
+The command passed 240 shared golden vectors, 52 raw-wire cases and all 16 reader
+versions. Full Go vet/race/format checks and 29 Python tests passed, as did the
+Windows amd64/macOS arm64 cross-builds and actual endpoint-fixture/controller
+round trip. Regenerating the envelope and derived wire fixtures produced identical
+bytes. The report under `artifacts/contracts/conformance-v1-report.json` records
+fixture/schema hashes, tool versions and verified classifications.
+
+Negative command tests deliberately substitute semantic validity for schema
+expectations and declare a Go reader that does not run. Both fail with the
+expected diagnostic and remove a pre-existing passing report. Incompatible
+versions, null measurements, duplicate keys, fractional sequence tokens,
+signature framing, exact expiry and replay-after-restart/lost-response examples
+are covered by shared fixture cases.
+
+[The harness specification](../packages/contracts/conformance-v1.md) defines the
+reader limits. Python does not authenticate signatures, and prediction/lifecycle
+schema readers do not reproduce all Go semantics. Replay clocks and durable marks
+are fixture inputs, not real persisted/restarted services. Both owners' fixture
+review remains required before dependent implementations merge. No live collector,
+authorization, database, training, chain or patent capability is established.

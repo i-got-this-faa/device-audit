@@ -25,6 +25,7 @@ type vector struct {
 	Name               string `json:"name"`
 	Envelope           object `json:"envelope"`
 	ContractValid      bool   `json:"contract_valid"`
+	SchemaValid        bool   `json:"schema_valid"`
 	VerificationKey    string `json:"verification_key"`
 	SignatureValid     bool   `json:"signature_valid"`
 	SignatureError     string `json:"signature_error"`
@@ -103,8 +104,25 @@ func main() {
 	report["payload_schema_version"], report["payload_base64"], report["payload_sha256"] = "device-audit.telemetry.v2", base64.StdEncoding.EncodeToString(payload), digest(payload)
 	sign(report, device)
 	vectors := []vector{}
+	// Schema checks shape; digest, time ordering and replay semantics are separate.
+	schemaInvalid := map[string]bool{
+		"missing signature":                 true,
+		"unknown mesh credential field":     true,
+		"null required sequence":            true,
+		"zero evidence sequence":            true,
+		"evidence enrollment sequence":      true,
+		"sequence above safe integer":       true,
+		"noninitial enrollment sequence":    true,
+		"fractional timestamp":              true,
+		"noncanonical base64 newline":       true,
+		"accepted with rejection reason":    true,
+		"accepted without durable mark":     true,
+		"rejected without explicit reason":  true,
+		"unknown rejection reason":          true,
+		"replay without known durable mark": true,
+	}
 	add := func(name string, value object, valid bool, key ed25519.PrivateKey, sigValid bool, sigError string, last uint64, now, rejection string) {
-		v := vector{Name: name, Envelope: value, ContractValid: valid, VerificationKey: hex.EncodeToString(key[32:]), SignatureValid: sigValid, SignatureError: sigError, Now: now, LastSequence: last, FreshnessRejection: rejection}
+		v := vector{Name: name, Envelope: value, ContractValid: valid, SchemaValid: !schemaInvalid[name], VerificationKey: hex.EncodeToString(key[32:]), SignatureValid: sigValid, SignatureError: sigError, Now: now, LastSequence: last, FreshnessRejection: rejection}
 		if valid || sigValid {
 			v.CanonicalHex = hex.EncodeToString(canonical(value))
 			if value["schema_version"] != ack {
