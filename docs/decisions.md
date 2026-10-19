@@ -90,6 +90,16 @@ battery health/life and throughput. PDF provenance and claim reconciliation are 
 [the source inventory](source/patent-map.md). They do not settle enrollment,
 network identity, signature, or chain policies.
 
+## Provisional federated contracts v1, #77
+
+[The federated contract](../packages/contracts/federated-v1.md) binds rounds to
+exact base artifacts, features and participant/key eligibility. Complete bounded
+binary64 model weights, sample counts and digests are device-signed with #75's
+framing; local observations are excluded. Explicit promotion/rejection records
+retain candidate/evaluation/policy provenance. Quorum, finite values and exact
+compatibility are contract checks, not a training or promotion service. Durable
+admission, evaluated aggregation and privacy defenses remain future work.
+
 ## Provisional prediction contract v2
 
 Task #16 proposes a separate `device-audit.prediction.v2` contract and leaves

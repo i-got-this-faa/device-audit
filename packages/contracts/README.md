@@ -56,6 +56,15 @@ IDs are application identifiers; this schema says
 nothing about network authentication, device signatures, or chain identity,
 and no device identifier or raw log belongs on-chain.
 
+## Federated rounds, updates and promotion v1, #77
+
+[The federated specification](federated-v1.md) defines authorized round records,
+participant/key eligibility, bounded signed binary64 model updates, compatibility
+and explicit promotion/rejection records. Go/Python fixtures check signatures,
+binary finiteness/digests, schema and canonical bytes. Durable admission,
+aggregation, evaluation and promotion remain unimplemented; no raw local
+observations are required and no privacy guarantee is supplied.
+
 ## Provisional prediction v2
 
 `PredictionV2` and `prediction-v2.schema.json` define a separately versioned
