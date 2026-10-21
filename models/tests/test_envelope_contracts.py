@@ -128,10 +128,10 @@ class EnvelopeContractTest(unittest.TestCase):
         for name, version in [("enrollment", ENROLLMENT), ("evidence", EVIDENCE),
                               ("acknowledgement", ACK), ("telemetry", "device-audit.telemetry.v2")]:
             suffix = "v2" if name == "telemetry" else "v1"
-            schema = json.loads((ROOT / f"{name}-{suffix}.schema.json").read_text())
+            schema = json.loads((ROOT / f"{name}-{suffix}.schema.json").read_text(encoding="utf-8"))
             Draft202012Validator.check_schema(schema)
             cls.validators[version] = Draft202012Validator(schema, format_checker=FormatChecker())
-        cls.vectors = json.loads((ROOT / "fixtures/envelopes/v1-vectors.json").read_text())["vectors"]
+        cls.vectors = json.loads((ROOT / "fixtures/envelopes/v1-vectors.json").read_text(encoding="utf-8"))["vectors"]
         if not cls.vectors:
             raise AssertionError("no envelope vectors")
 
