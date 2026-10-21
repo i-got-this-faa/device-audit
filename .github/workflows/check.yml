@@ -24,6 +24,17 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r models/test-requirements.txt
       - run: make check cross-build demo
+  tailcat-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: networking/tailcat-lab/go.mod
+          cache: false
+      - name: Verify pinned Tailcat and direct UDP restart proof
+        run: make tailcat-lab-check
   dataset-reproduction:
     runs-on: ubuntu-latest
     timeout-minutes: 15
