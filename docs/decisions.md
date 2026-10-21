@@ -21,7 +21,7 @@ discussion can drift and does not automatically become product scope.
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | Independent network observation | SRC05 finds no defined observer/source/trust boundary in [0051], p.10, [0074], p.18, [0078], p.19 or FIG.2, p.31; #14 records an explicit block | Blocked because the source, permissions, trust boundary, retention and acceptance evidence are unselected. Endpoint telemetry, network identity and chain verification imply no independent observer. #138 owns resolution and any approved rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
-| Frontend | Explicitly not finalized | Reserve dashboard surface; no framework selected |
+| Frontend | Provisional SRC04 #74 decision below | Go HTML templates, embedded static assets and progressive enhancement; no implemented console yet |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
 
 Scaffold choices made here: private repository by default, stdlib-only local
@@ -201,3 +201,85 @@ hierarchical controllers, gamification, vendor marketplaces and particular
 ML/XAI algorithms have unmatched or unselected details. SRC02 #14/CAP02 #138
 must explicitly disposition any proposed expansion and approve owned,
 dependency-linked rebaseline work. No existing release task is removed here.
+
+
+## Console and administrator identity, SRC04 #74
+
+Select server-rendered Go `html/template` pages, plain CSS and small JavaScript
+ES modules for progressive enhancement. Embed templates and static files with
+`go:embed` in the controller binary. Fleet tables, filters, evidence detail and
+report downloads must work as ordinary authenticated page requests; charts may
+add JavaScript while retaining accessible tabular values. This fits the existing
+Go service and avoids a second runtime or asset package manager for the initial
+console. A separate React application would add client state management
+and a Node build without a demonstrated interaction requirement. Revisit that
+choice if measured console needs justify it. Templates are trusted source;
+evidence strings are untrusted data and must retain contextual escaping. See
+[Go's template security model](https://go.dev/pkg/html/template/#hdr-Security_Model).
+
+Target the latest and immediately previous stable desktop Chrome, Edge and
+Firefox releases on supported vendor OSes at release qualification. Record exact
+versions when tested. Safari, mobile browsers and Internet Explorer are outside
+this initial console test target; this does not select endpoint OS support.
+Keyboard operation, visible focus, 200% zoom and a 1280-pixel viewport are required
+qualification cases. No browser is qualified by this documentation change.
+
+Use one operator-configured OpenID Connect issuer and confidential client per
+organization deployment. Select Authorization Code flow with PKCE S256 and a
+server-side callback, exact HTTPS redirect URI, state and nonce checks. Validate
+issuer, audience, signature, expiry and nonce using a maintained OIDC library
+selected during implementation. Never discover an issuer from a request, email
+suffix or tenant header. Identify people by the pair of issuer and subject;
+operator-managed local role bindings authorize them. Email and IdP group claims
+do not automatically grant roles. The operator preprovisions the first admin's
+binding in deployment configuration, without a public first-user signup route.
+Require MFA at the IdP and reject login if configured MFA policy is not met;
+provider-specific `acr`/`amr` mapping must be qualified before deployment.
+These are application choices based on
+[OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth),
+not implemented authentication.
+
+The controller keeps tokens and session state server-side, in the deployment's
+durable store. The browser receives only a random 256-bit opaque session cookie,
+`__Host-device-audit-session`, with `Secure`, `HttpOnly`, `Path=/`, no Domain and
+`SameSite=Lax` for the top-level OIDC return. Store a digest of the session ID;
+never log the cookie, authorization code, tokens or PKCE verifier. Use a separate
+one-use login transaction with five-minute expiry. Rotate the session after
+login and privilege changes. Enforce a 15-minute idle timeout and eight-hour
+absolute lifetime on every request using the server clock; expiry is inclusive.
+No silent refresh extends those limits. Revoked users and removed role bindings
+lose access on their next request. An unavailable session/authorization store
+fails closed with 503, never with fixture or in-memory fallback. These bounds are
+provisional policy choices. The
+[OWASP session guidance](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html)
+explains server-side expiry and cookie protections.
+
+`POST /auth/logout` requires CSRF validation, invalidates the local session and
+clears the cookie. GET cannot log out or mutate application state. Local logout
+does not promise IdP single logout; another sign-in may reuse the IdP session.
+Require explicit IdP reauthentication with `max_age=0` and validated `auth_time`
+within five minutes for role changes, enrollment authorization, key revocation
+and model promotion. Every state-changing browser request requires an
+unpredictable session-bound CSRF token and an allowed Origin. SameSite alone is
+insufficient. Login return targets are allowlisted local paths. Protected HTML,
+JSON and exports use `Cache-Control: no-store`; expired pages must not reveal
+cached evidence through back navigation. No bearer tokens in browser storage.
+
+The single-organization deployment from #73 is the authorization boundary.
+`viewer` may inspect device/fleet health, findings, provenance and receipts, and
+request bounded report exports. `admin` additionally authorizes enrollment,
+revokes devices, creates/cancels allowlisted diagnostic assignments, manages
+federated rounds and approves evaluated model promotion, and manages console
+role bindings. Admin inherits viewer access. All actions require server-side
+resource and action authorization and an audit event; hiding a control is not
+authorization. Nobody may request shell execution, remediation or package rollout.
+Operator-only infrastructure secrets, issuer configuration and chain signer
+custody are outside browser roles. Device signing, mesh admission and future
+chain credentials cannot create console sessions or grant administrator access.
+
+The [console plan](../apps/web-console/README.md) records local build steps and
+the required denied-request matrix. No routes, OIDC adapter, sessions, dashboard
+or durable role store are delivered by this decision. Follow-up console and
+security implementation must run that matrix against the real configured IdP
+and store before exposing access. This choice is provisional and reversible;
+it does not approve unresolved release scope under #14.
