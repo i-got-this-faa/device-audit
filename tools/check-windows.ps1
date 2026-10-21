@@ -27,6 +27,7 @@ try {
     Invoke-Checked go @('test', '-race', './...')
     $formatted = & go fmt ./...
     if ($LASTEXITCODE -ne 0 -or $formatted) { throw 'Go formatting check failed; inspect the changed files.' }
+    Invoke-Checked go @('run', './tools/fakes/controllerfake', '--scenario', 'all')
     $env:PYTHONPATH = 'models/src'
     Invoke-Checked $Python @('-m', 'unittest', 'discover', '-s', 'models/tests')
     $null = New-Item -ItemType Directory -Force -Path bin

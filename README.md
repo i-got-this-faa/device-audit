@@ -95,6 +95,7 @@ real-device qualification or implements controller admission.
 
 - `apps/controller`, `internal/controller`: working loopback ingestion skeleton.
 - `apps/endpoint-agent`: working one-shot fixture sender; real read-only collectors are next.
+- `tools/fakes/controllerfake`: deterministic signed-envelope controller fixture, not durable admission.
 - `packages/contracts`: shared versioned telemetry, prediction, training, workflow, audit types.
 - `packages/{telemetry,health,workflows,federated,lifecycle,audit}`: implementation interfaces.
 - `models`: custom model/training interfaces and a tested weighted aggregation primitive.

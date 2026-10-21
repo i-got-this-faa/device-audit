@@ -1,11 +1,70 @@
-# Replay endpoint fixtures against an HTTP boundary
+# Development fixtures
+
+## Controller fake, TST01 #17
+
+`controllerfake` is an independent, in-memory controller fixture for endpoint
+development. It accepts the public signed envelopes from
+`packages/contracts/fixtures/envelopes/v1-vectors.json`, verifies their Ed25519
+signatures, applies the contract freshness rules, and returns a controller-signed
+`device-audit.acknowledgement.v1`.
+
+It is a fixture. It is not controller admission, durable sequence storage,
+production key custody, enrollment authorization or evidence storage. Restarting
+it loses every binding and sequence mark. Every response carries
+`X-Device-Audit-Fixture: true` and the health route reports `"mode": "fixture"`.
+The only keys are the public RFC 8032 test seeds used by the contract vectors.
+
+### Start it for endpoint development
+
+From the repository root:
+
+```sh
+go run ./tools/fakes/controllerfake
+```
+
+The default listener is `127.0.0.1:8081`; only literal loopback addresses are
+accepted. Endpoint code posts an enrollment or evidence envelope to
+`POST /v1/envelopes`. Use `--now 2026-10-15T12:00:00Z` to pin the fixture clock
+for repeatable expiry and skew checks. `GET /healthz` reports the fixture mode.
+
+```sh
+curl -s http://127.0.0.1:8081/healthz
+go run ./tools/fakes/controllerfake --scenario assignment
+```
+
+### Deterministic scenarios
+
+`make fake-check` runs all scenarios in-process against the real HTTP handler and
+verifies every returned acknowledgement signature and contract.
+
+| Scenario | Evidence |
+| --- | --- |
+| `assignment` | Enrollment sequence 1 binds the fixture device key; evidence sequence 2 is accepted. |
+| `expiry` | Evidence at the inclusive `expires_at` boundary is rejected as `expired` without advancing the mark. |
+| `offline` | An unreachable controller fails closed with no acknowledgement. |
+| `duplicate` | A second delivery of sequence 2 is rejected as `replay` with the unchanged mark. |
+
+The command prints one machine-readable JSON report and exits non-zero when a
+scenario fails. CI stores the report as the `controller-fixture` artifact.
+
+```sh
+go run ./tools/fakes/controllerfake --scenario all
+go run ./tools/fakes/controllerfake --scenario duplicate
+```
+
+The suite covers named assignment, expiry, offline and duplicate behavior. It
+does not prove durable restart behavior, concurrency, challenge issuance,
+authorization, replay after process restart or production storage. Those remain
+with #18, #19, #83 and #89.
+
+## Replay endpoint fixtures against an HTTP boundary
 
 This independent development client sends canonical signed fixture requests.
 It does not run the endpoint process, collect sensors, enroll devices, or add
 controller capabilities. Device application signing keys are unrelated to
 Tailcat/WireGuard identity or blockchain commitments.
 
-## Check the current controller
+### Check the current controller
 
 From the repository root, start the development controller:
 
@@ -38,7 +97,7 @@ deduplication do not demonstrate controller ingestion or durable admission.
 The separate subprocess smoke exercises the actual development controller's
 unsupported responses.
 
-## Configure another development boundary
+### Configure another development boundary
 
 Use `--controller` for the HTTP origin. Override `--telemetry-route`,
 `--diagnostics-route`, and `--federated-route` to match your server. Route paths
@@ -59,7 +118,7 @@ for malformed signatures and 202 otherwise, except for the telemetry duplicate
 described below. For example, `--expect telemetry.valid=422` asserts HTTP 422
 for that specific request without changing other expectations.
 
-## Fixture and signing boundaries
+### Fixture and signing boundaries
 
 - Telemetry uses `EvidenceEnvelopeV1` containing fixture-source telemetry v2.
 - Diagnostics use the native signed assignment and terminal result contracts.
