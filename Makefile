@@ -32,7 +32,7 @@ fake-check:
 	$(GO) run ./tools/fakes/controllerfake --scenario all
 database-check:
 	test -n "$(TEST_DATABASE_URL)" || { echo "TEST_DATABASE_URL is required for database-check" >&2; exit 1; }
-	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(GO) test -race -count=1 ./infra/database ./apps/controller ./internal/controller
+	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(GO) test -race -count=1 ./infra/database ./apps/controller ./internal/controller ./internal/controller/auth
 demo: build
 	$(PYTHON) tools/demo.py
 # The experimental dependency graph stays outside the application module.

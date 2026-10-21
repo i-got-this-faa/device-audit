@@ -20,7 +20,7 @@ import (
 
 func TestRunRejectsUnavailableDatabaseBeforeListening(t *testing.T) {
 	address := freeAddress(t)
-	err := run(context.Background(), []string{"--listen", address, "--database-url", "postgres://deviceaudit@127.0.0.1:1/device_audit?sslmode=disable&connect_timeout=1"}, "")
+	err := run(context.Background(), []string{"--listen", address, "--database-url", "postgres://deviceaudit@127.0.0.1:1/device_audit?sslmode=disable&connect_timeout=1"}, environment{})
 	if err == nil || !strings.Contains(err.Error(), "database startup failed") {
 		t.Fatalf("database startup error: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestRunRejectsUnavailableDatabaseBeforeListening(t *testing.T) {
 }
 
 func TestRunRejectsMeshTransport(t *testing.T) {
-	err := run(context.Background(), []string{"--transport", "mesh", "--listen", freeAddress(t)}, "")
+	err := run(context.Background(), []string{"--transport", "mesh", "--listen", freeAddress(t)}, environment{})
 	if err == nil || !strings.Contains(err.Error(), "not implemented") {
 		t.Fatalf("mesh transport error: %v", err)
 	}
@@ -53,7 +53,7 @@ func TestRunAbortsOnMigrationFailure(t *testing.T) {
 	db.Close()
 
 	address := freeAddress(t)
-	err = run(ctx, []string{"--listen", address, "--database-url", databaseURL}, "")
+	err = run(ctx, []string{"--listen", address, "--database-url", databaseURL}, environment{})
 	if err == nil || !strings.Contains(err.Error(), "schema migration failed") {
 		t.Fatalf("migration startup error: %v", err)
 	}
@@ -69,7 +69,9 @@ func TestRunReportsConfiguredSchema(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	finished := make(chan error, 1)
-	go func() { finished <- run(ctx, []string{"--listen", address, "--database-url", databaseURL}, "") }()
+	go func() {
+		finished <- run(ctx, []string{"--listen", address, "--database-url", databaseURL}, environment{})
+	}()
 
 	client := &http.Client{Timeout: time.Second}
 	base := "http://" + address
@@ -90,7 +92,7 @@ func TestRunReportsConfiguredSchema(t *testing.T) {
 	if health == nil {
 		t.Fatal("controller did not become healthy")
 	}
-	if health["database"] != "connected" || health["schema_version"] != float64(1) || health["sample_storage"] != "memory" {
+	if health["database"] != "connected" || health["schema_version"] != float64(2) || health["auth"] != "not_configured" || health["sample_storage"] != "memory" {
 		t.Fatalf("health=%v", health)
 	}
 	cancel()
@@ -101,6 +103,142 @@ func TestRunReportsConfiguredSchema(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("controller did not stop")
+	}
+}
+
+func TestRunReportsConfiguredAuth(t *testing.T) {
+	databaseURL := testDatabase(t)
+	address := freeAddress(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	args := []string{
+		"--listen", address,
+		"--database-url", databaseURL,
+		"--oidc-issuer", "https://id.example.test",
+		"--oidc-client-id", "console",
+		"--oidc-client-secret", "secret",
+		"--oidc-redirect-url", "https://console.example.test/auth/callback",
+		"--public-origin", "https://console.example.test",
+		"--bootstrap-admin", "admin-subject",
+	}
+	finished := make(chan error, 1)
+	go func() { finished <- run(ctx, args, environment{}) }()
+
+	base := "http://" + address
+	client := &http.Client{Timeout: time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	var health map[string]any
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
+		response, err := client.Get(base + "/healthz")
+		if err == nil {
+			var candidate map[string]any
+			decodeErr := json.NewDecoder(response.Body).Decode(&candidate)
+			response.Body.Close()
+			if response.StatusCode == http.StatusOK && decodeErr == nil {
+				health = candidate
+				break
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if health == nil {
+		t.Fatal("controller did not become healthy")
+	}
+	if health["auth"] != "oidc" || health["schema_version"] != float64(2) {
+		t.Fatalf("health=%v", health)
+	}
+	response, err := client.Get(base + "/console")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusFound || response.Header.Get("Location") != "/auth/login?return_to=%2Fconsole" {
+		t.Fatalf("anonymous console status=%d location=%q", response.StatusCode, response.Header.Get("Location"))
+	}
+	response, err = client.Get(base + "/admin/role-bindings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("anonymous admin status=%d", response.StatusCode)
+	}
+
+	if err := databaseURLIsBound(databaseURL, "admin-subject"); err != nil {
+		t.Fatalf("bootstrap binding: %v", err)
+	}
+
+	cancel()
+	select {
+	case err := <-finished:
+		if err != nil {
+			t.Fatalf("controller shutdown: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("controller did not stop")
+	}
+}
+
+func databaseURLIsBound(databaseURL, subject string) error {
+	ctx := context.Background()
+	db, err := database.Open(ctx, databaseURL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	var role string
+	if err := db.QueryRowContext(ctx, `SELECT role FROM console_role_bindings WHERE issuer = $1 AND subject = $2`, "https://id.example.test", subject).Scan(&role); err != nil {
+		return err
+	}
+	if role != "admin" {
+		return fmt.Errorf("bootstrap role=%q", role)
+	}
+	return nil
+}
+
+func TestRunRejectsAuthWithoutDatabase(t *testing.T) {
+	err := run(context.Background(), []string{
+		"--oidc-issuer", "https://id.example.test",
+		"--oidc-client-id", "console",
+		"--oidc-client-secret", "secret",
+		"--oidc-redirect-url", "https://console.example.test/auth/callback",
+		"--public-origin", "https://console.example.test",
+	}, environment{})
+	if err == nil || !strings.Contains(err.Error(), "requires --database-url") {
+		t.Fatalf("auth without database error: %v", err)
+	}
+}
+
+func TestRunRejectsIncompleteOrUnboundAuth(t *testing.T) {
+	databaseURL := testDatabase(t)
+	base := []string{"--listen", freeAddress(t), "--database-url", databaseURL}
+	partial := append(append([]string{}, base...), "--oidc-issuer", "https://id.example.test")
+	err := run(context.Background(), partial, environment{})
+	if err == nil || !strings.Contains(err.Error(), "--oidc-client-id is required") {
+		t.Fatalf("incomplete auth error: %v", err)
+	}
+	full := append(append([]string{}, base...),
+		"--oidc-issuer", "https://id.example.test",
+		"--oidc-client-id", "console",
+		"--oidc-client-secret", "secret",
+		"--oidc-redirect-url", "https://console.example.test/auth/callback",
+		"--public-origin", "https://console.example.test",
+	)
+	err = run(context.Background(), full, environment{})
+	if err == nil || !strings.Contains(err.Error(), "no admin role binding") {
+		t.Fatalf("auth without admin binding error: %v", err)
+	}
+}
+
+func TestEnvironmentFromOSRequiredAMR(t *testing.T) {
+	t.Setenv("DEVICE_AUDIT_OIDC_REQUIRED_AMR", "")
+	if got := environmentFromOS().OIDCRequiredAMR; got != "" {
+		t.Fatalf("empty AMR override=%q", got)
+	}
+	t.Setenv("DEVICE_AUDIT_OIDC_REQUIRED_AMR", "pwd")
+	if got := environmentFromOS().OIDCRequiredAMR; got != "pwd" {
+		t.Fatalf("AMR override=%q", got)
 	}
 }
 
@@ -179,7 +317,7 @@ func TestDatabaseEnvironmentFallbackAndExplicitEmpty(t *testing.T) {
 			args = append(args, "--database-url=")
 			want = "listen failed"
 		}
-		err := run(context.Background(), args, databaseURL)
+		err := run(context.Background(), args, environment{DatabaseURL: databaseURL})
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("explicit empty=%v: got %v want %s", explicitEmpty, err, want)
 		}

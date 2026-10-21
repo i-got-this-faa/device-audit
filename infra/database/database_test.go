@@ -20,8 +20,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 1 {
-		t.Fatalf("schema version=%d want 1", version)
+	if version != 2 {
+		t.Fatalf("schema version=%d want 2", version)
 	}
 	if _, err := db.ExecContext(ctx, `INSERT INTO devices (id, enrolled_at, identity_public_key, mesh_public_key) VALUES ('device:one', now(), '\x01', 'mesh-key')`); err != nil {
 		t.Fatal(err)
@@ -30,8 +30,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart migration: %v", err)
 	}
-	if version != 1 {
-		t.Fatalf("restart version=%d want 1", version)
+	if version != 2 {
+		t.Fatalf("restart version=%d want 2", version)
 	}
 	var count int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&count); err != nil {
@@ -44,7 +44,7 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Version != 1 || len(status.Pending) != 0 {
+	if status.Version != 2 || len(status.Pending) != 0 {
 		t.Fatalf("status=%+v", status)
 	}
 }
@@ -101,7 +101,7 @@ func TestMigrationFailureAbortsWithoutAdvancing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version.Version != 1 || len(version.Pending) != 0 {
+	if version.Version != 1 {
 		t.Fatalf("failed migration advanced the schema: %+v", version)
 	}
 	var halfWritten sql.NullString
@@ -144,8 +144,8 @@ func TestConcurrentMigrationRunsOnce(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 {
-		t.Fatalf("migration ledger rows=%d want 1", count)
+	if count != 2 {
+		t.Fatalf("migration ledger rows=%d want 2", count)
 	}
 }
 

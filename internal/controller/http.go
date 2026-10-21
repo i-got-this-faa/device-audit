@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
@@ -25,6 +26,8 @@ type Config struct {
 	MaxDevices     int
 	DatabaseStatus string
 	SchemaVersion  int
+	Auth           *auth.Service
+	AuthStatus     string
 }
 
 type API struct {
@@ -33,6 +36,8 @@ type API struct {
 	maxDevices int
 	database   string
 	schema     int
+	auth       *auth.Service
+	authStatus string
 }
 
 func NewAPI(cfg Config) *API {
@@ -42,7 +47,17 @@ func NewAPI(cfg Config) *API {
 	if cfg.DatabaseStatus == "" {
 		cfg.DatabaseStatus = "not_configured"
 	}
-	return &API{devices: make(map[string]Device), maxDevices: cfg.MaxDevices, database: cfg.DatabaseStatus, schema: cfg.SchemaVersion}
+	if cfg.AuthStatus == "" {
+		cfg.AuthStatus = "not_configured"
+	}
+	return &API{
+		devices:    make(map[string]Device),
+		maxDevices: cfg.MaxDevices,
+		database:   cfg.DatabaseStatus,
+		schema:     cfg.SchemaVersion,
+		auth:       cfg.Auth,
+		authStatus: cfg.AuthStatus,
+	}
 }
 
 func (a *API) Handler() http.Handler {
@@ -54,11 +69,15 @@ func (a *API) Handler() http.Handler {
 			"sample_storage": "memory",
 			"database":       a.database,
 			"schema_version": a.schema,
+			"auth":           a.authStatus,
 			"mesh":           "not_implemented",
 		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
 	mux.HandleFunc("GET /v1/devices/{id}", a.device)
+	if a.auth != nil {
+		a.auth.Register(mux)
+	}
 	return mux
 }
 

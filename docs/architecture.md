@@ -11,10 +11,12 @@ Separate interfaces keep model inference, lifecycle decisions, and blockchain
 receipts from becoming one untestable agent loop.
 
 The wire contracts reserve telemetry, model update metadata, model-versioned
-predictions, expiring diagnostic tasks, and audit/sustainability results. Only
-telemetry ingestion and latest-sample retrieval have HTTP routes in this
-scaffold. Future endpoints must authenticate the transport peer, bind it to the
-device identity, validate signatures/sequence counters, and reject replay.
+predictions, expiring diagnostic tasks, and audit/sustainability results. The
+fixture API exposes only telemetry ingestion and latest-sample retrieval. SEC06
+#82 adds a separate minimal OIDC console/authentication surface; it is not device
+authentication. Future device-facing endpoints must authenticate the transport
+peer, bind it to the device identity, validate signatures/sequence counters, and
+reject replay.
 
 Steady-state endpoint/controller traffic uses Shepherd's Tailcat/WireGuard
 design with direct UDP connectivity and self-hosted DERP fallback. Enrollment

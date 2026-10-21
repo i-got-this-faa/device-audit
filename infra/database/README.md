@@ -2,9 +2,11 @@
 
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 selects PostgreSQL provisionally for a single-organization deployment. Task #19
-now binds the controller to PostgreSQL and applies versioned migrations. This
-does **not** make telemetry durable: samples still live in the controller's
-in-memory development store until #83 and its dependent work.
+binds the controller to PostgreSQL and applies versioned migrations. Schema
+version 2 adds the #82 console role bindings, one-use login transactions and
+server-side sessions. This does **not** make telemetry durable: samples still
+live in the controller's in-memory development store until #83 and its
+dependent work.
 
 ## Implemented binding
 
@@ -17,8 +19,12 @@ in-memory development store until #83 and its dependent work.
   is configured.
 - An empty database URL keeps the explicit development mode: samples remain in
   memory and health reports `database=not_configured`.
-- `schema_migrations` records the applied version, name and time. Rerunning the
+- `schema_migrations` records each applied version, name and time. Rerunning the
   controller applies no migration and preserves existing rows.
+- `001_initial.sql` is the candidate device/telemetry schema. `002_console_auth.sql`
+  adds `console_role_bindings`, `console_login_transactions` and
+  `console_sessions`; raw session and login identifiers are stored only as
+  SHA-256 digests.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -39,10 +45,13 @@ The integration tests create isolated databases and cover:
 - upgrade from a prior schema while retaining existing rows;
 - an injected failing migration that does not advance the ledger or leave a
   half-written table;
-- concurrent migration attempts that apply the schema once;
+- concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database and schema version.
+- health output for a connected database, schema version 2 and the configured
+  auth mode;
+- the PostgreSQL auth store lifecycle, including role bindings, one-use login
+  transactions, session touch/revocation and subject-session revocation.
 
 CI runs the same target against a PostgreSQL 17 service.
 
@@ -70,6 +79,9 @@ restore automation and recovery qualification are not implemented by #19.
 
 - Persisting devices, telemetry samples, enrollment, revocation and replay
   state transactionally (#83, #89, #90).
+- Durable audit events, session/login-row cleanup and IdP revocation. Fresh
+  authentication is enforced for role changes; future sensitive administrator
+  actions must apply the same policy.
 - Selecting the production database version, TLS settings, least-privilege role,
   retention and backup schedule.
 - Proving committed data survives process and database restarts, that outages
@@ -77,7 +89,8 @@ restore automation and recovery qualification are not implemented by #19.
 - Reviewing every future migration for lock time, rollback behavior and
   compatibility with the prior release.
 
-`migrations/001_initial.sql` remains a candidate schema under review; applying it
-does not qualify the schema for production. The deployment operator owns
-database and backup secrets. Hosting, sizing and recovery objectives remain open
-under #73.
+`migrations/001_initial.sql` and `migrations/002_console_auth.sql` remain
+candidate schemas under review; applying them does not qualify the schema or the
+authentication boundary for production. The deployment operator owns database
+and backup secrets. Hosting, sizing and recovery objectives remain open under
+#73.
