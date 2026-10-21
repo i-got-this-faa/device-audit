@@ -1,46 +1,68 @@
-# Release scope and platform qualification
+# V1 release scope and platform qualification
 
-This record addresses issue #14. It preserves the fixed 12-week, 150-issue release plan and makes no patent-conformance claim. The handoff marks Windows-first as a proposal, not a user-approved target. This record keeps proposals, selected requirements, and blocked qualification separate.
+Decision record for SRC02 [#14](https://github.com/i-got-this-faa/device-audit/issues/14), 19 October 2026. The owner requested completion of this decision task and confirmed that only the existing Windows laptop is available. This concrete V1 selection replaces the earlier all-platforms-undecided record. It is an engineering decision submitted for review; merging the #14 decision PR records its acceptance. It does not claim that the owner previously selected every detail or that a platform passed release qualification.
 
-## Platform matrix
+The fixed 12-week, 150-issue plan and 4 January 2027 deadline remain unchanged. No implementation or acceptance task is removed. Source reconciliation #72 is complete. Selection, implementation, measured qualification and release approval are separate gates.
 
-A release target needs an approved OS version, architecture, hardware class, permission model, and real test machine. A cross-build or fixture does not qualify hardware.
+## Endpoint platform matrix
 
-| Platform or class | Scope status | OS, version, architecture, and hardware | Permissions | Real-machine evidence |
-| --- | --- | --- | --- | --- |
-| Windows endpoint | Proposed first priority; final release matrix and qualification remain open | An available development target is Windows 11 Home Single Language 25H2 build 26200.9457, x64, on an HP Victus 15-fb0xxx laptop with Ryzen 5 5600H and 15.34 GiB OS-visible RAM. This does not approve a release OS/build range or all laptops. | Tested as a standard user without elevation. Read-only CIM/log metadata availability and denied thermal access are recorded; the production service account and required rights remain unselected. | @jR4dh3y made this laptop available on 14 October 2026. Native builds, tests and a fixture binary round trip are recorded in [Windows evidence](../validation/windows-2026-10-14.md). The earlier no-machine blocker is superseded; real collector/service qualification remains open. |
-| Linux endpoint | Blocked; neither included nor excluded | The validation record names a Linux amd64 development host. It does not select a Linux distribution, OS version, hardware class, or release architecture. | No Linux collection permission model is selected. | None identified as a release target. The validation record does not name a host model, owner, access, or whether the host is physical or virtual. |
-| macOS endpoint | Blocked; neither included nor excluded | No macOS version, architecture, or hardware class is approved. | No macOS collection permission model is selected. | None identified. The [validation record](../validation.md) records a macOS arm64 cross-build only. |
-| Other operating systems and device classes | Blocked; neither included nor excluded | No Android, iOS, or other mobile OS is selected. The specification lists desktops, laptops, servers, thin clients, tablets, mobile devices, and edge units in paragraph [0050], pages 9-10, but does not select OS and hardware combinations for this release. | No collection permission model is selected. | None identified. Each approved OS and hardware combination needs its own real test machine. |
+| Platform or class | V1 decision | Exact boundary and reason | Real test machine |
+| --- | --- | --- | --- |
+| Windows 11 Home Single Language 25H2, x64 laptop | Included as the initial qualification target | Build family 26200; initial qualification baseline 26200.9711. Hardware class: HP Victus 15-fb0xxx, Ryzen 5 5600H, 16 GB installed RAM (about 15.34 GiB OS-visible), AMD integrated graphics plus NVIDIA RTX 3050 Laptop GPU. The claim is bounded to the available configuration. Later cumulative builds require recorded regression evidence before a support claim. | One physical laptop owned by @jR4dh3y, available in this Windows session and exercised on 14 and 19 October; see evidence below. No serial, hostname or private identifier is needed to identify this test slot. |
+| Other Windows 11 versions, editions, architectures and hardware | Excluded from V1 endpoint support claims | Pro/Enterprise/Education, other feature releases, ARM64, and other laptop/desktop/server/thin-client/edge configurations have no selected, available real test target. They are not covered by the x64 binary or this laptop's results. | None selected; another target needs an explicit matrix amendment and its own real machine. |
+| Windows 10, Windows Server and other Windows versions; x86 endpoints | Excluded from V1 endpoint support claims | No version/build, collection permission evidence or real qualification machine is selected. | None selected. |
+| Linux endpoints, all distributions and architectures | Excluded from V1 endpoint support claims | A Linux development/CI host and networking lab do not select or qualify a Linux endpoint. Controller/relay hosting remains separate under #73. | No physical Linux endpoint selected. |
+| macOS endpoints, Intel and Apple silicon | Excluded from V1 endpoint support claims | Darwin arm64 cross-compilation remains a portability check; no macOS qualification machine or sensor/service evidence is available. | None available. |
+| Android, iOS/iPadOS and ChromeOS endpoints | Excluded from V1 endpoint support claims | No mobile/ChromeOS runtime, permissions, package or real test machine is selected. Source device examples are not OS commitments. | None selected. |
+| BSD, other embedded operating systems and every other OS/device combination | Excluded from V1 endpoint support claims | No additional endpoint target is selected; broad source examples do not implicitly expand this matrix. | None selected. |
 
-Read-only evidence collection is the planned boundary. The endpoint must report unavailable or denied measurements as missing with a reason. No target may run unrestricted shell commands or perform automatic remediation. The exact operating-system rights and service model remain open.
+The build number identifies the first test baseline, not evidence that all of Windows 11 or all 25H2 hardware works. A second physical endpoint matching the included class is still needed for #21/#85 and later two-endpoint gates. It is **unavailable**, not an invented second test slot or a CI substitute. Those tasks retain their two-machine criteria. #14 requires a real machine for each claimed target; one included configuration has one identified machine. Reviewing this decision does not pass later qualification gates.
 
-The [initial validation record](../validation.md) records a Linux amd64 local run and cross-builds. The later [Windows evidence](../validation/windows-2026-10-14.md) identifies a real development laptop, owner, access, OS build, hardware and native execution results. No macOS test machine is identified. No OS or hardware target is currently qualified for release.
+This is an **endpoint** matrix. Excluding Linux endpoints does not exclude Linux development, CI, controller hosting or DERP hosting. Deployment host OS, provider and sizing remain with #73 and their implementation tasks. No cross-build or delivery task is removed by this selection.
+
+## Windows collection and service permission model
+
+Select read-only measurement access with these implementation requirements:
+
+- Run the endpoint service as `NT AUTHORITY\LocalService`, with a per-service SID for its own state ACLs. LocalService is the selected account. Its actual source access must be measured under #85 and exercised by service tests in #26; the interactive user token is not a service-token test.
+- Start with that account's default privileges. Blanket administrator, performance/log-reader group membership, WMI namespace grants, driver installs and security-setting changes are not selected. If a required source is inaccessible, its capability gate fails until a narrowly scoped permission proposal is measured and reviewed. Do not silently elevate or switch to LocalSystem.
+- Read CPU, memory, fixed-volume space and network providers where permitted. Battery, ACPI thermal and vendor GPU sensors remain nullable with provider, units and explicit missing reasons. Thermal denial cannot become zero temperature or a healthy result. #21/#85/#91/#92 establish the actual supported subset and cost.
+- Limit the error-source candidate set to System and Application logs for evaluation in #21/#93. Security-log access is not selected. Readable log metadata does not prove event-content access, durable bookmarks or correct ingestion. Required error sources and exact read rights need those tests.
+- Permit writes to endpoint-owned operational state: protected identity, bounded spool and approved model staging. #23/#87/#27 must implement and test the per-service state boundary; Unix file modes do not qualify Windows ACLs. This document changes no existing machine permissions.
+- Installation/service registration may need an explicit administrator install step under #57/#64. That is separate from the steady-state token. Mesh credentials and application signing keys remain separate; Windows network credentials replace neither identity.
+- Keep diagnostics typed, allowlisted, bounded and read-only. No unrestricted shell executor, device configuration changes, MDM or automatic remediation is authorized by this selection.
+
+Microsoft documents [LocalService's limited local privileges and anonymous network credentials](https://learn.microsoft.com/en-us/windows/win32/services/localservice-account) and the purpose of [per-service resource isolation](https://techcommunity.microsoft.com/blog/askperf/ws2008-windows-service-hardening/372702). Those properties support the planning choice; they do not prove our collector, storage, transport or service works under that token.
+
+## Evidence and release gates
+
+The [14 October record](../validation/windows-2026-10-14.md) identifies the physical laptop, hardware, standard-user access, native fixture demo and source-availability observations. The later [19 October measurements in PR #169](https://github.com/i-got-this-faa/device-audit/blob/4e1f2e5c7806406165dbbfa73a4854b643b33075/docs/validation/windows-2026-10-19.md) record the same laptop at build 26200.9711, real development probes and native checks. That evidence is pinned to its commit because #169 is a separate PR; #14 does not depend on merging its probe implementation.
+
+No OS/hardware target is currently qualified for release. The fixture round trip uses in-memory storage and unknown health. Development probes do not establish an installed real collector, service, inference worker, authenticated diagnostics or mesh. Second-machine access, service-token checks, packaging and resource/failure-path evidence remain gates in #21/#85/#26/#104/#57/#61 and the integration/release tasks. Support is asserted only after those tests, the measured capability matrix #58 and release approval pass.
 
 ## Conditional scope decisions
 
-### Asset-system integration
+| Capability | Recorded disposition | Rationale and resolution owner |
+| --- | --- | --- |
+| External asset-system integration | Blocked; no adapter selected and no integration claim permitted | The source describes integration, but no asset vendor/system, adapter contract, required fields, credentials, retention or acceptance evidence is selected. Internal inventory/API/console work continues without claiming an external adapter. #138 owns the later disposition; any selection requires owned, dependency-linked work and an approved rebaseline before implementation or a release claim. |
+| Independent network observation | Blocked; no observer selected and no independent-truth claim permitted | The reviewed source supplies endpoint metrics and network/enterprise layers, not an independent observer's source, permissions, trust boundary or retention. Endpoint telemetry, mesh identity and chain integrity do not substitute for independent observation. #138 owns resolution; selecting an observer requires that boundary, ownership and an approved dependency-linked rebaseline. No scanner is added. |
 
-**Status: blocked, not selected or excluded.** The supplied specification describes integration with existing IT asset-management systems for lifecycle tracking, inventory updates, and audit logging in paragraphs [0022], page 4, and [00109], page 25. Figure 2, page 31, also depicts an IT asset-management and security-compliance layer with integration into enterprise IT systems. These descriptions establish source material to reconcile. They do not select a product adapter or mean that an integration is implemented.
+These are explicit **blocked dispositions**, which #14's acceptance criterion allows; they are not omitted decisions or assertions that the capabilities ship. #138 retains its later reconciliation/gate requirements. This does not add a reverse dependency from #14 to #138 or justify closing #138. Unresolved conflicts still block the applicable later release gate.
 
-No asset platform, vendor, adapter contract, data fields, permissions, owner, or acceptance evidence is selected. SRC05 #72 now maps these broader description/figure passages separately from claims 1-10; they do not supply an explicit adapter selection. Obtain the product decision under #14/#138 before selecting an adapter. If selected, add owned, dependency-linked work and approve a release rebaseline before implementation or a support claim. Do not treat an inventory field as an asset-system integration.
+Other source passages and dispositions remain in the [source register](../source/patent-map.md#broader-embodiments-unmatched-passages-and-retained-exclusions). Jev, Shepherd configuration management, Nix build workers, MDM, package rollout, unrestricted shell agents and automatic remediation remain excluded. No prediction, privacy, production readiness or patent-conformance claim follows from this matrix.
 
-### Independent network observation
+## #14 acceptance and review
 
-**Status: blocked, not selected or excluded.** Figure 2, page 31, depicts device agents collecting CPU, memory, disk, and network metrics, then a wider IT asset-management and security-compliance layer. It does not define a separate network observer or an independent source of device truth. The local agent in that flow is not an independent network probe. The supplied specification and current decisions do not define the observer, data source, permissions, trust boundary, retention, or acceptance evidence for independent observation.
+| Acceptance item | Evidence supplied by this decision PR |
+| --- | --- |
+| Windows-first OS/hardware and real machine | Exact Windows/laptop qualification target, baseline build, owner/access and linked physical-machine evidence |
+| Each additional platform included or excluded | Explicit V1 exclusions, including other Windows targets and all other OS/device combinations; portability and hosting remain distinct |
+| Collection permissions | Selected LocalService/per-service-SID model, default privilege boundary, explicit missing-source behavior and qualification owners |
+| Asset integration and independent observation | Each blocked with rationale, resolution owner and a no-implicit-expansion rule |
+| Source dependency | #72 is closed; its verified source register is retained and aligned with this matrix |
 
-Do not treat endpoint telemetry, a separate network identity, or chain integrity verification as independent observation. SRC05 #72 records that the reviewed source defines no independent observer, probe source or observer trust boundary. Obtain an explicit product decision under #14/#138. If the product selects this capability, define its boundary and owner, add dependency-linked work, and approve a rebaseline before implementation. This record does not add a network scanner or external observation service.
-
-## Blockers and acceptance status
-
-Issue #14's platform acceptance criterion is **partially met**: one real Windows development machine is identified and available, with native fixture execution evidence. The final release OS/hardware/permission matrix is not approved. No additional platform is finally included or excluded, so that part of the acceptance criterion remains unmet. Before any support claim, the product owner must approve the OS version, architecture, hardware class, and collection permissions, identify a real machine for every additional claimed target, and complete the implementation and qualification gates.
-
-SRC05 #72 supplies the [claim map and broader-embodiment register](../source/patent-map.md). Its engineering reconciliation does not approve the remaining product decisions. The product owner must separately select or exclude asset integration and independent observation and resolve the recorded unmatched embodiments under #14/#138. No asset system, independent observer, or platform target is selected here.
-
-The release remains the full 12-week, 150-issue plan. This record does not remove or defer existing release work. Any approved scope expansion requires an owned, dependency-linked rebaseline; it is not implied by this backlog or by the specification's broader embodiments. Existing exclusions remain in force, including MDM, configuration management, package rollout, unrestricted shell agents, and automatic remediation.
+The decision implementation is ready for review. #14's definition of done still requires the other developer's review and a merged PR; it must not be manually marked Done from this unmerged document.
 
 ## Source provenance
 
-The supplied source is `/home/radhey/Downloads/patent.pdf`. It has SHA-256 `f06a9046a10b76495176303c228cdcfe8a0bbe560efe564782055908f8a0a771` and contains 31 PDF pages. The asset references above were checked against the supplied file. Paragraph [0078], page 19, and Figure 2, page 31, show broader enterprise integration and cybersecurity context. Figure 2 also depicts automatic tuning and self-repair; those broader examples do not override the project's existing exclusions.
-
-These references record source text and illustrations, not implementation or legal coverage. SRC05 #72's separate claim reconciliation is recorded in the source map; the remaining release choices and qualification work stay open.
+The supplied 31-page source has SHA-256 `f06a9046a10b76495176303c228cdcfe8a0bbe560efe564782055908f8a0a771`; its verified inventory is in [the source map](../source/patent-map.md). Device examples are [0050], pp.9-10. Asset references are [0022], p.4, [00109], p.25 and FIG.2, p.31. Independent-observation references are mapped against [0051], p.10, [0074], p.18, [0078], p.19 and FIG.2, p.31. These establish traceability, not extra target selection or implementation/legal coverage.

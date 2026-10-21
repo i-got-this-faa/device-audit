@@ -11,9 +11,12 @@ This repository is an engineering starting point. The original `patent.pdf`
 was not available when it was created. Its [provenance and reference
 inventory](docs/source/patent-map.md) are now verified against the supplied PDF.
 [Requirements](docs/requirements.md) now link claims 1-10 to planned tasks,
-acceptance gaps and retained exclusions. Platform and conditional-scope
-decisions remain open under [#14](https://github.com/i-got-this-faa/device-audit/issues/14)
-and [#138](https://github.com/i-got-this-faa/device-audit/issues/138).
+acceptance gaps and retained exclusions. The [V1 platform matrix](docs/roadmap/release-scope.md)
+for [#14](https://github.com/i-got-this-faa/device-audit/issues/14) selects one
+Windows laptop configuration for qualification and explicitly excludes other
+endpoint targets. Asset integration and independent observation have recorded
+blocked dispositions; their later gate remains with
+[#138](https://github.com/i-got-this-faa/device-audit/issues/138).
 Source traceability does not establish implementation or patent conformance.
 
 ## Start locally
@@ -28,6 +31,19 @@ python3 -m venv .venv
 make PYTHON=.venv/bin/python check cross-build
 make demo
 ```
+
+On Windows with PowerShell 7, Go, a GCC compiler for race tests and the pinned
+Python test dependencies available, run the native equivalent:
+
+```powershell
+./tools/check-windows.ps1 -Python .venv/Scripts/python.exe
+```
+
+It runs vet/race/format/model checks, native builds and the fixture round trip,
+Windows/macOS endpoint builds, and probe failure tests. The `windows-check` CI
+job repeats it on a Windows runner. Real read-only sensor availability is
+measured separately with the [Windows development probes](tools/probes/README.md).
+That evidence does not qualify a production collector or Windows service.
 
 Or use two terminals:
 

@@ -16,10 +16,10 @@ discussion can drift and does not automatically become product scope.
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
-| Windows-first | Handoff 15 marks it proposed; the backlog prioritizes a Windows collector; on 14 October 2026 the owner supplied a Windows session for validation | One HP Victus development laptop is available: Windows 11 25H2 build 26200.9457, x64, standard-user access. Native fixture execution and source-availability checks are recorded in [Windows evidence](validation/windows-2026-10-14.md), superseding the earlier no-machine blocker. Final release scope, production permissions and collector/service qualification remain open. See [release scope](roadmap/release-scope.md). |
-| Additional platforms | No handoff decision approves macOS, Linux, or other device families | Blocked, neither included nor excluded; target OS versions, hardware classes, permissions, and real machines are not selected. See [release scope](roadmap/release-scope.md). |
-| Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31 | SRC05 maps this broader description; explicit product selection remains blocked under #14/#138. Internal inventory is a subset, not an external adapter. See [release scope](roadmap/release-scope.md). |
-| Independent network observation | SRC05 review of [0051], p.10, [0074], p.18, [0078], p.19 and FIG.2, p.31 finds no defined observer/source/trust boundary | Explicit product selection remains blocked under #14/#138. Endpoint telemetry, network identity and chain verification do not imply an observer. See [release scope](roadmap/release-scope.md). |
+| Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
+| Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
+| Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
+| Independent network observation | SRC05 finds no defined observer/source/trust boundary in [0051], p.10, [0074], p.18, [0078], p.19 or FIG.2, p.31; #14 records an explicit block | Blocked because the source, permissions, trust boundary, retention and acceptance evidence are unselected. Endpoint telemetry, network identity and chain verification imply no independent observer. #138 owns resolution and any approved rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
 | Frontend | Provisional SRC04 #74 decision below | Go HTML templates, embedded static assets and progressive enhancement; no implemented console yet |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
@@ -65,10 +65,14 @@ SRC05 #72 has reconciled the supplied PDF and recorded its provenance in
 [the source map](source/patent-map.md). This does not establish implementation
 or patent coverage.
 
-Final release hosting remains blocked on #14's OS/hardware, real-machine and
-conditional asset/observation scope. Revisit this plan after #14; source reconciliation is recorded separately
-under #72 and does not settle the remaining product choices. Provider, host OS, sizing, availability
-and recovery objectives remain open. Acceptance evidence still needs database
+The later [#14 decision](roadmap/release-scope.md) defines one Windows endpoint
+qualification target and excludes additional endpoint support claims. Its Linux
+endpoint exclusion does not exclude Linux controller or relay hosting. Asset
+integration and independent observation have explicit blocked dispositions for
+#138. Those blocks do not create a reverse dependency from #14 to #138.
+Provider, deployment host OS, sizing, availability and recovery objectives remain
+open in the hosting work. Source reconciliation #72 does not settle those choices.
+Acceptance evidence still needs database
 restart/restore results, authenticated access denials, secret rotation/revocation
 checks and direct/relay connectivity on the selected release machines.
 
@@ -83,8 +87,8 @@ missing reason, and at least one metric must be known. Inventory supports
 opaque group/network-segment IDs and up to 64 component records. Telemetry
 supports up to 8 bounded log references with opaque IDs, SHA-256, at most 10
 MiB per reference, and a time window; raw logs are excluded. These choices are
-provisional and platform-neutral pending release platform/hardware scope (#14)
-and provider/feature definitions (#21/#32/#85). SRC05 #72 records metric gaps:
+provisional and platform-neutral; #14's [target matrix](roadmap/release-scope.md)
+does not settle provider/feature definitions (#21/#32/#85). SRC05 #72 records metric gaps:
 disk space, battery charge and latency cannot stand in for disk health/I/O,
 battery health/life and throughput. PDF provenance and claim reconciliation are in
 [the source inventory](source/patent-map.md). They do not settle enrollment,
@@ -124,7 +128,7 @@ constraint are selected. Expiry is stale at the exact `expires_at` instant;
 `IsStale(now)` takes its clock explicitly. Timestamp ordering and Go's zero-time
 instant check are semantic Go validation rules because JSON Schema checks only
 date-time syntax. Shared prediction vectors are validated by Go and Python.
-These are provisional choices pending #14 and endpoint model qualification.
+These are provisional contracts; #14's target selection does not establish endpoint model qualification.
 SRC05 #72 records the source's warning/degraded terminology difference and
 assigns the versioned health policy to #86/#35. #22 selected a historical HDD
 dataset study; the source PDF and claim reconciliation are indexed. These contracts provide neither patent
@@ -196,7 +200,9 @@ placed in the envelopes. Another owner must review sequence, lost-response,
 restart and restore semantics before consumer implementation. Durable storage,
 challenge issuance, authorization, rotation/revocation, protected key storage and
 real restart/restore tests remain unimplemented. #17 is not changed by #75.
-The #80 shared conformance command below now runs the envelope fixtures. #14 remains open; SRC05 #72
+The #80 shared conformance command below now runs the envelope fixtures.
+#14's target selection does not qualify enrollment, service permissions or
+endpoint runtime; SRC05 #72
 records source reconciliation without establishing implementation or legal coverage.
 
 

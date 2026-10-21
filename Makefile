@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check demo
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check demo tailcat-lab-check tailcat-lab-proof
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -26,3 +26,11 @@ contract-check:
 	$(PYTHON) tools/contract_conformance.py --go "$(GO)"
 demo: build
 	$(PYTHON) tools/demo.py
+# The experimental dependency graph stays outside the application module.
+tailcat-lab-check:
+	cd networking/tailcat-lab && $(GO) vet ./...
+	cd networking/tailcat-lab && $(GO) test -race -count=1 -timeout=150s ./...
+	cd networking/tailcat-lab && $(GO) mod verify
+	cd networking/tailcat-lab && test -z "$$($(GO) fmt ./...)"
+tailcat-lab-proof:
+	GO=$(GO) networking/tailcat-lab/run-proof.sh

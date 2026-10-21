@@ -3,6 +3,22 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  windows-check:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r models/test-requirements.txt
+      - name: Native Windows checks and probe failure tests
+        shell: pwsh
+        run: ./tools/check-windows.ps1
   project-automation:
     runs-on: ubuntu-latest
     steps:
@@ -34,6 +50,17 @@ jobs:
           path: artifacts/contracts/conformance-v1-report.json
           if-no-files-found: warn
           retention-days: 14
+  tailcat-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: networking/tailcat-lab/go.mod
+          cache: false
+      - name: Verify pinned Tailcat and direct UDP restart proof
+        run: make tailcat-lab-check
   dataset-reproduction:
     runs-on: ubuntu-latest
     timeout-minutes: 15
