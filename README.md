@@ -29,6 +29,19 @@ make PYTHON=.venv/bin/python check cross-build
 make demo
 ```
 
+On Windows with PowerShell 7, Go, a GCC compiler for race tests and the pinned
+Python test dependencies available, run the native equivalent:
+
+```powershell
+./tools/check-windows.ps1 -Python .venv/Scripts/python.exe
+```
+
+It runs vet/race/format/model checks, native builds and the fixture round trip,
+Windows/macOS endpoint builds, and probe failure tests. The `windows-check` CI
+job repeats it on a Windows runner. Real read-only sensor availability is
+measured separately with the [Windows development probes](tools/probes/README.md).
+That evidence does not qualify a production collector or Windows service.
+
 Or use two terminals:
 
 ```sh
