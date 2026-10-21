@@ -8,7 +8,7 @@ CONTRACTS = ROOT / "packages/contracts"
 
 
 def main():
-    catalogue = json.loads((CONTRACTS / "conformance-v1.json").read_text())
+    catalogue = json.loads((CONTRACTS / "conformance-v1.json").read_text(encoding="utf-8"))
     vectors = []
 
     def add(name, version, wire, schema="accepted", go="accepted", python="accepted", **context):
@@ -17,7 +17,7 @@ def main():
                             expected_python=python, **context))
 
     for suite in catalogue["suites"]:
-        collection = json.loads((CONTRACTS / "fixtures" / suite["fixture"]).read_text())
+        collection = json.loads((CONTRACTS / "fixtures" / suite["fixture"]).read_text(encoding="utf-8"))
         for version in suite["schemas"]:
             source = next(v for v in collection["vectors"]
                           if v[suite["valid_field"]]
@@ -36,7 +36,7 @@ def main():
             add("unsupported/" + version, version, json.dumps(incompatible),
                 schema="unsupported_schema", go="unsupported_schema", python="unsupported_schema")
 
-    envelopes = json.loads((CONTRACTS / "fixtures/envelopes/v1-vectors.json").read_text())["vectors"]
+    envelopes = json.loads((CONTRACTS / "fixtures/envelopes/v1-vectors.json").read_text(encoding="utf-8"))["vectors"]
     for name in ["enrollment freshness sequence already consumed",
                  "replayed evidence after lost acknowledgement",
                  "replayed evidence after controller restart", "expired at exact boundary",
@@ -73,7 +73,7 @@ def main():
     add("property_order_and_escapes", version, escaped,
         canonical_hex=envelopes[0]["canonical_hex"], verification_key=envelopes[0]["verification_key"])
 
-    telemetry = json.loads((CONTRACTS / "fixtures/telemetry/v2-vectors.json").read_text())["vectors"][0]["telemetry"]
+    telemetry = json.loads((CONTRACTS / "fixtures/telemetry/v2-vectors.json").read_text(encoding="utf-8"))["vectors"][0]["telemetry"]
     add("v2_sent_to_v1_reader", "device-audit.v1", json.dumps(telemetry),
         schema="unsupported_schema", go="unsupported_schema", python="unsupported_schema")
     telemetry = copy.deepcopy(telemetry)
@@ -81,7 +81,7 @@ def main():
     add("null_metric_without_reason", "device-audit.telemetry.v2", json.dumps(telemetry),
         schema="invalid_contract", go="invalid_contract", python="invalid_contract")
     path = CONTRACTS / catalogue["wire_vectors"]
-    path.write_text(json.dumps(dict(schema_version="device-audit.conformance-wire.v1", vectors=vectors), indent=2) + "\n")
+    path.write_text(json.dumps(dict(schema_version="device-audit.conformance-wire.v1", vectors=vectors), indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

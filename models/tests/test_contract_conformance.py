@@ -13,7 +13,7 @@ CONTRACTS = Path(__file__).resolve().parents[2] / "packages/contracts"
 
 
 def load_catalogue(path=CONTRACTS / "conformance-v1.json"):
-    catalogue = strict_loads(path.read_text())
+    catalogue = strict_loads(path.read_text(encoding="utf-8"))
     if catalogue["schema_version"] != "device-audit.conformance-catalogue.v1":
         raise ValueError("unsupported conformance catalogue")
     validators = {}
@@ -21,7 +21,7 @@ def load_catalogue(path=CONTRACTS / "conformance-v1.json"):
         for version, filename in suite["schemas"].items():
             if version in validators:
                 raise ValueError(f"duplicate reader version {version}")
-            schema = strict_loads((CONTRACTS / filename).read_text())
+            schema = strict_loads((CONTRACTS / filename).read_text(encoding="utf-8"))
             Draft202012Validator.check_schema(schema)
             validators[version] = Draft202012Validator(schema, format_checker=FormatChecker())
     return catalogue, validators
@@ -81,7 +81,7 @@ class ContractConformanceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.catalogue, cls.validators = load_catalogue()
-        collection = strict_loads((CONTRACTS / cls.catalogue["wire_vectors"]).read_text())
+        collection = strict_loads((CONTRACTS / cls.catalogue["wire_vectors"]).read_text(encoding="utf-8"))
         if collection["schema_version"] != "device-audit.conformance-wire.v1":
             raise ValueError("unsupported wire vectors")
         cls.vectors = collection["vectors"]
