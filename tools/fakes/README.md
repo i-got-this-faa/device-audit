@@ -41,9 +41,11 @@ unsupported responses.
 ## Configure another development boundary
 
 Use `--controller` for the HTTP origin. Override `--telemetry-route`,
-`--diagnostics-route`, and `--federated-route` to match your server. Diagnostic
-and federated default routes are fixture-only test URLs, not published
-controller APIs. Do not send fixtures to a production environment.
+`--diagnostics-route`, and `--federated-route` to match your server. Route paths
+may contain percent escapes; configured escapes are preserved in the request
+URI, including escapes in an origin path prefix. Diagnostic and federated
+default routes are fixture-only test URLs, not published controller APIs. Do
+not send fixtures to a production environment.
 
 Select `--scenario valid`, `--scenario malformed`, or `--scenario interrupted`
 to run one scenario across the named families. Use `--scenario all` for all.

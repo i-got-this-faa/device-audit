@@ -413,6 +413,67 @@ func TestClientBoundsResponseBody(t *testing.T) {
 	}
 }
 
+func TestPostPreservesEscapedRouteAndOriginPrefix(t *testing.T) {
+	tests := []struct {
+		name        string
+		prefix      string
+		route       string
+		requestURI  string
+		decodedPath string
+	}{
+		{
+			name:        "escaped route",
+			route:       "/v1/%74elemetry",
+			requestURI:  "/v1/%74elemetry",
+			decodedPath: "/v1/telemetry",
+		},
+		{
+			name:        "escaped origin prefix",
+			prefix:      "/edge/%70refix",
+			route:       "/v1/%74elemetry",
+			requestURI:  "/edge/%70refix/v1/%74elemetry",
+			decodedPath: "/edge/prefix/v1/telemetry",
+		},
+		{
+			name:        "encoded slash remains escaped",
+			route:       "/v1/a%2Fb",
+			requestURI:  "/v1/a%2Fb",
+			decodedPath: "/v1/a/b",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			type receivedRequest struct {
+				requestURI string
+				path       string
+			}
+			received := make(chan receivedRequest, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				received <- receivedRequest{requestURI: r.RequestURI, path: r.URL.Path}
+				w.WriteHeader(http.StatusAccepted)
+			}))
+			defer server.Close()
+
+			originValue := server.URL + test.prefix
+			origin, err := parseOrigin(originValue)
+			if err != nil {
+				t.Fatal(err)
+			}
+			status, err := post(context.Background(), server.Client(), origin, test.route, replayfixtures.Request{FixtureID: "route-test"}, ValidScenario, []byte("{}"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if status != http.StatusAccepted {
+				t.Fatalf("post() status = %d, want %d", status, http.StatusAccepted)
+			}
+			got := <-received
+			if got.requestURI != test.requestURI || got.path != test.decodedPath {
+				t.Fatalf("received request URI=%q path=%q, want URI=%q path=%q", got.requestURI, got.path, test.requestURI, test.decodedPath)
+			}
+		})
+	}
+}
+
 func TestRunUsesBoundedHTTPTimeout(t *testing.T) {
 	release := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {

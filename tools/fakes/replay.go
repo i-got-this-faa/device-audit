@@ -316,16 +316,29 @@ func validateRoute(route string) error {
 	return nil
 }
 
-func requestURL(origin *url.URL, route string) string {
+func requestURL(origin *url.URL, route string) (string, error) {
+	routeURL, err := url.Parse(route)
+	if err != nil {
+		return "", err
+	}
+	prefix := strings.TrimRight(origin.EscapedPath(), "/")
+	escapedPath := prefix + "/" + strings.TrimLeft(routeURL.EscapedPath(), "/")
+	decodedPath, err := url.PathUnescape(escapedPath)
+	if err != nil {
+		return "", err
+	}
 	target := *origin
-	prefix := strings.TrimRight(target.Path, "/")
-	target.Path = prefix + "/" + strings.TrimLeft(route, "/")
-	target.RawPath = ""
-	return target.String()
+	target.Path = decodedPath
+	target.RawPath = escapedPath
+	return target.String(), nil
 }
 
 func post(ctx context.Context, client *http.Client, origin *url.URL, route string, fixture replayfixtures.Request, scenario Scenario, body []byte) (int, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL(origin, route), bytes.NewReader(body))
+	target, err := requestURL(origin, route)
+	if err != nil {
+		return 0, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
 	if err != nil {
 		return 0, err
 	}
