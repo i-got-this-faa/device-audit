@@ -33,7 +33,7 @@ def run(catalogue_path, go, report_path):
     python_names = ["test_contract_conformance.ContractConformanceTests"]
     for suite in catalogue["suites"]:
         path = CONTRACTS / "fixtures" / suite["fixture"]
-        source = strict_loads(path.read_text())
+        source = strict_loads(path.read_text(encoding="utf-8"))
         vectors = source["vectors"]
         names = [v["name"] for v in vectors]
         if not names or len(set(names)) != len(names):
@@ -70,7 +70,7 @@ def run(catalogue_path, go, report_path):
         passed = [e for e in events if e["Action"] == "pass" and e.get("Test", "").startswith(prefix)]
         if len(passed) != suite["vectors"]:
             raise ValueError(f"{suite['name']}: Go ran {len(passed)} vectors, expected {suite['vectors']}")
-    wire = strict_loads(wire_path.read_text())
+    wire = strict_loads(wire_path.read_text(encoding="utf-8"))
     passed = [e for e in events if e["Action"] == "pass" and e.get("Test", "").startswith("TestContractWireVectors/")]
     if len(passed) != len(wire["vectors"]):
         raise ValueError("Go wire vector count differs from the shared file")
@@ -97,7 +97,7 @@ def run(catalogue_path, go, report_path):
                                "Schema acceptance is not semantic validation",
                                "No runtime authorization or durable replay storage tested"])
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(report, indent=2) + "\n")
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"Conformance passed: {sum(s['vectors'] for s in suites)} golden vectors, "
           f"{len(wire['vectors'])} wire cases, {len(validators)} reader versions.")
     print(f"Report: {report_path}")

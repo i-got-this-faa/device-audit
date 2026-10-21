@@ -11,22 +11,22 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class ConformanceRunnerFailureTests(unittest.TestCase):
     def test_schema_expectations_cannot_substitute_semantic_validity(self):
-        catalogue = json.loads((ROOT / "packages/contracts/conformance-v1.json").read_text())
+        catalogue = json.loads((ROOT / "packages/contracts/conformance-v1.json").read_text(encoding="utf-8"))
         envelopes = next(s for s in catalogue["suites"] if s["name"] == "envelopes-v1")
         envelopes["schema_valid_field"] = "contract_valid"
         self.assert_failed_run(catalogue, "schema accepted=True, expected=False")
 
     def test_missing_go_reader_cannot_pass_without_running_vectors(self):
-        catalogue = json.loads((ROOT / "packages/contracts/conformance-v1.json").read_text())
+        catalogue = json.loads((ROOT / "packages/contracts/conformance-v1.json").read_text(encoding="utf-8"))
         catalogue["suites"][0]["go_test"] = "TestUnregisteredReader"
         self.assert_failed_run(catalogue, "Go ran 0 vectors, expected")
 
     def assert_failed_run(self, catalogue, expected_error):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "catalogue.json"
-            path.write_text(json.dumps(catalogue))
+            path.write_text(json.dumps(catalogue), encoding="utf-8")
             report = Path(directory) / "report.json"
-            report.write_text('{"status":"passed","stale":true}')
+            report.write_text('{"status":"passed","stale":true}', encoding="utf-8")
             result = subprocess.run(
                 [sys.executable, str(ROOT / "tools/contract_conformance.py"),
                  "--catalogue", str(path), "--report", str(report)],
