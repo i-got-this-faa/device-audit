@@ -11,9 +11,12 @@ This repository is an engineering starting point. The original `patent.pdf`
 was not available when it was created. Its [provenance and reference
 inventory](docs/source/patent-map.md) are now verified against the supplied PDF.
 [Requirements](docs/requirements.md) now link claims 1-10 to planned tasks,
-acceptance gaps and retained exclusions. Platform and conditional-scope
-decisions remain open under [#14](https://github.com/i-got-this-faa/device-audit/issues/14)
-and [#138](https://github.com/i-got-this-faa/device-audit/issues/138).
+acceptance gaps and retained exclusions. The [V1 platform matrix](docs/roadmap/release-scope.md)
+for [#14](https://github.com/i-got-this-faa/device-audit/issues/14) selects one
+Windows laptop configuration for qualification and explicitly excludes other
+endpoint targets. Asset integration and independent observation have recorded
+blocked dispositions; their later gate remains with
+[#138](https://github.com/i-got-this-faa/device-audit/issues/138).
 Source traceability does not establish implementation or patent conformance.
 
 ## Start locally

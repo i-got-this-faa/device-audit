@@ -10,10 +10,13 @@ The source map now reconciles claims 1-10, metric terminology, broader
 embodiments and retained exclusions for SRC05
 [#72](https://github.com/i-got-this-faa/device-audit/issues/72). It identifies
 planned work and gaps; it establishes neither implementation nor legal
-coverage. The platform matrix, conditional asset integration and other
-explicit product selections remain with SRC02
-[#14](https://github.com/i-got-this-faa/device-audit/issues/14) and CAP02
-[#138](https://github.com/i-got-this-faa/device-audit/issues/138).
+coverage. SRC02 [#14](https://github.com/i-got-this-faa/device-audit/issues/14)
+records the [V1 endpoint matrix](roadmap/release-scope.md): one Windows laptop
+configuration selected for qualification, other endpoint platforms excluded from
+V1 support claims, and explicit blocked asset/independent-observation dispositions.
+CAP02 [#138](https://github.com/i-got-this-faa/device-audit/issues/138) retains
+the later reconciliation and unresolved conditional-capability gates. Selection
+does not qualify the target or remove any implementation/acceptance task.
 
 ## Requirement identifiers used by the roadmap
 
