@@ -21,6 +21,19 @@ Source traceability does not establish implementation or patent conformance.
 
 ## Start locally
 
+With Nix and flakes enabled, enter the combined development shell:
+
+```sh
+nix develop
+make contract-check check cross-build demo
+node --test tools/project-sync.test.mjs
+```
+
+For automatic activation, install and hook direnv with nix-direnv, then run
+`direnv allow` in this checkout. The root `.envrc` loads the default profile.
+See [dependency profiles](nix/README.md) for smaller task-specific shells and
+the distinction between Nix-locked and pip-pinned Python test dependencies.
+
 Install Go 1.27.1 and Python 3.12+. Go's toolchain auto-selection can download
 the version in `go.mod`. Python dependencies are test-only; install them in a
 virtual environment before running the checks:
