@@ -1,0 +1,467 @@
+{
+  "schema_version": "device-audit.conformance-wire.v1",
+  "vectors": [
+    {
+      "name": "valid/device-audit.v1",
+      "reader_version": "device-audit.v1",
+      "wire": "{\"schema_version\":\"device-audit.v1\",\"device_id\":\"node-01\",\"collected_at\":\"2026-10-13T06:00:00Z\",\"source\":\"endpoint\",\"metrics\":{\"cpu_percent\":0,\"memory_percent\":100,\"disk_used_percent\":50,\"battery_percent\":1,\"temperature_c\":-20.5,\"network_latency_ms\":0}}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.v1",
+      "reader_version": "device-audit.v1",
+      "wire": "{\"schema_version\": \"device-audit.v999\", \"device_id\": \"node-01\", \"collected_at\": \"2026-10-13T06:00:00Z\", \"source\": \"endpoint\", \"metrics\": {\"cpu_percent\": 0, \"memory_percent\": 100, \"disk_used_percent\": 50, \"battery_percent\": 1, \"temperature_c\": -20.5, \"network_latency_ms\": 0}}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.telemetry.v2",
+      "reader_version": "device-audit.telemetry.v2",
+      "wire": "{\"schema_version\":\"device-audit.telemetry.v2\",\"device_id\":\"asset:opaque-01\",\"collected_at\":\"2026-10-13T06:00:00Z\",\"source\":\"endpoint\",\"metrics\":{\"cpu_utilization\":{\"value\":15,\"unit\":\"percent\"},\"gpu_utilization\":{\"value\":null,\"unit\":\"percent\",\"missing_reason\":\"not_applicable\"},\"memory_percent\":{\"value\":64,\"unit\":\"percent\"},\"disk_used_percent\":{\"value\":48,\"unit\":\"percent\"},\"battery_percent\":{\"value\":null,\"unit\":\"percent\",\"missing_reason\":\"sensor_unavailable\"},\"temperature_c\":{\"value\":-10.5,\"unit\":\"celsius\"},\"network_latency_ms\":{\"value\":3.2,\"unit\":\"milliseconds\"}},\"inventory\":{\"group_id\":\"group:a\",\"network_segment_id\":\"segment:blue\",\"components\":[{\"id\":\"component:cpu0\",\"type\":\"processor\",\"model\":\"Example CPU\"},{\"id\":\"component:unicode\",\"type\":\"\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\",\"model\":\"\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\"}]},\"log_references\":[{\"reference_id\":\"log:boot-01\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"byte_size\":4096,\"window_start\":\"2026-10-13T05:00:00Z\",\"window_end\":\"2026-10-13T06:00:00Z\"}]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.telemetry.v2",
+      "reader_version": "device-audit.telemetry.v2",
+      "wire": "{\"schema_version\": \"device-audit.telemetry.v999\", \"device_id\": \"asset:opaque-01\", \"collected_at\": \"2026-10-13T06:00:00Z\", \"source\": \"endpoint\", \"metrics\": {\"cpu_utilization\": {\"value\": 15, \"unit\": \"percent\"}, \"gpu_utilization\": {\"value\": null, \"unit\": \"percent\", \"missing_reason\": \"not_applicable\"}, \"memory_percent\": {\"value\": 64, \"unit\": \"percent\"}, \"disk_used_percent\": {\"value\": 48, \"unit\": \"percent\"}, \"battery_percent\": {\"value\": null, \"unit\": \"percent\", \"missing_reason\": \"sensor_unavailable\"}, \"temperature_c\": {\"value\": -10.5, \"unit\": \"celsius\"}, \"network_latency_ms\": {\"value\": 3.2, \"unit\": \"milliseconds\"}}, \"inventory\": {\"group_id\": \"group:a\", \"network_segment_id\": \"segment:blue\", \"components\": [{\"id\": \"component:cpu0\", \"type\": \"processor\", \"model\": \"Example CPU\"}, {\"id\": \"component:unicode\", \"type\": \"\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\", \"model\": \"\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\"}]}, \"log_references\": [{\"reference_id\": \"log:boot-01\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"byte_size\": 4096, \"window_start\": \"2026-10-13T05:00:00Z\", \"window_end\": \"2026-10-13T06:00:00Z\"}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.prediction.v2",
+      "reader_version": "device-audit.prediction.v2",
+      "wire": "{\"schema_version\":\"device-audit.prediction.v2\",\"device_id\":\"asset:opaque-01\",\"model_reference\":{\"version\":\"model-1\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"evidence\":{\"digest\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"telemetry_schema_version\":\"device-audit.telemetry.v2\"},\"generated_at\":\"2026-10-13T06:00:00Z\",\"expires_at\":\"2026-10-14T06:00:00Z\",\"health\":{\"status\":\"healthy\",\"probability\":0,\"probability_unit\":\"probability\",\"horizon_hours\":24},\"forecasts\":[]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.prediction.v2",
+      "reader_version": "device-audit.prediction.v2",
+      "wire": "{\"schema_version\": \"device-audit.prediction.v999\", \"device_id\": \"asset:opaque-01\", \"model_reference\": {\"version\": \"model-1\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"evidence\": {\"digest\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"telemetry_schema_version\": \"device-audit.telemetry.v2\"}, \"generated_at\": \"2026-10-13T06:00:00Z\", \"expires_at\": \"2026-10-14T06:00:00Z\", \"health\": {\"status\": \"healthy\", \"probability\": 0, \"probability_unit\": \"probability\", \"horizon_hours\": 24}, \"forecasts\": []}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.lifecycle.v2",
+      "reader_version": "device-audit.lifecycle.v2",
+      "wire": "{\"schema_version\":\"device-audit.lifecycle.v2\",\"generated_at\":\"2026-10-15T00:00:00Z\",\"provenance\":{\"cohort_id\":\"cohort:fixture-storage\",\"cohort_size\":10,\"baseline_window_start\":\"2026-08-01T00:00:00Z\",\"baseline_window_end\":\"2026-09-01T00:00:00Z\",\"window_start\":\"2026-09-01T00:00:00Z\",\"window_end\":\"2026-10-01T00:00:00Z\",\"evidence_digest\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"recommendations\":[{\"batch_id\":\"batch:fixture-repair\",\"affected_device_count\":3,\"action\":\"repair\",\"evidence\":{\"telemetry_schema_version\":\"device-audit.telemetry.v2\",\"prediction_schema_version\":\"device-audit.prediction.v2\",\"telemetry_digest\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"prediction_digest\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},\"inputs\":{\"age_months\":36,\"currency\":\"USD\",\"repair_cost_major\":100,\"upgrade_cost_major\":200,\"replacement_cost_major\":1000},\"sustainability\":{\"methodology_version\":\"carbon-reduction.v1\",\"status\":\"complete\",\"inputs\":{\"assessment_horizon_months\":12,\"baseline_carbon_kg_co2e\":100,\"scenario_carbon_kg_co2e\":60,\"baseline_e_waste_kg\":4,\"scenario_e_waste_kg\":1},\"score_percent\":40,\"carbon_avoided_kg_co2e\":40,\"e_waste_avoided_kg\":3},\"longevity\":{\"status\":\"complete\",\"remaining_months\":24,\"lower_bound_months\":12,\"upper_bound_months\":36,\"confidence_probability\":0.9}}],\"component_trends\":[{\"category\":\"storage\",\"status\":\"complete\",\"baseline_sample_count\":10,\"sample_count\":10,\"baseline_failure_rate_percent\":10,\"failure_rate_percent\":30,\"change_percentage_points\":20}]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.lifecycle.v2",
+      "reader_version": "device-audit.lifecycle.v2",
+      "wire": "{\"schema_version\": \"device-audit.lifecycle.v999\", \"generated_at\": \"2026-10-15T00:00:00Z\", \"provenance\": {\"cohort_id\": \"cohort:fixture-storage\", \"cohort_size\": 10, \"baseline_window_start\": \"2026-08-01T00:00:00Z\", \"baseline_window_end\": \"2026-09-01T00:00:00Z\", \"window_start\": \"2026-09-01T00:00:00Z\", \"window_end\": \"2026-10-01T00:00:00Z\", \"evidence_digest\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}, \"recommendations\": [{\"batch_id\": \"batch:fixture-repair\", \"affected_device_count\": 3, \"action\": \"repair\", \"evidence\": {\"telemetry_schema_version\": \"device-audit.telemetry.v2\", \"prediction_schema_version\": \"device-audit.prediction.v2\", \"telemetry_digest\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"prediction_digest\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"}, \"inputs\": {\"age_months\": 36, \"currency\": \"USD\", \"repair_cost_major\": 100, \"upgrade_cost_major\": 200, \"replacement_cost_major\": 1000}, \"sustainability\": {\"methodology_version\": \"carbon-reduction.v1\", \"status\": \"complete\", \"inputs\": {\"assessment_horizon_months\": 12, \"baseline_carbon_kg_co2e\": 100, \"scenario_carbon_kg_co2e\": 60, \"baseline_e_waste_kg\": 4, \"scenario_e_waste_kg\": 1}, \"score_percent\": 40, \"carbon_avoided_kg_co2e\": 40, \"e_waste_avoided_kg\": 3}, \"longevity\": {\"status\": \"complete\", \"remaining_months\": 24, \"lower_bound_months\": 12, \"upper_bound_months\": 36, \"confidence_probability\": 0.9}}], \"component_trends\": [{\"category\": \"storage\", \"status\": \"complete\", \"baseline_sample_count\": 10, \"sample_count\": 10, \"baseline_failure_rate_percent\": 10, \"failure_rate_percent\": 30, \"change_percentage_points\": 20}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment.v1",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001a6465766963652d61756469742e656e726f6c6c6d656e742e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31355431323a31303a30305a00000040643735613938303138326231306162376435346266656433633936343037336130656531373266336461613632333235616630323161363866373037353131610000002b6368616c6c656e67653a666978747572652d6f6e6c792d6e6f742d612d6c6976652d6368616c6c656e6765",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment.v1",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v999\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.evidence.v1",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-16T12:00:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"payload_base64\":\"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\",\"payload_schema_version\":\"device-audit.telemetry.v2\",\"payload_sha256\":\"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\",\"schema_version\":\"device-audit.evidence.v1\",\"sequence\":2,\"signature\":\"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.evidence.v1",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v999\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.acknowledgement.v1",
+      "reader_version": "device-audit.acknowledgement.v1",
+      "wire": "{\"controller_key_id\":\"ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"last_sequence\":2,\"received_at\":\"2026-10-15T12:00:00Z\",\"rejection_reason\":null,\"request_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"request_schema_version\":\"device-audit.evidence.v1\",\"request_sequence\":2,\"request_sha256\":\"0887d62032237d1975aacc3e4e1865b14bcbda46537be3af86c3941bbec70aea\",\"schema_version\":\"device-audit.acknowledgement.v1\",\"signature\":\"c68be74a4f76b814f71be071815876ded66879afa0f8d906db66c0fe92842e320fbde272701249178b7bcb1c5b4015e85ec61ba1f176748d8950f80bc1bb5604\",\"status\":\"accepted\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001f6465766963652d61756469742e61636b6e6f776c656467656d656e742e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000186465766963652d61756469742e65766964656e63652e763100000048656432353531393a323166653331646661313534613236313632366266383534303436666432323731623762656434623661626534356161353838373765663437663937323162390000000132000000403038383764363230333232333764313937356161636333653465313836356231346263626461343635333762653361663836633339343162626563373061656100000014323032362d31302d31355431323a30303a30305a000000086163636570746564000000000000000132",
+      "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+    },
+    {
+      "name": "unsupported/device-audit.acknowledgement.v1",
+      "reader_version": "device-audit.acknowledgement.v1",
+      "wire": "{\"controller_key_id\": \"ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"last_sequence\": 2, \"received_at\": \"2026-10-15T12:00:00Z\", \"rejection_reason\": null, \"request_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"request_schema_version\": \"device-audit.evidence.v1\", \"request_sequence\": 2, \"request_sha256\": \"0887d62032237d1975aacc3e4e1865b14bcbda46537be3af86c3941bbec70aea\", \"schema_version\": \"device-audit.acknowledgement.v999\", \"signature\": \"c68be74a4f76b814f71be071815876ded66879afa0f8d906db66c0fe92842e320fbde272701249178b7bcb1c5b4015e85ec61ba1f176748d8950f80bc1bb5604\", \"status\": \"accepted\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.diagnostic-assignment.v1",
+      "reader_version": "device-audit.diagnostic-assignment.v1",
+      "wire": "{\"schema_version\":\"device-audit.diagnostic-assignment.v1\",\"deployment_id\":\"deployment-a\",\"device_id\":\"device-a\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"sequence\":1,\"issued_at\":\"2026-10-19T12:00:00Z\",\"expires_at\":\"2026-10-19T12:05:00Z\",\"assignment_id\":\"assignment-a\",\"probe_id\":\"storage_health.v1\",\"arguments\":{\"component_id\":\"storage-a\",\"lookback_seconds\":null,\"max_entries\":null},\"budget\":{\"wall_seconds\":60,\"max_output_bytes\":4096},\"signature\":\"58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000256465766963652d61756469742e646961676e6f737469632d61737369676e6d656e742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31395431323a30303a30305a00000014323032362d31302d31395431323a30353a30305a0000000c61737369676e6d656e742d610000001173746f726167655f6865616c74682e76310000000973746f726167652d6100000000000000000000000236300000000434303936",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.diagnostic-assignment.v1",
+      "reader_version": "device-audit.diagnostic-assignment.v1",
+      "wire": "{\"schema_version\": \"device-audit.diagnostic-assignment.v999\", \"deployment_id\": \"deployment-a\", \"device_id\": \"device-a\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"sequence\": 1, \"issued_at\": \"2026-10-19T12:00:00Z\", \"expires_at\": \"2026-10-19T12:05:00Z\", \"assignment_id\": \"assignment-a\", \"probe_id\": \"storage_health.v1\", \"arguments\": {\"component_id\": \"storage-a\", \"lookback_seconds\": null, \"max_entries\": null}, \"budget\": {\"wall_seconds\": 60, \"max_output_bytes\": 4096}, \"signature\": \"58896bfb8eb1db9a631de5d93fa9946642073ceffe1ec4a031dfb58031a58ed7c2542b7b0248d5844904e31554c1c13834a0475a59884724e950686239fbb60f\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.diagnostic-result.v1",
+      "reader_version": "device-audit.diagnostic-result.v1",
+      "wire": "{\"schema_version\":\"device-audit.diagnostic-result.v1\",\"deployment_id\":\"deployment-a\",\"device_id\":\"device-a\",\"signing_key_id\":\"ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f\",\"sequence\":2,\"issued_at\":\"2026-10-19T12:00:30Z\",\"expires_at\":\"2026-10-20T12:00:30Z\",\"assignment_id\":\"assignment-a\",\"assignment_sha256\":\"457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559\",\"boot_id\":\"boot-original\",\"started_at\":\"2026-10-19T12:00:01Z\",\"finished_at\":\"2026-10-19T12:00:30Z\",\"state\":\"succeeded\",\"reason\":null,\"evidence\":[{\"reference_id\":\"evidence-a\",\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"size_bytes\":1024}],\"signature\":\"dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000216465766963652d61756469742e646961676e6f737469632d726573756c742e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013200000014323032362d31302d31395431323a30303a33305a00000014323032362d31302d32305431323a30303a33305a0000000c61737369676e6d656e742d6100000040343537616531373038623761353832653135343664363661333239383436326438643832333737326137626338393336623363656432303366613238373535390000000d626f6f742d6f726967696e616c00000014323032362d31302d31395431323a30303a30315a00000014323032362d31302d31395431323a30303a33305a000000097375636365656465640000000000000001310000000a65766964656e63652d6100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000431303234",
+      "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+    },
+    {
+      "name": "unsupported/device-audit.diagnostic-result.v1",
+      "reader_version": "device-audit.diagnostic-result.v1",
+      "wire": "{\"schema_version\": \"device-audit.diagnostic-result.v999\", \"deployment_id\": \"deployment-a\", \"device_id\": \"device-a\", \"signing_key_id\": \"ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f\", \"sequence\": 2, \"issued_at\": \"2026-10-19T12:00:30Z\", \"expires_at\": \"2026-10-20T12:00:30Z\", \"assignment_id\": \"assignment-a\", \"assignment_sha256\": \"457ae1708b7a582e1546d66a3298462d8d823772a7bc8936b3ced203fa287559\", \"boot_id\": \"boot-original\", \"started_at\": \"2026-10-19T12:00:01Z\", \"finished_at\": \"2026-10-19T12:00:30Z\", \"state\": \"succeeded\", \"reason\": null, \"evidence\": [{\"reference_id\": \"evidence-a\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"size_bytes\": 1024}], \"signature\": \"dfc35852cf928ca2f53caf3c680dc95a2e4efefbb23b211fd3e80a04b1c420a63e81c4c52540740061e54fdeda4457eee750068604d1cff4873040a227693108\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.federated-round.v1",
+      "reader_version": "device-audit.federated-round.v1",
+      "wire": "{\"schema_version\":\"device-audit.federated-round.v1\",\"deployment_id\":\"deployment-a\",\"round_id\":\"round-a\",\"base_model_version\":\"base.v1\",\"base_model_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"candidate_id\":\"candidate-a\",\"feature_version\":\"features.v1\",\"parameter_count\":2,\"opened_at\":\"2026-10-19T12:00:00Z\",\"deadline\":\"2026-10-19T13:00:00Z\",\"min_participants\":2,\"participants\":[{\"device_id\":\"device-a\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"eligibility\":\"eligible\",\"reason\":null},{\"device_id\":\"device-b\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"eligibility\":\"eligible\",\"reason\":null},{\"device_id\":\"device-c\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"eligibility\":\"ineligible\",\"reason\":\"insufficient_local_data\"}]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.federated-round.v1",
+      "reader_version": "device-audit.federated-round.v1",
+      "wire": "{\"schema_version\": \"device-audit.federated-round.v999\", \"deployment_id\": \"deployment-a\", \"round_id\": \"round-a\", \"base_model_version\": \"base.v1\", \"base_model_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"candidate_id\": \"candidate-a\", \"feature_version\": \"features.v1\", \"parameter_count\": 2, \"opened_at\": \"2026-10-19T12:00:00Z\", \"deadline\": \"2026-10-19T13:00:00Z\", \"min_participants\": 2, \"participants\": [{\"device_id\": \"device-a\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"eligibility\": \"eligible\", \"reason\": null}, {\"device_id\": \"device-b\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"eligibility\": \"eligible\", \"reason\": null}, {\"device_id\": \"device-c\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"eligibility\": \"ineligible\", \"reason\": \"insufficient_local_data\"}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.federated-update.v1",
+      "reader_version": "device-audit.federated-update.v1",
+      "wire": "{\"schema_version\":\"device-audit.federated-update.v1\",\"deployment_id\":\"deployment-a\",\"device_id\":\"device-a\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"sequence\":2,\"issued_at\":\"2026-10-19T12:10:00Z\",\"expires_at\":\"2026-10-19T13:00:00Z\",\"round_id\":\"round-a\",\"base_model_version\":\"base.v1\",\"base_model_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"candidate_id\":\"candidate-a\",\"feature_version\":\"features.v1\",\"sample_count\":24,\"weights_base64\":\"P9AAAAAAAAC/4AAAAAAAAA==\",\"update_sha256\":\"787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a\",\"signature\":\"8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000206465766963652d61756469742e6665646572617465642d7570646174652e76310000000c6465706c6f796d656e742d61000000086465766963652d6100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31395431323a31303a30305a00000014323032362d31302d31395431333a30303a30305a00000007726f756e642d6100000007626173652e763100000040616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161610000000b63616e6469646174652d610000000b66656174757265732e76310000000232340000004037383764636164633038626330353935653266313563373434663132613132363133623432613963633464353130633663353936663530626462643233373561",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.federated-update.v1",
+      "reader_version": "device-audit.federated-update.v1",
+      "wire": "{\"schema_version\": \"device-audit.federated-update.v999\", \"deployment_id\": \"deployment-a\", \"device_id\": \"device-a\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"sequence\": 2, \"issued_at\": \"2026-10-19T12:10:00Z\", \"expires_at\": \"2026-10-19T13:00:00Z\", \"round_id\": \"round-a\", \"base_model_version\": \"base.v1\", \"base_model_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"candidate_id\": \"candidate-a\", \"feature_version\": \"features.v1\", \"sample_count\": 24, \"weights_base64\": \"P9AAAAAAAAC/4AAAAAAAAA==\", \"update_sha256\": \"787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a\", \"signature\": \"8173499d7f6fa92a9da925381becf103e991ba63bf338b89a319ac765c4b00b84f7e95819951329433429bebdb20f9f85f7b0190efd1bbb97662c5c998ab3108\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.federated-promotion.v1",
+      "reader_version": "device-audit.federated-promotion.v1",
+      "wire": "{\"schema_version\":\"device-audit.federated-promotion.v1\",\"deployment_id\":\"deployment-a\",\"round_id\":\"round-a\",\"candidate_id\":\"candidate-a\",\"base_model_version\":\"base.v1\",\"base_model_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"feature_version\":\"features.v1\",\"candidate_model_version\":\"candidate.v2\",\"candidate_model_sha256\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"evaluation_sha256\":\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"policy_version\":\"heldout-policy.v1\",\"decided_at\":\"2026-10-19T13:00:00Z\",\"decision\":\"promoted\",\"reason\":null,\"accepted_participants\":[\"device-a\",\"device-b\"]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.federated-promotion.v1",
+      "reader_version": "device-audit.federated-promotion.v1",
+      "wire": "{\"schema_version\": \"device-audit.federated-promotion.v999\", \"deployment_id\": \"deployment-a\", \"round_id\": \"round-a\", \"candidate_id\": \"candidate-a\", \"base_model_version\": \"base.v1\", \"base_model_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"feature_version\": \"features.v1\", \"candidate_model_version\": \"candidate.v2\", \"candidate_model_sha256\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"evaluation_sha256\": \"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\", \"policy_version\": \"heldout-policy.v1\", \"decided_at\": \"2026-10-19T13:00:00Z\", \"decision\": \"promoted\", \"reason\": null, \"accepted_participants\": [\"device-a\", \"device-b\"]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.audit-manifest.v1",
+      "reader_version": "device-audit.audit-manifest.v1",
+      "wire": "{\"schema_version\":\"device-audit.audit-manifest.v1\",\"deployment_id\":\"deployment-a\",\"manifest_id\":\"manifest-a\",\"commitment_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"blinding_nonce\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"policy_version\":\"audit-policy.v1\",\"controller_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"created_at\":\"2026-10-19T12:00:00Z\",\"expires_at\":\"2026-10-20T12:00:00Z\",\"evidence\":[{\"reference_id\":\"evidence-a\",\"schema_version\":\"device-audit.evidence.v1\",\"sha256\":\"876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429\",\"size_bytes\":1104,\"expires_at\":\"2026-10-19T18:00:00Z\"},{\"reference_id\":\"lifecycle-a\",\"schema_version\":\"device-audit.lifecycle.v2\",\"sha256\":\"8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe\",\"size_bytes\":1560,\"expires_at\":\"2026-10-19T18:00:00Z\"}],\"signature\":\"3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e61756469742d6d616e69666573742e76310000000c6465706c6f796d656e742d610000000a6d616e69666573742d61000000406363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636363636300000040646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464646464640000000f61756469742d706f6c6963792e763100000048656432353531393a3231666533316466613135346132363136323662663835343034366664323237316237626564346236616265343561613538383737656634376639373231623900000014323032362d31302d31395431323a30303a30305a00000014323032362d31302d32305431323a30303a30305a00000001320000000a65766964656e63652d61000000186465766963652d61756469742e65766964656e63652e76310000004038373631333365323239616466393134396363386533613132393062633838373430386238633735323439346635363931363766326432333830383232343239000000043131303400000014323032362d31302d31395431383a30303a30305a0000000b6c6966656379636c652d61000000196465766963652d61756469742e6c6966656379636c652e76320000004038626562623966343734306239343632323139653032393063393162346232333266313962313265346466306235313230613633396638666636663837646665000000043135363000000014323032362d31302d31395431383a30303a30305a",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.audit-manifest.v1",
+      "reader_version": "device-audit.audit-manifest.v1",
+      "wire": "{\"schema_version\": \"device-audit.audit-manifest.v999\", \"deployment_id\": \"deployment-a\", \"manifest_id\": \"manifest-a\", \"commitment_id\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"blinding_nonce\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\", \"policy_version\": \"audit-policy.v1\", \"controller_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"created_at\": \"2026-10-19T12:00:00Z\", \"expires_at\": \"2026-10-20T12:00:00Z\", \"evidence\": [{\"reference_id\": \"evidence-a\", \"schema_version\": \"device-audit.evidence.v1\", \"sha256\": \"876133e229adf9149cc8e3a1290bc887408b8c752494f569167f2d2380822429\", \"size_bytes\": 1104, \"expires_at\": \"2026-10-19T18:00:00Z\"}, {\"reference_id\": \"lifecycle-a\", \"schema_version\": \"device-audit.lifecycle.v2\", \"sha256\": \"8bebb9f4740b9462219e0290c91b4b232f19b12e4df0b5120a639f8ff6f87dfe\", \"size_bytes\": 1560, \"expires_at\": \"2026-10-19T18:00:00Z\"}], \"signature\": \"3600fbebdbca11f50bd473868baa4b490eb3b8104456146079c0f5925aafca7240e099f3e4157ec2c2ac0b279b0660bb92d86523a793e2a5da658d961fa43b0e\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.audit-commitment.v1",
+      "reader_version": "device-audit.audit-commitment.v1",
+      "wire": "{\"schema_version\":\"device-audit.audit-commitment.v1\",\"commitment_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"commitment_sha256\":\"504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.audit-commitment.v1",
+      "reader_version": "device-audit.audit-commitment.v1",
+      "wire": "{\"schema_version\": \"device-audit.audit-commitment.v999\", \"commitment_id\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"commitment_sha256\": \"504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.audit-receipt.v1",
+      "reader_version": "device-audit.audit-receipt.v1",
+      "wire": "{\"schema_version\":\"device-audit.audit-receipt.v1\",\"commitment_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"commitment_sha256\":\"504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b\",\"adapter_id\":\"unselected-adapter.v1\",\"transaction_reference\":\"transaction-a\",\"block_reference\":null,\"state\":\"pending\",\"observed_at\":\"2026-10-19T12:05:00Z\",\"finalized_at\":null,\"reason\":null}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.audit-receipt.v1",
+      "reader_version": "device-audit.audit-receipt.v1",
+      "wire": "{\"schema_version\": \"device-audit.audit-receipt.v999\", \"commitment_id\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"commitment_sha256\": \"504e39a715fee75abf47b3e380616e736788b05220c9fb859334b0b001b6749b\", \"adapter_id\": \"unselected-adapter.v1\", \"transaction_reference\": \"transaction-a\", \"block_reference\": null, \"state\": \"pending\", \"observed_at\": \"2026-10-19T12:05:00Z\", \"finalized_at\": null, \"reason\": null}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.audit-verification.v1",
+      "reader_version": "device-audit.audit-verification.v1",
+      "wire": "{\"schema_version\":\"device-audit.audit-verification.v1\",\"commitment_id\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"checked_at\":\"2026-10-19T12:05:00Z\",\"evidence_status\":\"verified\",\"anchor_state\":\"unverified\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.audit-verification.v1",
+      "reader_version": "device-audit.audit-verification.v1",
+      "wire": "{\"schema_version\": \"device-audit.audit-verification.v999\", \"commitment_id\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"checked_at\": \"2026-10-19T12:05:00Z\", \"evidence_status\": \"verified\", \"anchor_state\": \"unverified\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "enrollment freshness sequence already consumed",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "replay",
+      "expected_python": "replay",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001a6465766963652d61756469742e656e726f6c6c6d656e742e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31355431323a31303a30305a00000040643735613938303138326231306162376435346266656433633936343037336130656531373266336461613632333235616630323161363866373037353131610000002b6368616c6c656e67653a666978747572652d6f6e6c792d6e6f742d612d6c6976652d6368616c6c656e6765",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-15T12:00:00Z",
+      "last_sequence": 1
+    },
+    {
+      "name": "replayed evidence after lost acknowledgement",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "replay",
+      "expected_python": "replay",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-15T12:00:00Z",
+      "last_sequence": 2
+    },
+    {
+      "name": "replayed evidence after controller restart",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "replay",
+      "expected_python": "replay",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-15T12:00:00Z",
+      "last_sequence": 7
+    },
+    {
+      "name": "expired at exact boundary",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "expired",
+      "expected_python": "expired",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-16T12:00:00Z",
+      "last_sequence": 1
+    },
+    {
+      "name": "expiry precedes replay classification",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "expired",
+      "expected_python": "expired",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-16T12:00:00Z",
+      "last_sequence": 2
+    },
+    {
+      "name": "future timestamp beyond skew",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "future_timestamp",
+      "expected_python": "future_timestamp",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-15T11:54:59Z",
+      "last_sequence": 1
+    },
+    {
+      "name": "future timestamp exact skew allowed",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000186465766963652d61756469742e65766964656e63652e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013200000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31365431323a30303a30305a000000196465766963652d61756469742e74656c656d657472792e76320000004065356237643931386362366436613862333130313861633031363166383030626562653365616637316461356633643330626234316366656364366333646634",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "now": "2026-10-15T11:55:00Z",
+      "last_sequence": 1
+    },
+    {
+      "name": "equal validity timestamps",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
+    },
+    {
+      "name": "zero year timestamp",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"0001-01-01T00:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
+    },
+    {
+      "name": "altered payload stale digest",
+      "reader_version": "device-audit.evidence.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-16T12:00:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"payload_base64\": \"eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJhc3NldDpmaXh0dXJlLTAxIiwiY29sbGVjdGVkX2F0IjoiMjAyNi0xMC0xNFQxMjowMDowMFoiLCJzb3VyY2UiOiJmaXh0dXJlIiwibWV0cmljcyI6eyJjcHVfdXRpbGl6YXRpb24iOnsidmFsdWUiOjAsInVuaXQiOiJwZXJjZW50In0sImdwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6bnVsbCwidW5pdCI6InBlcmNlbnQiLCJtaXNzaW5nX3JlYXNvbiI6InNlbnNvcl91bmF2YWlsYWJsZSJ9fSwiaW52ZW50b3J5Ijp7ImNvbXBvbmVudHMiOlt7ImlkIjoiY29tcG9uZW50OmZpeHR1cmUiLCJ0eXBlIjoiY3B1IiwibW9kZWwiOiLkvosifV19LCJsb2dfcmVmZXJlbmNlcyI6W119IA==\", \"payload_schema_version\": \"device-audit.telemetry.v2\", \"payload_sha256\": \"e5b7d918cb6d6a8b31018ac0161f800bebe3eaf71da5f3d30bb41cfecd6c3df4\", \"schema_version\": \"device-audit.evidence.v1\", \"sequence\": 2, \"signature\": \"72d2581f1ad12d15ba569f35dd1007f487d49cd3f8386ca387636a1e0651e3c90844a566a41033703a9cc45adac1151215195ffac2cb641a0a98e6c894400d09\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
+    },
+    {
+      "name": "wrong enrollment key",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "key_mismatch",
+      "expected_python": "accepted",
+      "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+    },
+    {
+      "name": "altered enrollment challenge",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\": \"challenge:altered\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_signature",
+      "expected_python": "accepted",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "duplicate_sequence",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"sequence\":1}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_json",
+      "expected_python": "invalid_json"
+    },
+    {
+      "name": "fractional_sequence_token",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1.0,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
+    },
+    {
+      "name": "trailing_json",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"} {}",
+      "expected_schema": "invalid_json",
+      "expected_go": "invalid_json",
+      "expected_python": "invalid_json"
+    },
+    {
+      "name": "truncated_json",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"",
+      "expected_schema": "invalid_json",
+      "expected_go": "invalid_json",
+      "expected_python": "invalid_json"
+    },
+    {
+      "name": "nonfinite_json_constant",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"challenge_id\":\"challenge:fixture-only-not-a-live-challenge\",\"deployment_id\":\"deployment:fixture-01\",\"device_id\":\"asset:fixture-01\",\"expires_at\":\"2026-10-15T12:10:00Z\",\"issued_at\":\"2026-10-15T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":NaN,\"signature\":\"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "invalid_json",
+      "expected_go": "invalid_json",
+      "expected_python": "invalid_json"
+    },
+    {
+      "name": "property_order_and_escapes",
+      "reader_version": "device-audit.enrollment.v1",
+      "wire": "{\"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"sequence\": 1, \"schema_version\": \"device-audit.enrollment.v1\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"device_id\": \"\\u0061sset:fixture-01\", \"deployment_id\": \"deployment:fixture-01\", \"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001a6465766963652d61756469742e656e726f6c6c6d656e742e7631000000156465706c6f796d656e743a666978747572652d30310000001061737365743a666978747572652d303100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013100000014323032362d31302d31355431323a30303a30305a00000014323032362d31302d31355431323a31303a30305a00000040643735613938303138326231306162376435346266656433633936343037336130656531373266336461613632333235616630323161363866373037353131610000002b6368616c6c656e67653a666978747572652d6f6e6c792d6e6f742d612d6c6976652d6368616c6c656e6765",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "v2_sent_to_v1_reader",
+      "reader_version": "device-audit.v1",
+      "wire": "{\"schema_version\": \"device-audit.telemetry.v2\", \"device_id\": \"asset:opaque-01\", \"collected_at\": \"2026-10-13T06:00:00Z\", \"source\": \"endpoint\", \"metrics\": {\"cpu_utilization\": {\"value\": 15, \"unit\": \"percent\"}, \"gpu_utilization\": {\"value\": null, \"unit\": \"percent\", \"missing_reason\": \"not_applicable\"}, \"memory_percent\": {\"value\": 64, \"unit\": \"percent\"}, \"disk_used_percent\": {\"value\": 48, \"unit\": \"percent\"}, \"battery_percent\": {\"value\": null, \"unit\": \"percent\", \"missing_reason\": \"sensor_unavailable\"}, \"temperature_c\": {\"value\": -10.5, \"unit\": \"celsius\"}, \"network_latency_ms\": {\"value\": 3.2, \"unit\": \"milliseconds\"}}, \"inventory\": {\"group_id\": \"group:a\", \"network_segment_id\": \"segment:blue\", \"components\": [{\"id\": \"component:cpu0\", \"type\": \"processor\", \"model\": \"Example CPU\"}, {\"id\": \"component:unicode\", \"type\": \"\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\", \"model\": \"\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\"}]}, \"log_references\": [{\"reference_id\": \"log:boot-01\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"byte_size\": 4096, \"window_start\": \"2026-10-13T05:00:00Z\", \"window_end\": \"2026-10-13T06:00:00Z\"}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "null_metric_without_reason",
+      "reader_version": "device-audit.telemetry.v2",
+      "wire": "{\"schema_version\": \"device-audit.telemetry.v2\", \"device_id\": \"asset:opaque-01\", \"collected_at\": \"2026-10-13T06:00:00Z\", \"source\": \"endpoint\", \"metrics\": {\"cpu_utilization\": {\"value\": 15, \"unit\": \"percent\"}, \"gpu_utilization\": {\"value\": null, \"unit\": \"percent\"}, \"memory_percent\": {\"value\": 64, \"unit\": \"percent\"}, \"disk_used_percent\": {\"value\": 48, \"unit\": \"percent\"}, \"battery_percent\": {\"value\": null, \"unit\": \"percent\", \"missing_reason\": \"sensor_unavailable\"}, \"temperature_c\": {\"value\": -10.5, \"unit\": \"celsius\"}, \"network_latency_ms\": {\"value\": 3.2, \"unit\": \"milliseconds\"}}, \"inventory\": {\"group_id\": \"group:a\", \"network_segment_id\": \"segment:blue\", \"components\": [{\"id\": \"component:cpu0\", \"type\": \"processor\", \"model\": \"Example CPU\"}, {\"id\": \"component:unicode\", \"type\": \"\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\\u00e9\", \"model\": \"\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\\u03bb\"}]}, \"log_references\": [{\"reference_id\": \"log:boot-01\", \"sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"byte_size\": 4096, \"window_start\": \"2026-10-13T05:00:00Z\", \"window_end\": \"2026-10-13T06:00:00Z\"}]}",
+      "expected_schema": "invalid_contract",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
+    }
+  ]
+}

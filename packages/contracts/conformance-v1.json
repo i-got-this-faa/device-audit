@@ -1,0 +1,126 @@
+{
+  "schema_version": "device-audit.conformance-catalogue.v1",
+  "wire_vectors": "fixtures/conformance/v1-vectors.json",
+  "suites": [
+    {
+      "name": "telemetry-v1",
+      "fixture": "telemetry/vectors.json",
+      "payload_field": "telemetry",
+      "valid_field": "valid",
+      "schema_valid_field": "valid",
+      "go_test": "TestTelemetryJSONVectors",
+      "python_tests": [
+        "test_telemetry_schema.TelemetrySchemaVectorsTest.test_shared_vectors"
+      ],
+      "schemas": {
+        "device-audit.v1": "telemetry.schema.json"
+      }
+    },
+    {
+      "name": "telemetry-v2",
+      "fixture": "telemetry/v2-vectors.json",
+      "payload_field": "telemetry",
+      "valid_field": "valid",
+      "schema_valid_field": "valid",
+      "go_test": "TestTelemetryV2JSONVectors",
+      "python_tests": [
+        "test_telemetry_schema.TelemetrySchemaVectorsTest.test_v2_shared_vectors"
+      ],
+      "schemas": {
+        "device-audit.telemetry.v2": "telemetry-v2.schema.json"
+      }
+    },
+    {
+      "name": "prediction-v2",
+      "fixture": "prediction/v2-vectors.json",
+      "payload_field": "prediction",
+      "valid_field": "valid",
+      "schema_valid_field": "valid",
+      "go_test": "TestPredictionV2JSONVectors",
+      "python_tests": [
+        "test_prediction_schema.PredictionSchemaVectorsTest.test_shared_vectors"
+      ],
+      "schemas": {
+        "device-audit.prediction.v2": "prediction-v2.schema.json"
+      }
+    },
+    {
+      "name": "lifecycle-v2",
+      "fixture": "lifecycle/v2-vectors.json",
+      "payload_field": "lifecycle",
+      "valid_field": "valid",
+      "schema_valid_field": "valid",
+      "go_test": "TestLifecycleV2JSONVectors",
+      "python_tests": [
+        "test_lifecycle_schema.LifecycleSchemaVectorsTest.test_shared_vectors"
+      ],
+      "schemas": {
+        "device-audit.lifecycle.v2": "lifecycle-v2.schema.json"
+      }
+    },
+    {
+      "name": "envelopes-v1",
+      "fixture": "envelopes/v1-vectors.json",
+      "payload_field": "envelope",
+      "valid_field": "contract_valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestEnvelopeV1GoldenVectors",
+      "python_tests": [
+        "test_envelope_contracts.EnvelopeContractTest"
+      ],
+      "schemas": {
+        "device-audit.enrollment.v1": "enrollment-v1.schema.json",
+        "device-audit.evidence.v1": "evidence-v1.schema.json",
+        "device-audit.acknowledgement.v1": "acknowledgement-v1.schema.json"
+      }
+    },
+    {
+      "name": "diagnostics-v1",
+      "fixture": "diagnostics/v1-vectors.json",
+      "payload_field": "payload",
+      "valid_field": "valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestDiagnosticV1Vectors",
+      "python_tests": [
+        "test_diagnostic_contracts.DiagnosticContractTests"
+      ],
+      "schemas": {
+        "device-audit.diagnostic-assignment.v1": "diagnostics-v1.schema.json",
+        "device-audit.diagnostic-result.v1": "diagnostics-v1.schema.json"
+      }
+    },
+    {
+      "name": "federated-v1",
+      "fixture": "federated/v1-vectors.json",
+      "payload_field": "payload",
+      "valid_field": "valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestFederatedV1Vectors",
+      "python_tests": [
+        "test_federated_contracts.FederatedContractTests"
+      ],
+      "schemas": {
+        "device-audit.federated-round.v1": "federated-v1.schema.json",
+        "device-audit.federated-update.v1": "federated-v1.schema.json",
+        "device-audit.federated-promotion.v1": "federated-v1.schema.json"
+      }
+    },
+    {
+      "name": "audit-v1",
+      "fixture": "audit/v1-vectors.json",
+      "payload_field": "payload",
+      "valid_field": "valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestAuditV1Vectors",
+      "python_tests": [
+        "test_audit_contracts.AuditContractTests"
+      ],
+      "schemas": {
+        "device-audit.audit-manifest.v1": "audit-v1.schema.json",
+        "device-audit.audit-commitment.v1": "audit-v1.schema.json",
+        "device-audit.audit-receipt.v1": "audit-v1.schema.json",
+        "device-audit.audit-verification.v1": "audit-v1.schema.json"
+      }
+    }
+  ]
+}

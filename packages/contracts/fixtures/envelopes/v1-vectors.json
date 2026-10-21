@@ -16,6 +16,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -41,6 +42,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -65,6 +67,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": false,
       "signature_error": "key_mismatch",
@@ -90,6 +93,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": false,
       "signature_error": "key_mismatch",
@@ -114,6 +118,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "invalid_signature",
@@ -139,6 +144,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -164,6 +170,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "invalid_signature",
@@ -189,6 +196,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "invalid_signature",
@@ -213,6 +221,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -238,6 +247,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -263,6 +273,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -288,6 +299,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -313,6 +325,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -338,6 +351,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -363,6 +377,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -388,6 +403,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -415,6 +431,7 @@
         "status": "accepted"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -442,6 +459,7 @@
         "status": "accepted"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -469,6 +487,7 @@
         "status": "accepted"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "key_mismatch",
@@ -496,6 +515,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -523,6 +543,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -550,6 +571,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -577,6 +599,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -604,6 +627,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -631,6 +655,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -658,6 +683,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -685,6 +711,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -712,6 +739,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -739,6 +767,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -766,6 +795,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -793,6 +823,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -820,6 +851,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -847,6 +879,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -874,6 +907,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -901,6 +935,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -928,6 +963,7 @@
         "status": "rejected"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": true,
       "signature_error": "",
@@ -955,6 +991,7 @@
         "status": "accepted"
       },
       "contract_valid": true,
+      "schema_valid": true,
       "verification_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c",
       "signature_valid": false,
       "signature_error": "invalid_signature",
@@ -979,6 +1016,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1005,6 +1043,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1030,6 +1069,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1055,6 +1095,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1080,6 +1121,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1105,6 +1147,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1129,6 +1172,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1154,6 +1198,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1179,6 +1224,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1204,6 +1250,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1228,6 +1275,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1253,6 +1301,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1278,6 +1327,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1303,6 +1353,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1327,6 +1378,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1354,6 +1406,7 @@
         "status": "accepted"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1381,6 +1434,7 @@
         "status": "accepted"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1408,6 +1462,7 @@
         "status": "accepted"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1435,6 +1490,7 @@
         "status": "rejected"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1462,6 +1518,7 @@
         "status": "rejected"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1489,6 +1546,7 @@
         "status": "rejected"
       },
       "contract_valid": false,
+      "schema_valid": false,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1516,6 +1574,7 @@
         "status": "rejected"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": false,
       "signature_error": "",
@@ -1541,6 +1600,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",
@@ -1566,6 +1626,7 @@
         "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9"
       },
       "contract_valid": false,
+      "schema_valid": true,
       "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
       "signature_valid": true,
       "signature_error": "",

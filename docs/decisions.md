@@ -94,6 +94,16 @@ battery health/life and throughput. PDF provenance and claim reconciliation are 
 [the source inventory](source/patent-map.md). They do not settle enrollment,
 network identity, signature, or chain policies.
 
+## Provisional federated contracts v1, #77
+
+[The federated contract](../packages/contracts/federated-v1.md) binds rounds to
+exact base artifacts, features and participant/key eligibility. Complete bounded
+binary64 model weights, sample counts and digests are device-signed with #75's
+framing; local observations are excluded. Explicit promotion/rejection records
+retain candidate/evaluation/policy provenance. Quorum, finite values and exact
+compatibility are contract checks, not a training or promotion service. Durable
+admission, evaluated aggregation and privacy defenses remain future work.
+
 ## Provisional prediction contract v2
 
 Task #16 proposes a separate `device-audit.prediction.v2` contract and leaves
@@ -123,6 +133,17 @@ SRC05 #72 records the source's warning/degraded terminology difference and
 assigns the versioned health policy to #86/#35. #22 selected a historical HDD
 dataset study; the source PDF and claim reconciliation are indexed. These contracts provide neither patent
 compliance evidence nor a production model capability.
+
+## Provisional diagnostic contracts v1, #76
+
+[The diagnostic contract](../packages/contracts/diagnostics-v1.md) selects two
+read-only probe names, explicit typed arguments and bounded wall/output budgets.
+Controller-signed single-device assignments and device-signed terminal results
+reuse #75's framing with separate version namespaces. SHA-256 correlation binds
+the exact signed assignment. Durable first-terminal-wins, duplicate receipts,
+reboot interruption and cancellation authority are consumer requirements, not
+implemented state. All examples are synthetic; execution, authorization and
+restart/race qualification remain future work.
 
 ## Provisional lifecycle contract v2
 
@@ -178,11 +199,22 @@ future chain signing remain separate. No secret bootstrap or mesh credential is
 placed in the envelopes. Another owner must review sequence, lost-response,
 restart and restore semantics before consumer implementation. Durable storage,
 challenge issuance, authorization, rotation/revocation, protected key storage and
-real restart/restore tests remain unimplemented. #17 and the in-progress #80
-harness are not implemented or changed by #75. #14's target selection does not
-qualify enrollment, service permissions or endpoint runtime; SRC05 #72
+real restart/restore tests remain unimplemented. #17 is not changed by #75.
+The #80 shared conformance command below now runs the envelope fixtures.
+#14's target selection does not qualify enrollment, service permissions or
+endpoint runtime; SRC05 #72
 records source reconciliation without establishing implementation or legal coverage.
 
+
+## Provisional audit commitment contracts v1, #79
+
+[The audit format](../packages/contracts/audit-v1.md) keeps signed evidence and
+lifecycle manifest references off-chain. Only a random opaque ID and blinded
+SHA-256 commitment are public, under a separate version namespace. Policy,
+application signing identity and nonce remain inside the signed private manifest.
+Receipt finality and evidence integrity are separate states; missing/expired
+evidence differs from digest mismatch. This selects an encoding, not a chain,
+finality threshold, resolver, production key store or anchoring implementation.
 
 ## Source reconciliation and retained scope, SRC05 #72
 
@@ -283,3 +315,15 @@ or durable role store are delivered by this decision. Follow-up console and
 security implementation must run that matrix against the real configured IdP
 and store before exposing access. This choice is provisional and reversible;
 it does not approve unresolved release scope under #14.
+
+
+## Shared contract conformance, CT05 #80
+
+[The conformance catalogue](../packages/contracts/conformance-v1.md) unifies
+existing fixture readers under `make contract-check`. JSON Schema shape,
+Go semantic/signature checks and the test-only Python readers have separately
+declared expectations. Exact raw-wire cases pin incompatible schema, null,
+canonicalization and pure replay/expiry outcomes. Python does not authenticate
+signatures, and schema validity cannot establish semantic validity. Hashes and
+classifications are retained as CI artifacts. Both owners' fixture review remains
+required before dependent implementations merge; no runtime capability is added.

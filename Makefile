@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check demo tailcat-lab-check tailcat-lab-proof
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check demo tailcat-lab-check tailcat-lab-proof
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -22,6 +22,8 @@ model-check:
 	PYTHONPATH=models/src $(PYTHON) -m unittest discover -s models/tests
 telemetry-check:
 	$(PYTHON) -m unittest discover -s models/tests -p 'test_telemetry_schema.py'
+contract-check:
+	$(PYTHON) tools/contract_conformance.py --go "$(GO)"
 demo: build
 	$(PYTHON) tools/demo.py
 # The experimental dependency graph stays outside the application module.

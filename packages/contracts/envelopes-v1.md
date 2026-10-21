@@ -180,8 +180,9 @@ Private fixture seeds are public RFC 8032 test seeds only, never production keys
 Vectors are contract tests, not server/restart/concurrency integration evidence.
 
 Another owner must review sequence/restart, lost-acknowledgement and restore
-semantics before consumer work. #17 controller/fake-server implementation and
-#80's conformance harness are untouched. Durable transactions, challenge and
+semantics before consumer work. #17 controller/fake-server implementation remains
+unchanged. #80's [shared conformance command](conformance-v1.md) now runs these
+vectors. Durable transactions, challenge and
 bootstrap issuance, peer authorization, revocation/recovery, controller trust
 distribution, protected endpoint key storage, actual clock behavior, and
 restart/restore integration remain unimplemented. #14 still bounds deployment choices; source reconciliation under #72 does not

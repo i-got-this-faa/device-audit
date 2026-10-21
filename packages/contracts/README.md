@@ -27,6 +27,16 @@ specific to this Go representation. Define a cross-language canonical encoding,
 domain separator, policy/schema/model version binding, signature and replay
 protocol before using a digest in security decisions or smart contracts.
 
+## Shared conformance command, #80
+
+`make contract-check` runs the [versioned conformance catalogue](conformance-v1.md)
+through Go, JSON Schema and the existing Python test readers. It checks 240 golden
+vectors and 52 raw-wire cases across 16 reader versions, including nullable
+measurements, canonical bytes, incompatible schemas and pure replay/expiry
+classifications. A passing report records input hashes and tool versions under
+`artifacts/contracts/`; CI retains it. Schema validity, signature authentication,
+semantic checks and durable runtime behavior remain separate.
+
 ## Provisional telemetry and inventory v2
 
 `TelemetryV2` and `telemetry-v2.schema.json` define a separate proposed wire
@@ -56,6 +66,15 @@ IDs are application identifiers; this schema says
 nothing about network authentication, device signatures, or chain identity,
 and no device identifier or raw log belongs on-chain.
 
+## Federated rounds, updates and promotion v1, #77
+
+[The federated specification](federated-v1.md) defines authorized round records,
+participant/key eligibility, bounded signed binary64 model updates, compatibility
+and explicit promotion/rejection records. Go/Python fixtures check signatures,
+binary finiteness/digests, schema and canonical bytes. Durable admission,
+aggregation, evaluation and promotion remain unimplemented; no raw local
+observations are required and no privacy guarantee is supplied.
+
 ## Provisional prediction v2
 
 `PredictionV2` and `prediction-v2.schema.json` define a separately versioned
@@ -80,6 +99,14 @@ Draft 2020-12 validation. The shape and categories remain provisional pending
 #14/#72 and endpoint model qualification. #22 selected a historical HDD dataset
 study, not an endpoint predictor; this contract does not imply a trained or
 production prediction capability.
+
+## Off-chain audit manifests and opaque commitments v1, #79
+
+[The audit specification](audit-v1.md) defines signed canonical manifests,
+blinded public commitments and independent evidence/finality states. Public
+fields exclude device identifiers and logs. Go verifies signatures, exact bytes,
+expiry and receipt correlation; Python independently checks canonical hashes and
+schemas. No chain, resolver or durable receipt/retention service is implemented.
 
 ## Provisional lifecycle and component trends v2
 
@@ -197,7 +224,17 @@ make check cross-build
 ```
 
 These choices remain provisional and require another owner's sequence/restart
-review before consumers. Controller/fake-server work in #17 and the #80
-conformance harness are unchanged. Production key storage, bootstrap/challenge
+review before consumers. Controller/fake-server work in #17 is unchanged. The #80
+[shared conformance command](conformance-v1.md) now includes these vectors. Production key storage, bootstrap/challenge
 issuance, durable persistence, recovery/rotation and restart/restore integration
 remain dependencies, not capabilities supplied by these contract tests.
+
+## Diagnostic assignments and terminal results v1, #76
+
+[The diagnostic specification](diagnostics-v1.md) defines allowlisted read-only
+probes, typed arguments, controller-signed single-device assignments, wall/output
+budgets and device-signed terminal evidence references. Go strict decoding,
+semantic/correlation validation and signature tests share vectors with Python
+schema and canonical-byte checks. Duplicate, cancellation and reboot examples
+specify future durable consumer behavior. No scheduler, executor, cancellation
+transport or terminal state store is implemented.

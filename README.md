@@ -59,6 +59,10 @@ and retains the latest sample for up to 1,000 devices in memory. Data disappears
 on restart. The digest is not a signature or proof that a device is truthful.
 Health remains `unknown`; no trained model or failure forecast is fabricated.
 
+Run `make contract-check` for the shared Go/schema/Python fixture harness and its
+machine-readable evidence report. See [contract conformance](packages/contracts/conformance-v1.md)
+for the exact reader boundaries and Nix command.
+
 ## Repository
 
 - `apps/controller`, `internal/controller`: working loopback ingestion skeleton.

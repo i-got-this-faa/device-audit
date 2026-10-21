@@ -72,6 +72,55 @@ def signing_bytes(value):
     return bytes(result)
 
 
+def read_envelope(validators, data):
+    value = strict_loads(data)
+    version = value["schema_version"]
+    errors = list(validators[version].iter_errors(value))
+    if errors:
+        raise ValueError("; ".join(error.message for error in errors))
+    sequences = ["request_sequence", "last_sequence"] if version == ACK else ["sequence"]
+    for field in sequences:
+        if value[field] is not None and type(value[field]) is not int:
+            raise ValueError("sequence must use an integer JSON token")
+    if version == ACK:
+        timestamp(value["received_at"])
+        if value["status"] == "accepted" and value["last_sequence"] != value["request_sequence"]:
+            raise ValueError("accepted mark mismatch")
+        if value["rejection_reason"] == "replay" and (
+                value["last_sequence"] is None or value["last_sequence"] < value["request_sequence"]):
+            raise ValueError("replay needs a known high-water mark")
+        return value
+    issued, expires = timestamp(value["issued_at"]), timestamp(value["expires_at"])
+    maximum = timedelta(minutes=10) if version == ENROLLMENT else timedelta(hours=24)
+    if not timedelta(0) < expires - issued <= maximum:
+        raise ValueError("invalid validity window")
+    if version == ENROLLMENT:
+        key_id = "ed25519:" + hashlib.sha256(bytes.fromhex(value["public_key"])).hexdigest()
+        if key_id != value["signing_key_id"]:
+            raise ValueError("enrollment key ID mismatch")
+        return value
+    payload = base64.b64decode(value["payload_base64"], validate=True)
+    if not 0 < len(payload) <= 262144 or base64.b64encode(payload).decode() != value["payload_base64"]:
+        raise ValueError("invalid canonical payload base64")
+    if hashlib.sha256(payload).hexdigest() != value["payload_sha256"]:
+        raise ValueError("payload digest mismatch")
+    telemetry = strict_loads(payload.decode("utf-8"))
+    errors = list(validators[value["payload_schema_version"]].iter_errors(telemetry))
+    if errors:
+        raise ValueError("invalid telemetry payload")
+    if telemetry["device_id"] != value["device_id"]:
+        raise ValueError("payload device mismatch")
+    zero = datetime(1, 1, 1, tzinfo=timezone.utc)
+    if datetime.fromisoformat(telemetry["collected_at"]) == zero:
+        raise ValueError("zero collection time")
+    for log in telemetry["log_references"]:
+        start = datetime.fromisoformat(log["window_start"])
+        end = datetime.fromisoformat(log["window_end"])
+        if start == zero or end == zero or end < start:
+            raise ValueError("invalid log window")
+    return value
+
+
 class EnvelopeContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -86,63 +135,15 @@ class EnvelopeContractTest(unittest.TestCase):
         if not cls.vectors:
             raise AssertionError("no envelope vectors")
 
-    def read_envelope(self, data):
-        value = strict_loads(data)
-        version = value["schema_version"]
-        errors = list(self.validators[version].iter_errors(value))
-        if errors:
-            raise ValueError("; ".join(error.message for error in errors))
-        sequences = ["request_sequence", "last_sequence"] if version == ACK else ["sequence"]
-        for field in sequences:
-            if value[field] is not None and type(value[field]) is not int:
-                raise ValueError("sequence must use an integer JSON token")
-        if version == ACK:
-            timestamp(value["received_at"])
-            if value["status"] == "accepted" and value["last_sequence"] != value["request_sequence"]:
-                raise ValueError("accepted mark mismatch")
-            if value["rejection_reason"] == "replay" and (
-                    value["last_sequence"] is None or value["last_sequence"] < value["request_sequence"]):
-                raise ValueError("replay needs a known high-water mark")
-            return value
-        issued, expires = timestamp(value["issued_at"]), timestamp(value["expires_at"])
-        maximum = timedelta(minutes=10) if version == ENROLLMENT else timedelta(hours=24)
-        if not timedelta(0) < expires - issued <= maximum:
-            raise ValueError("invalid validity window")
-        if version == ENROLLMENT:
-            key_id = "ed25519:" + hashlib.sha256(bytes.fromhex(value["public_key"])).hexdigest()
-            if key_id != value["signing_key_id"]:
-                raise ValueError("enrollment key ID mismatch")
-            return value
-        payload = base64.b64decode(value["payload_base64"], validate=True)
-        if not 0 < len(payload) <= 262144 or base64.b64encode(payload).decode() != value["payload_base64"]:
-            raise ValueError("invalid canonical payload base64")
-        if hashlib.sha256(payload).hexdigest() != value["payload_sha256"]:
-            raise ValueError("payload digest mismatch")
-        telemetry = strict_loads(payload.decode("utf-8"))
-        errors = list(self.validators[value["payload_schema_version"]].iter_errors(telemetry))
-        if errors:
-            raise ValueError("invalid telemetry payload")
-        if telemetry["device_id"] != value["device_id"]:
-            raise ValueError("payload device mismatch")
-        zero = datetime(1, 1, 1, tzinfo=timezone.utc)
-        if datetime.fromisoformat(telemetry["collected_at"]) == zero:
-            raise ValueError("zero collection time")
-        for log in telemetry["log_references"]:
-            start = datetime.fromisoformat(log["window_start"])
-            end = datetime.fromisoformat(log["window_end"])
-            if start == zero or end == zero or end < start:
-                raise ValueError("invalid log window")
-        return value
-
     def test_shared_contract_and_canonical_vectors(self):
         for vector in self.vectors:
             with self.subTest(vector=vector["name"]):
                 data = json.dumps(vector["envelope"])
                 if not vector["contract_valid"]:
                     with self.assertRaises(ValueError):
-                        self.read_envelope(data)
+                        read_envelope(self.validators, data)
                     continue
-                value = self.read_envelope(data)
+                value = read_envelope(self.validators, data)
                 canonical = signing_bytes(value)
                 self.assertEqual(canonical.hex(), vector["canonical_hex"])
                 if value["schema_version"] != ACK:
@@ -169,14 +170,14 @@ class EnvelopeContractTest(unittest.TestCase):
                      encoded.replace('"sequence": 1', '"sequence": true')]:
             with self.subTest(data=data):
                 with self.assertRaises(ValueError):
-                    self.read_envelope(data)
+                    read_envelope(self.validators, data)
         evidence = self.vectors[1]["envelope"].copy()
         payload = base64.b64decode(evidence["payload_base64"])
         payload = payload.replace(b'"value":0', b'"value":0,"value":10')
         evidence["payload_base64"] = base64.b64encode(payload).decode()
         evidence["payload_sha256"] = hashlib.sha256(payload).hexdigest()
         with self.assertRaisesRegex(ValueError, "duplicate JSON field"):
-            self.read_envelope(json.dumps(evidence))
+            read_envelope(self.validators, json.dumps(evidence))
 
     def test_acknowledgements_bind_the_request(self):
         for vector in self.vectors:
