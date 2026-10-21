@@ -217,3 +217,26 @@ non-fixture keys without consuming device, sequence or challenge state.
 `nix develop --command make check cross-build replay-check` passed after rebasing
 onto main. The conflict resolution retains both controller-fixture and
 endpoint-replay commands and documentation.
+
+## PostgreSQL binding and migrations, DB01 #19
+
+Validated locally on 2026-10-21 with Go 1.27.1 and PostgreSQL 17.11 on Linux
+amd64. A disposable local cluster used trust authentication on port 55432; the
+same target is configured in CI against a PostgreSQL 17 service.
+
+```sh
+TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/device_audit_test?sslmode=disable' \
+  make database-check
+```
+
+The tests passed for a fresh schema and idempotent restart, a prior-schema
+upgrade that retained rows, concurrent migration attempts that produced one
+ledger row, and an injected syntax-error migration that left version 1 applied
+with no half-written table. Controller startup tests confirmed that an
+unavailable database and a changed migration-ledger name both abort before a
+listener opens, while a successful run reports `database=connected` and
+`schema_version=1`.
+
+This evidence covers schema application only. Telemetry, enrollment, revocation
+and replay state are still memory-only; backup/restore, database outage
+behavior for writes, retention, TLS and least-privilege roles remain untested.

@@ -72,6 +72,17 @@ and retains the latest sample for up to 1,000 devices in memory. Data disappears
 on restart. The digest is not a signature or proof that a device is truthful.
 Health remains `unknown`; no trained model or failure forecast is fabricated.
 
+To exercise the PostgreSQL migration path, set a database URL:
+
+```sh
+DEVICE_AUDIT_DATABASE_URL='postgres://user@127.0.0.1:5432/device_audit?sslmode=disable' \
+  go run ./apps/controller
+```
+
+The controller applies versioned migrations before listening and reports the
+schema version from `/healthz`. This still stores samples in memory; see the
+[database plan](infra/database/README.md).
+
 Run `make contract-check` for the shared Go/schema/Python fixture harness and its
 machine-readable evidence report. See [contract conformance](packages/contracts/conformance-v1.md)
 for the exact reader boundaries and Nix command.
@@ -101,7 +112,7 @@ real-device qualification or implements controller admission.
 - `models`: custom model/training interfaces and a tested weighted aggregation primitive.
 - `networking`: Tailcat/WireGuard/DERP adapter boundary carried over from Shepherd's design.
 - `infra/networking`: relay/bootstrap deployment requirements.
-- `infra/database`: initial PostgreSQL schema candidate, not connected to the demo.
+- `infra/database`: PostgreSQL connection, versioned migrations and candidate schema; telemetry persistence remains future work.
 - `contracts`: smart-contract commitment requirements; blockchain selection is open.
 - `apps/web-console`: dashboard scope; frontend selection is open.
 

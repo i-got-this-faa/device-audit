@@ -15,7 +15,7 @@ discussion can drift and does not automatically become product scope.
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
-| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
+| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and versioned migrations implemented in #19; telemetry persistence remains #83 |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
@@ -58,7 +58,8 @@ inherited as approved handoff decisions.
   signing keys and any future chain signer remain separate. Exposure and
   allowed/denied request cases are in [the networking plan](../infra/networking/README.md).
 
-The current loopback fixture still loses samples on restart. Database binding,
+The current loopback fixture still loses samples on restart. The controller can
+connect to PostgreSQL and apply the #19 migrations, but telemetry persistence,
 authentication, enrollment, relay deployment and these access rules are not
 implemented. No production capability or patent verification is established.
 SRC05 #72 has reconciled the supplied PDF and recorded its provenance in
@@ -75,6 +76,25 @@ open in the hosting work. Source reconciliation #72 does not settle those choice
 Acceptance evidence still needs database
 restart/restore results, authenticated access denials, secret rotation/revocation
 checks and direct/relay connectivity on the selected release machines.
+
+## Durable database binding and migrations, DB01 #19
+
+The controller now binds the provisional PostgreSQL decision with
+`github.com/jackc/pgx/v5` through `database/sql`. `DEVICE_AUDIT_DATABASE_URL` or
+`--database-url` selects the database. Startup pings the database, applies
+embedded forward-only migrations and reports the applied `schema_version` from
+`/healthz`; a connection or migration failure aborts before the HTTP listener
+binds. An empty URL keeps the explicit memory development mode and reports
+`database=not_configured`.
+
+`schema_migrations` records each applied version. One PostgreSQL advisory lock
+serializes concurrent controllers, each migration runs in its own transaction,
+and a failed migration leaves the previous version without dropping or
+recreating tables. These are implementation choices under #19, not a retention,
+backup, recovery-objective, TLS, least-privilege or production-schema decision.
+The candidate `001_initial.sql` tables are applied but telemetry samples,
+enrollment, revocation and replay state remain in memory until #83/#89/#90.
+#14 still bounds the deployment target; no production persistence is claimed.
 
 ## Provisional telemetry/inventory contract v2
 

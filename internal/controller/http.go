@@ -20,23 +20,42 @@ type Device struct {
 	Health         string              `json:"health"`
 }
 
+// Config describes the bounded development API and its configured dependencies.
+type Config struct {
+	MaxDevices     int
+	DatabaseStatus string
+	SchemaVersion  int
+}
+
 type API struct {
 	mu         sync.Mutex
 	devices    map[string]Device
 	maxDevices int
+	database   string
+	schema     int
 }
 
-func NewAPI(maxDevices int) *API {
-	if maxDevices < 1 {
-		panic("maxDevices must be positive")
+func NewAPI(cfg Config) *API {
+	if cfg.MaxDevices < 1 {
+		panic("MaxDevices must be positive")
 	}
-	return &API{devices: make(map[string]Device), maxDevices: maxDevices}
+	if cfg.DatabaseStatus == "" {
+		cfg.DatabaseStatus = "not_configured"
+	}
+	return &API{devices: make(map[string]Device), maxDevices: cfg.MaxDevices, database: cfg.DatabaseStatus, schema: cfg.SchemaVersion}
 }
 
 func (a *API) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "mode": "development", "storage": "memory", "mesh": "not_implemented"})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":         "ok",
+			"mode":           "development",
+			"sample_storage": "memory",
+			"database":       a.database,
+			"schema_version": a.schema,
+			"mesh":           "not_implemented",
+		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
 	mux.HandleFunc("GET /v1/devices/{id}", a.device)

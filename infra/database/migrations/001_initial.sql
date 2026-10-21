@@ -1,5 +1,5 @@
--- Candidate schema only; the scaffold does not execute migrations.
-BEGIN;
+-- Candidate schema for the provisional PostgreSQL binding. The migration
+-- runner applies this file in a transaction and records version 1.
 CREATE TABLE devices (
     id text PRIMARY KEY,
     enrolled_at timestamptz NOT NULL,
@@ -40,4 +40,3 @@ CREATE TABLE audit_reports (
     generated_at timestamptz NOT NULL DEFAULT now(),
     contract_receipt jsonb
 );
-COMMIT;
