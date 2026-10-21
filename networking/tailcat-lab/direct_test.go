@@ -341,6 +341,7 @@ func startPeer(t *testing.T, ctx context.Context, cfg peerConfig) *child {
 	}
 	return p
 }
+
 func (p *child) read(t *testing.T, target any) {
 	t.Helper()
 	for p.out.Scan() {
@@ -359,12 +360,14 @@ func (p *child) read(t *testing.T, target any) {
 	}
 	t.Fatal("peer exited without report; private output suppressed")
 }
+
 func (p *child) command(t *testing.T, s string) {
 	t.Helper()
 	if err := p.in.Encode(s); err != nil {
 		t.Fatal("peer command failed")
 	}
 }
+
 func (p *child) wait(t *testing.T) {
 	t.Helper()
 	p.waitOnce.Do(func() {
@@ -380,11 +383,18 @@ func (p *child) wait(t *testing.T) {
 // Stopping both closes the listening socket and DERP's hijacked TCP connections.
 func startRelay(t *testing.T, address string) (*tailcfg.DERPRegion, func()) {
 	t.Helper()
+	region, _, stop := startRelayWithKey(t, address, key.NewNode())
+	return region, stop
+}
+
+// startRelayWithKey keeps a lab DERP identity stable across a server restart.
+func startRelayWithKey(t *testing.T, address string, serverKey key.NodePrivate) (*tailcfg.DERPRegion, *derpserver.Server, func()) {
+	t.Helper()
 	ln, err := net.Listen("tcp", address)
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := derpserver.New(key.NewNode(), discardLog)
+	d := derpserver.New(serverKey, discardLog)
 	hs := httptest.NewUnstartedServer(derpserver.Handler(d))
 	hs.Listener.Close()
 	hs.Listener = ln
@@ -393,7 +403,7 @@ func startRelay(t *testing.T, address string) (*tailcfg.DERPRegion, func()) {
 	reg := &tailcfg.DERPRegion{RegionID: 1, RegionCode: "lab", Nodes: []*tailcfg.DERPNode{{Name: "lab1", RegionID: 1, HostName: "127.0.0.1", IPv4: "127.0.0.1", IPv6: "none", DERPPort: ln.Addr().(*net.TCPAddr).Port, STUNPort: -1, InsecureForTests: true}}}
 	stop := sync.OnceFunc(func() { hs.Close(); d.Close() })
 	t.Cleanup(stop)
-	return reg, stop
+	return reg, d, stop
 }
 
 func TestDirectLab(t *testing.T) {
@@ -519,8 +529,8 @@ func TestDirectLab(t *testing.T) {
 	}
 	s.command(t, "stop")
 	s.wait(t)
-
 }
+
 func logObservation(t *testing.T, phase int, o observation) {
 	t.Helper()
 	b, err := json.Marshal(struct {
