@@ -11,7 +11,7 @@ import (
 const sample = `{"schema_version":"device-audit.v1","device_id":"demo-device","collected_at":"2026-10-13T06:00:00Z","source":"fixture","metrics":{"cpu_percent":12.5}}`
 
 func TestTelemetryRoundTrip(t *testing.T) {
-	handler := NewAPI(1).Handler()
+	handler := NewAPI(Config{MaxDevices: 1}).Handler()
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/v1/telemetry", strings.NewReader(sample)))
 	if w.Code != http.StatusAccepted {
@@ -39,7 +39,7 @@ func TestTelemetryRoundTrip(t *testing.T) {
 }
 
 func TestInvalidTelemetryAndDeviceLimit(t *testing.T) {
-	handler := NewAPI(1).Handler()
+	handler := NewAPI(Config{MaxDevices: 1}).Handler()
 	for _, body := range []string{
 		strings.Replace(sample, "12.5", "101", 1),
 		strings.Replace(sample, `"cpu_percent":12.5`, `"unexpected":12`, 1),
@@ -63,5 +63,21 @@ func TestInvalidTelemetryAndDeviceLimit(t *testing.T) {
 		if w.Code != want {
 			t.Fatalf("device %s: got %d, want %d", id, w.Code, want)
 		}
+	}
+}
+
+func TestHealthReportsConfiguredSchema(t *testing.T) {
+	handler := NewAPI(Config{MaxDevices: 1, DatabaseStatus: "connected", SchemaVersion: 7}).Handler()
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("health: %d", w.Code)
+	}
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	if body["database"] != "connected" || body["schema_version"] != float64(7) || body["sample_storage"] != "memory" {
+		t.Fatalf("health body: %v", body)
 	}
 }

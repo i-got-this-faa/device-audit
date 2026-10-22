@@ -31,10 +31,10 @@ explicit error. Aggregation tests cover sample weighting and invalid base
 versions, dimensions, counts and nonfinite weights.
 
 Cross-compilation is not evidence of a real Windows/macOS collector or service.
-Mesh, database migrations, bespoke trained models, full federated coordination,
-smart-contract transactions and patent conformance have not been validated.
-CI is configured to repeat the available checks; this record describes the
-local run, not a claim about a hosted CI result.
+Mesh, durable telemetry, real-IdP authentication, bespoke trained models, full
+federated coordination, smart-contract transactions and patent conformance have
+not been validated. CI is configured to repeat the available checks; this record
+describes the local run, not a claim about a hosted CI result.
 
 ## Telemetry conformance subset of #80
 
@@ -217,3 +217,92 @@ non-fixture keys without consuming device, sequence or challenge state.
 `nix develop --command make check cross-build replay-check` passed after rebasing
 onto main. The conflict resolution retains both controller-fixture and
 endpoint-replay commands and documentation.
+
+## PostgreSQL binding and migrations, DB01 #19
+
+Validated locally on 2026-10-21 with Go 1.27.1 and PostgreSQL 17.11 on Linux
+amd64. A disposable local cluster used trust authentication on port 55432; the
+same target is configured in CI against a PostgreSQL 17 service.
+
+```sh
+TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/device_audit_test?sslmode=disable' \
+  make database-check
+```
+
+The tests passed for a fresh schema and idempotent restart, a prior-schema
+upgrade that retained rows, concurrent migration attempts that produced one
+ledger row per applied migration, and an injected syntax-error migration that
+left version 1 applied with no half-written table. Controller startup tests
+confirmed that an unavailable database and a changed migration-ledger name both
+abort before a listener opens, while a successful run reports
+`database=connected` and `schema_version=2`.
+
+This evidence covers schema application only. Telemetry, enrollment
+and replay state are still memory-only; backup/restore, database outage
+behavior for writes, retention, TLS and least-privilege roles remain untested.
+
+## Review follow-up for #179
+
+On 2026-10-22 a compiled-controller regression test reproduced disclosure of a
+synthetic database password in both help and malformed-argument usage output.
+The flag now registers an empty default and resolves its environment fallback
+after parsing. Tests also verify that an explicitly empty database URL disables
+that fallback. `nix develop --command make check cross-build database-check`
+passed with `TEST_DATABASE_URL` pointing to a disposable PostgreSQL 17.11 cluster.
+
+## Administrative authentication, SEC06 #82
+
+Validated locally on 2026-10-21 with Go 1.27.1 on Linux amd64 and PostgreSQL
+17.11. The same disposable cluster and `TEST_DATABASE_URL` used for #19 were
+used here. The full check command was:
+
+```sh
+nix develop /home/cier/Projects --command make check cross-build demo
+TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/device_audit_test?sslmode=disable' \
+  nix develop /home/cier/Projects --command make database-check
+```
+
+The HTTP suite uses a temporary TLS OIDC issuer and the auth service's
+in-memory test store. It passed the full authorization-code login exchange with
+PKCE S256, state and nonce checks, MFA `amr` enforcement, cookie attributes,
+viewer/admin scope, forged identity and device headers, CSRF and exact Origin
+checks, logout replay, 15-minute idle and eight-hour absolute expiry, role-change
+revocation, fresh-authentication rejection for stale/future `auth_time`,
+last-admin rejection, store outage, IdP outage, expired and replayed
+login transactions, and secret-free logs. A deliberately invalid token-exchange
+code confirmed that provider error bodies are not copied into logs.
+
+The PostgreSQL lifecycle test applied schema version 2 and passed binding
+creation/update, one-use and expired login transactions, session touch/revoke,
+subject-session revocation, idle-expiry touch rejection, role-change revocation
+that survives a role cycle, and a closed-store failure. Controller startup tests
+reported `auth=oidc`, preprovisioned the bootstrap admin, rejected incomplete
+auth configuration and missing database/admin bindings before listening, and
+served an anonymous console redirect without protected data.
+
+These are component and local integration results. The fake issuer is not a
+real identity provider, and no browser was run. Provider-specific `amr`/`acr`
+mapping, durable audit events, IdP single logout/back-channel revocation, rate
+limiting, expired-row cleanup and production secret custody remain untested or
+unimplemented. No production identity, telemetry durability, enrollment or
+release qualification is established.
+
+## Review follow-up for #183
+
+On 2026-10-22 regression tests reproduced OIDC client-secret disclosure in help
+and malformed-argument output. A separate test reproduced an old-issuer admin
+session reading protected routes and creating an admin binding for a replacement
+issuer. The fixes resolve the secret fallback after flag parsing and reject and
+revoke issuer-mismatched sessions before authorization. Tests verify that
+explicitly empty secrets override the environment and that restoring the old
+issuer does not revive a denied session.
+
+With Go 1.27.3 and disposable PostgreSQL 17.11, the following passed:
+
+```sh
+TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/postgres?sslmode=disable' \
+  nix develop --command make check cross-build database-check replay-check demo
+```
+
+This remains local component/integration evidence with a fixture IdP. A real
+issuer migration, browser matrix and production secret custody remain unqualified.

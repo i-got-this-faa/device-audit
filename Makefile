@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof fake-check
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof fake-check database-check
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -30,6 +30,9 @@ replay-check: build
 	$(PYTHON) tools/replay_smoke.py
 fake-check:
 	$(GO) run ./tools/fakes/controllerfake --scenario all
+database-check:
+	test -n "$(TEST_DATABASE_URL)" || { echo "TEST_DATABASE_URL is required for database-check" >&2; exit 1; }
+	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(GO) test -race -count=1 ./infra/database ./apps/controller ./internal/controller ./internal/controller/auth
 demo: build
 	$(PYTHON) tools/demo.py
 # The experimental dependency graph stays outside the application module.

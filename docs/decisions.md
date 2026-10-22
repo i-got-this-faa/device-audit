@@ -15,20 +15,20 @@ discussion can drift and does not automatically become product scope.
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
-| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; schema remains a candidate with no runtime DB binding |
+| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and versioned migrations implemented in #19; telemetry persistence remains #83 |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | Independent network observation | SRC05 finds no defined observer/source/trust boundary in [0051], p.10, [0074], p.18, [0078], p.19 or FIG.2, p.31; #14 records an explicit block | Blocked because the source, permissions, trust boundary, retention and acceptance evidence are unselected. Endpoint telemetry, network identity and chain verification imply no independent observer. #138 owns resolution and any approved rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
-| Frontend | Provisional SRC04 #74 decision below | Go HTML templates, embedded static assets and progressive enhancement; no implemented console yet |
+| Frontend | Provisional SRC04 #74 decision below | Go HTML templates, embedded static assets and progressive enhancement; a minimal console/auth surface is implemented, dashboard pages are not |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
 
 Scaffold choices made here: private repository by default, stdlib-only local
 demo, Go 1.27.1 aligned with Shepherd/Tailcat, an ephemeral bounded sample store,
 strict versioned inputs, and explicit errors for unavailable mesh transport.
 These choices do not settle production hosting, tenancy, identity, model
-runtime, chain, frontend or collector cadence.
+runtime, chain or collector cadence.
 
 ## Provisional hosting, persistence and tenancy, #73
 
@@ -58,9 +58,11 @@ inherited as approved handoff decisions.
   signing keys and any future chain signer remain separate. Exposure and
   allowed/denied request cases are in [the networking plan](../infra/networking/README.md).
 
-The current loopback fixture still loses samples on restart. Database binding,
-authentication, enrollment, relay deployment and these access rules are not
-implemented. No production capability or patent verification is established.
+The current loopback fixture still loses samples on restart. The controller can
+connect to PostgreSQL, apply the #19 migrations and host the #82 administrative
+OIDC/session surface, but telemetry persistence, enrollment, relay deployment
+and the remaining access rules are not implemented. No production capability or
+patent verification is established.
 SRC05 #72 has reconciled the supplied PDF and recorded its provenance in
 [the source map](source/patent-map.md). This does not establish implementation
 or patent coverage.
@@ -75,6 +77,27 @@ open in the hosting work. Source reconciliation #72 does not settle those choice
 Acceptance evidence still needs database
 restart/restore results, authenticated access denials, secret rotation/revocation
 checks and direct/relay connectivity on the selected release machines.
+
+## Durable database binding and migrations, DB01 #19
+
+The controller now binds the provisional PostgreSQL decision with
+`github.com/jackc/pgx/v5` through `database/sql`. `DEVICE_AUDIT_DATABASE_URL` or
+`--database-url` selects the database. Startup pings the database, applies
+embedded forward-only migrations and reports the applied `schema_version` from
+`/healthz`; a connection or migration failure aborts before the HTTP listener
+binds. An empty URL keeps the explicit memory development mode and reports
+`database=not_configured`.
+
+`schema_migrations` records each applied version. One PostgreSQL advisory lock
+serializes concurrent controllers, each migration runs in its own transaction,
+and a failed migration leaves the previous version without dropping or
+recreating tables. These are implementation choices under #19, not a retention,
+backup, recovery-objective, TLS, least-privilege or production-schema decision.
+The candidate `001_initial.sql` and `002_console_auth.sql` tables are applied.
+Console role bindings, login transactions and sessions are durable; telemetry
+samples, enrollment, revocation and replay state remain in memory until
+#83/#89/#90. #14 still bounds the deployment target; no production persistence
+is claimed.
 
 ## Provisional telemetry/inventory contract v2
 
@@ -268,8 +291,8 @@ binding in deployment configuration, without a public first-user signup route.
 Require MFA at the IdP and reject login if configured MFA policy is not met;
 provider-specific `acr`/`amr` mapping must be qualified before deployment.
 These are application choices based on
-[OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth),
-not implemented authentication.
+[OIDC Core](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth).
+The #82 implementation below records the currently delivered subset.
 
 The controller keeps tokens and session state server-side, in the deployment's
 durable store. The browser receives only a random 256-bit opaque session cookie,
@@ -310,12 +333,86 @@ custody are outside browser roles. Device signing, mesh admission and future
 chain credentials cannot create console sessions or grant administrator access.
 
 The [console plan](../apps/web-console/README.md) records local build steps and
-the required denied-request matrix. No routes, OIDC adapter, sessions, dashboard
-or durable role store are delivered by this decision. Follow-up console and
-security implementation must run that matrix against the real configured IdP
-and store before exposing access. This choice is provisional and reversible;
-it does not approve unresolved release scope under #14.
+the required denied-request matrix. SEC06 #82 now delivers the minimal console,
+OIDC adapter, PostgreSQL sessions, role store and protected admin routes
+described below. Fleet pages, exports and most administrator actions remain
+absent, and the matrix has not been run against a real configured IdP or a
+browser. This choice is provisional and reversible; it does not approve
+unresolved release scope under #14.
 
+## Administrative authentication implementation, SEC06 #82
+
+[Issue #82](https://github.com/i-got-this-faa/device-audit/issues/82) implements
+the minimal console identity boundary selected by #74. It is an application
+scaffold, not production identity federation.
+
+- The controller accepts one operator-configured OIDC issuer and confidential
+  client. Authorization Code flow uses PKCE S256, state, nonce, an exact
+  callback URL and `github.com/coreos/go-oidc/v3` plus `golang.org/x/oauth2`.
+  Issuer, audience, signature, expiry and nonce are verified. The issuer is
+  never taken from a request, email suffix, tenant header or proxy header.
+- Discovery is lazy. An IdP outage fails new logins closed while existing local
+  sessions remain usable until expiry or revocation. There is no development
+  login bypass.
+- A one-use login transaction is stored server-side with five-minute expiry.
+  The browser-bound login cookie carries a digest of the state. The callback
+  consumes the transaction before exchanging the code, then verifies the
+  returned ID token and configured MFA `amr` value. The default required value
+  is `mfa`; an empty value relies on the issuer policy. Provider-specific
+  `amr`/`acr` mapping is not qualified.
+- PostgreSQL `002_console_auth.sql` stores role bindings, login transactions
+  and server-side sessions. Sessions use a random opaque cookie
+  (`__Host-device-audit-session`), store only the SHA-256 digest, use `Secure`,
+  `HttpOnly`, `Path=/`, no `Domain` and `SameSite=Lax`, and enforce 15-minute
+  idle and eight-hour absolute expiry with exact boundaries. Session and login
+  store failures return 503 rather than using memory fallback.
+- Role bindings are keyed by the configured issuer and subject. `viewer` may
+  read the minimal console; `admin` may also list and change role bindings.
+  Admin inherits viewer. There is no public signup and no role inferred from
+  email, group or tenant claims. `--bootstrap-admin` creates a missing first
+  admin binding; it never overwrites an existing role. The PostgreSQL store and
+  the in-memory test store reject a role change that would leave no admin.
+- Changing a binding to a different role revokes the subject's existing local
+  sessions. An existing session whose stored role differs from the current
+  binding is also denied and revoked, so a failed or incomplete revocation
+  cannot grant new authority. Removing a binding or revoking a session denies
+  the next request. A previously issued cookie cannot retain removed authority.
+- `/console`, `/auth/session`, `POST /auth/logout` and
+  `/admin/role-bindings` are protected. Anonymous safe GETs for HTML redirect
+  to login; anonymous JSON and mutations return 401 without protected data.
+  Unsafe browser requests require an exact `Origin` match and a session-bound
+  CSRF token. Wrong-scope requests return 403. Protected responses use
+  `Cache-Control: no-store` plus content, referrer and frame protections; console
+  pages add a restrictive content security policy.
+- Login, logout, allowed requests, denied requests and role changes emit
+  metadata-only logs. Cookies, authorization codes, tokens, PKCE verifiers and
+  client secrets are not logged. Provider exchange errors are reduced to their
+  error type before logging.
+- The existing `/v1/telemetry` and `/v1/devices/{id}` fixture routes are not
+  administrator surfaces and remain unauthenticated loopback development
+  routes. A deployment proxy must not expose them as a substitute for protected
+  console or enrollment routes.
+
+Tests use a temporary TLS OIDC issuer and temporary PostgreSQL databases. They
+cover login, PKCE exchange, state/nonce rejection, one-use and expired login
+transactions, MFA rejection, unknown identities, forged headers, role scope,
+CSRF and Origin rejection, logout replay, idle and absolute expiry, role-change
+revocation, last-admin rejection, store outage, IdP outage and secret-free logs.
+The PostgreSQL lifecycle test covers bindings, login consumption, session touch
+and revocation, subject-session revocation and closed-store failure.
+
+Every login requests `max_age=0` and validates signed `auth_time` against the
+login transaction and a five-minute window. Role changes require that verified
+authentication to be no older than five minutes, plus admin scope and CSRF.
+Role updates and session revocation commit in one transaction.
+
+Important gaps remain. Audit events are process logs, not durable records.
+A real IdP, provider-specific MFA mapping, browser matrix, IdP single logout or
+back-channel revocation, login rate limiting, expired-row cleanup, session
+rotation on privilege change by re-login, and production secret custody remain
+unimplemented or unqualified. The fixture API still has no device
+authentication. This section does not claim production admission, release
+qualification, durable telemetry or patent conformance.
 
 ## Shared contract conformance, CT05 #80
 

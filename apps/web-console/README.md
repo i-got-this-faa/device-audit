@@ -1,23 +1,68 @@
-# Console implementation plan
+# Console implementation
 
 SRC04 [#74](https://github.com/i-got-this-faa/device-audit/issues/74) selects
 Go `html/template`, embedded CSS and JavaScript ES modules, with progressive
-enhancement. The [identity decision](../../docs/decisions.md#console-and-administrator-identity-src04-74)
-defines one-organization authorization, OIDC login, session expiry and roles.
-There is no console executable, template bundle or authentication implementation
-yet. The current loopback fixture API has no administrator authentication.
+enhancement. The controller now hosts a minimal server-rendered console and
+administrator authentication surface from SEC06 [#82](https://github.com/i-got-this-faa/device-audit/issues/82).
+It is not a fleet dashboard or a browser-qualified release.
 
-Planned pages cover fleet/device health, telemetry availability, diagnostic
-findings, repair/upgrade/replacement reports, sustainability assumptions,
-federated rounds/model versions and commitment receipts. Values and evidence
-availability must remain inspectable without JavaScript. No frontend dependency,
-Node runtime, CDN, transpiler or JavaScript package lock is needed by this choice.
+Implemented routes:
+
+- `GET /auth/login` starts OIDC Authorization Code + PKCE S256 login for the
+  configured issuer. The one-use state transaction expires after five minutes.
+- `GET /auth/callback` consumes the transaction, verifies the ID token and MFA
+  `amr` value, checks the local issuer/subject role binding and creates a
+  server-side session.
+- `GET /auth/session` returns the signed-in subject, current role and CSRF
+  token. `POST /auth/logout` requires CSRF and Origin checks, revokes the
+  session and clears the cookie.
+- `GET /console` is the minimal viewer page.
+- `GET|POST /admin/role-bindings` lists bindings and changes a subject's
+  `viewer`/`admin` role. Admin-only.
+- `GET /signed-out` is the public post-logout page.
+
+Sessions are stored in PostgreSQL schema version 2. The session browser state
+is the opaque `__Host-device-audit-session` cookie: `Secure`, `HttpOnly`,
+`Path=/`, no `Domain`, `SameSite=Lax`; the short-lived login transaction uses a
+second `__Host-` cookie. Idle expiry is 15 minutes and absolute expiry is
+eight hours. The controller does not create accounts, infer roles from email or
+group claims, or provide a public signup or password bypass. The operator
+preprovisions the first admin with `--bootstrap-admin` or
+`DEVICE_AUDIT_BOOTSTRAP_ADMIN`.
+
+The loopback fixture API (`POST /v1/telemetry` and `GET /v1/devices/{id}`) is
+separate. It has no administrator authentication and must not be exposed by the
+public proxy as a console substitute.
+
+## Configure authentication
+
+All of these are required when auth is enabled, except the AMR and bootstrap
+values:
+
+```sh
+DEVICE_AUDIT_DATABASE_URL='postgres://user@127.0.0.1:5432/device_audit?sslmode=disable' \
+DEVICE_AUDIT_OIDC_ISSUER='https://id.example.test' \
+DEVICE_AUDIT_OIDC_CLIENT_ID='device-audit-console' \
+DEVICE_AUDIT_OIDC_CLIENT_SECRET='OPERATOR_SUPPLIED_SECRET' \
+DEVICE_AUDIT_OIDC_REDIRECT_URL='https://audit.example.test/auth/callback' \
+DEVICE_AUDIT_PUBLIC_ORIGIN='https://audit.example.test' \
+DEVICE_AUDIT_BOOTSTRAP_ADMIN='subject-from-the-idp' \
+go run ./apps/controller
+```
+
+`DEVICE_AUDIT_OIDC_REQUIRED_AMR` defaults to `mfa`; set it to an empty value
+only when the issuer enforces MFA policy itself. The bootstrap flag creates a
+missing binding only and never overwrites an existing role. Remove it after the
+first administrator is provisioned. Prefer environment variables over the
+matching flags because command-line arguments are visible in process listings.
+The issuer and public origin must match the deployed HTTPS values; the
+controller trusts no forwarded identity headers.
 
 ## Reproduce the local build
 
 Use the exact Go toolchain declared by `go.mod`, currently 1.27.1. From a clean
-checkout of the desired commit, install the pinned Python schema-test
-dependencies in an isolated environment:
+checkout, install the pinned Python schema-test dependencies in an isolated
+environment:
 
 ```sh
 python3 -m venv .venv
@@ -27,49 +72,52 @@ go version
 go mod verify
 make check cross-build
 CGO_ENABLED=0 go build -trimpath -buildvcs=false -o bin/controller ./apps/controller
+TEST_DATABASE_URL='postgres://user@127.0.0.1:5432/device_audit_test?sslmode=disable' make database-check
 ```
 
-These commands build and check the existing scaffold, not a dashboard. Once
-implemented, controller-owned handlers import the console package in this
-directory and embed its reviewed templates/static files at compile time; the
-same controller build command must include them without a network asset fetch
-or generated files. Pin any future module dependency with `go.mod` and `go.sum`.
-Record the source commit, Go version and build environment with release evidence;
-these commands alone do not assert bit-identical builds across platforms.
+The auth HTTP tests use a temporary TLS OIDC issuer, not a real provider. The
+database test creates isolated databases. These commands do not assert
+bit-identical builds or a hosted CI result.
 
-Target current and previous stable desktop Chrome, Edge and Firefox at release
-qualification. Record exact browser/OS versions, keyboard/focus and 200% zoom
-checks, and the tested viewport. There are no passing browser tests yet.
+## Acceptance matrix status
 
-## Browser acceptance matrix for implementation
+The proxy should expose only console/auth routes and separately authorized
+bootstrap routes. This table records what the local implementation and tests
+cover; it is not a passing browser or production IdP matrix.
 
-The routes below are proposed contracts, not existing endpoints. The public
-proxy exposes only console/auth routes and separately authorized bootstrap,
-never the development fixture API as a substitute for protected handlers.
-
-| Request or state | Required result |
+| Request or state | Status |
 | --- | --- |
-| Anonymous `GET /console` or protected HTML | Redirect to `/auth/login` without device data; return path must be an allowlisted local path |
-| Anonymous JSON, export or mutation | 401 without evidence or login HTML; no side effect |
-| `/auth/login` | Start bounded one-use state/nonce/PKCE transaction for the configured issuer |
-| Valid `/auth/callback` with prebound viewer/admin and MFA | Consume login transaction, rotate session, redirect to local console |
-| Missing, expired, reused or mismatched state/nonce; invalid PKCE or token signature, issuer, audience or expiry | Reject callback and issue no application session |
-| Valid IdP identity without local binding, or wrong issuer/deployment | 403 without protected data or automatic account creation |
-| Attacker-supplied email, group, organization header or forged proxy identity header | Cannot grant a role or change the deployment boundary |
-| Viewer reads deployment device/fleet/provenance/receipt or bounded export | Authorized read; enforce resource scope and export limits server-side |
-| Viewer creates/cancels diagnostics, authorizes enrollment, revokes devices, manages rounds/promotion or changes roles | 403 with no mutation |
-| Admin performs one of those allowlisted actions | Check resource/action permission and CSRF, persist audit event with action, actor and outcome; sensitive actions also require fresh IdP authentication |
-| Valid session with missing/invalid CSRF token, foreign Origin or mutation over GET | Reject without mutation; GET logout is not supported |
-| Exactly 15 minutes idle or eight hours since login | Session invalid; HTML returns to login, JSON/mutations return 401 |
-| Local role removed or identity revoked | Next request denied; existing cookie cannot retain authority |
-| Session/role store unavailable | 503, no volatile fallback or protected response |
-| Valid CSRF-protected `POST /auth/logout` | Invalidate server session, expire cookie, return to public signed-out page |
-| Replayed cookie after logout, restart with revoked state, or expired session | Deny; server state controls acceptance |
-| Browser Back or shared-cache replay after logout | Protected responses are no-store; revalidation cannot reveal data |
-| Device signing key, mesh credential or chain signer supplied as admin identity | Deny, even with admitted network access |
-| IdP unavailable | New login and required reauthentication fail closed; existing valid sessions remain bounded by local expiry and revocation |
+| Anonymous `GET /console` or protected HTML | Implemented: redirect to `/auth/login` with allowlisted return path |
+| Anonymous JSON, export or mutation | Implemented for current JSON/admin routes: 401 without protected data |
+| `/auth/login` | Implemented with bounded one-use state/nonce/PKCE transaction |
+| Valid callback with viewer/admin and MFA | Implemented against fake TLS issuer; real IdP not run |
+| Missing, expired or reused state, mismatched nonce, invalid token signature, issuer, audience or expiry | Rejected by library/service paths; not every case has a separate browser test |
+| Unknown identity, wrong issuer or missing local binding | Implemented: 403, no account creation |
+| Forged email, group, organization, proxy identity or device header | Implemented: no header is read for roles; forged-header test passes |
+| Viewer reads fleet/device/findings/exports | Not implemented; only the minimal console page exists |
+| Viewer performs admin action | Implemented for role bindings: 403 with no mutation |
+| Admin performs an allowlisted action | Role-binding management requires authentication within five minutes; durable audit events are not implemented |
+| Missing/invalid CSRF, foreign Origin or mutation over GET | Implemented and tested |
+| Exactly 15 minutes idle or eight hours since login | Implemented in memory-store HTTP tests; server, not cookie, controls it |
+| Role removed or identity revoked | Implemented: next request denied; server-side session is not authority |
+| Session/role store unavailable | Implemented: 503, no memory fallback |
+| Valid CSRF-protected `POST /auth/logout` | Implemented: server session revoked, cookie expired |
+| Replayed cookie after logout or expired session | Implemented in tests; server state rejects reuse |
+| Browser Back or shared-cache replay after logout | Protected responses send `no-store`; no browser test yet |
+| Device signing, mesh or chain credential as admin identity | Not an accepted admin path; no end-to-end test |
+| IdP unavailable | New login fails closed; existing local sessions remain until expiry/revocation |
 
-OIDC provider registration, maintained library selection, secret provisioning,
-MFA claim mapping, durable sessions/roles, proxy routing, browser checks and all
-matrix cases remain implementation evidence to collect. No local password or
-unauthenticated development bypass is selected for a deployed console.
+## Remaining qualification work
+
+- Run the matrix against the selected real IdP, including issuer discovery,
+  client authentication method and provider-specific `amr`/`acr` claims.
+- Apply the fresh-authentication rule to future sensitive administrator actions.
+- Add durable audit events, login rate limiting and expired session/login-row
+  cleanup; qualify IdP single logout or back-channel revocation if required.
+- Build the fleet/device/evidence pages and bounded exports with server-side
+  resource and action authorization.
+- Run current and previous stable desktop Chrome, Edge and Firefox checks,
+  including keyboard operation, visible focus, 200% zoom and the tested viewport.
+- Deploy behind the HTTPS proxy with operator-owned TLS, client secret and
+  database credentials. No production browser or identity claim is established
+  by this scaffold.

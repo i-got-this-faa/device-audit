@@ -22,11 +22,12 @@ a release-platform selection. SRC05 #72 separately records source reconciliation
 Expose bootstrap enrollment, administrator access and DERP map publication over
 HTTPS through a proxy. Enrollment requires a single-use, expiring bootstrap
 credential authorized by the operator. Administrator access requires
-authentication and authorization for this deployment. Credential issuance,
-administrator OIDC/session policy is selected in
-[decision #74](../../docs/decisions.md#console-and-administrator-identity-src04-74);
-provider registration and route implementation remain absent. HTTPS
-alone grants no access. Restrict the public
+authentication and authorization for this deployment. Credential issuance
+remains future work. Administrator OIDC/session policy is selected in
+[decision #74](../../docs/decisions.md#console-and-administrator-identity-src04-74)
+and a minimal local implementation is recorded under #82. Real provider
+registration, browser qualification and enrollment route implementation remain
+absent. HTTPS alone grants no access. Restrict the public
 proxy to those intended surfaces; device telemetry uses the authenticated mesh,
 and the database has no public listener. The relay receives no database access
 or application secrets. Pin and verify its admission/rate-limit behavior before
@@ -65,5 +66,5 @@ Validate these cases, secret rotation and restart identity persistence before
 exposing any service. The [isolated NET04 lab](derp-lab.md) measures blocked-UDP
 DERP traffic and relay restart on one Linux host. Direct UDP, DERP-only and offline
 failure behavior still need evidence on #14's selected machines. The current
-unauthenticated controller fixture and unavailable mesh adapter establish none
-of these production access guarantees.
+unauthenticated loopback fixture API, minimal local console/auth surface and
+unavailable mesh adapter establish none of these production access guarantees.

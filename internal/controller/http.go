@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
@@ -20,26 +21,63 @@ type Device struct {
 	Health         string              `json:"health"`
 }
 
+// Config describes the bounded development API and its configured dependencies.
+type Config struct {
+	MaxDevices     int
+	DatabaseStatus string
+	SchemaVersion  int
+	Auth           *auth.Service
+	AuthStatus     string
+}
+
 type API struct {
 	mu         sync.Mutex
 	devices    map[string]Device
 	maxDevices int
+	database   string
+	schema     int
+	auth       *auth.Service
+	authStatus string
 }
 
-func NewAPI(maxDevices int) *API {
-	if maxDevices < 1 {
-		panic("maxDevices must be positive")
+func NewAPI(cfg Config) *API {
+	if cfg.MaxDevices < 1 {
+		panic("MaxDevices must be positive")
 	}
-	return &API{devices: make(map[string]Device), maxDevices: maxDevices}
+	if cfg.DatabaseStatus == "" {
+		cfg.DatabaseStatus = "not_configured"
+	}
+	if cfg.AuthStatus == "" {
+		cfg.AuthStatus = "not_configured"
+	}
+	return &API{
+		devices:    make(map[string]Device),
+		maxDevices: cfg.MaxDevices,
+		database:   cfg.DatabaseStatus,
+		schema:     cfg.SchemaVersion,
+		auth:       cfg.Auth,
+		authStatus: cfg.AuthStatus,
+	}
 }
 
 func (a *API) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "mode": "development", "storage": "memory", "mesh": "not_implemented"})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":         "ok",
+			"mode":           "development",
+			"sample_storage": "memory",
+			"database":       a.database,
+			"schema_version": a.schema,
+			"auth":           a.authStatus,
+			"mesh":           "not_implemented",
+		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
 	mux.HandleFunc("GET /v1/devices/{id}", a.device)
+	if a.auth != nil {
+		a.auth.Register(mux)
+	}
 	return mux
 }
 
