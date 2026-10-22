@@ -287,20 +287,22 @@ func testDatabase(t *testing.T) string {
 	return testURL.String()
 }
 
-func TestCLIUsageDoesNotExposeDatabaseURL(t *testing.T) {
+func TestCLIUsageDoesNotExposeCredentials(t *testing.T) {
 	binary := filepath.Join(t.TempDir(), "controller.exe")
 	if output, err := exec.Command("go", "build", "-o", binary, ".").CombinedOutput(); err != nil {
 		t.Fatalf("build: %v %s", err, output)
 	}
 	for _, argument := range []string{"--help", "--invalid-argument"} {
 		command := exec.Command(binary, argument)
-		command.Env = append(os.Environ(), "DEVICE_AUDIT_DATABASE_URL=postgres://user:synthetic-database-password@127.0.0.1/db")
+		command.Env = append(os.Environ(), "DEVICE_AUDIT_DATABASE_URL=postgres://user:synthetic-database-password@127.0.0.1/db", "DEVICE_AUDIT_OIDC_CLIENT_SECRET=synthetic-oidc-secret")
 		output, err := command.CombinedOutput()
 		if err == nil {
 			t.Fatalf("%s should exit with help/parse status", argument)
 		}
-		if strings.Contains(string(output), "synthetic-database-password") {
-			t.Errorf("%s exposed database password", argument)
+		for _, secret := range []string{"synthetic-database-password", "synthetic-oidc-secret"} {
+			if strings.Contains(string(output), secret) {
+				t.Errorf("%s exposed %s", argument, secret)
+			}
 		}
 		if !strings.Contains(string(output), "database-url") {
 			t.Fatalf("%s did not print usage", argument)
@@ -318,6 +320,21 @@ func TestDatabaseEnvironmentFallbackAndExplicitEmpty(t *testing.T) {
 			want = "listen failed"
 		}
 		err := run(context.Background(), args, environment{DatabaseURL: databaseURL})
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("explicit empty=%v: got %v want %s", explicitEmpty, err, want)
+		}
+	}
+}
+
+func TestOIDCSecretEnvironmentFallbackAndExplicitEmpty(t *testing.T) {
+	for _, explicitEmpty := range []bool{false, true} {
+		args := []string{"--listen", "invalid-address"}
+		want := "console auth requires --database-url"
+		if explicitEmpty {
+			args = append(args, "--oidc-client-secret=")
+			want = "listen failed"
+		}
+		err := run(context.Background(), args, environment{OIDCClientSecret: "synthetic-oidc-secret"})
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("explicit empty=%v: got %v want %s", explicitEmpty, err, want)
 		}

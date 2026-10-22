@@ -1107,3 +1107,40 @@ func TestOIDCLoginRejectsUnfreshAuthentication(t *testing.T) {
 		})
 	}
 }
+
+func TestIssuerChangeRejectsPersistedSessions(t *testing.T) {
+	service, store, clock, _ := newMiddlewareService(t)
+	id, csrf := addSession(t, store, clock, "old-admin", RoleAdmin)
+	oldIssuer := service.issuer
+	service.issuer = "https://replacement-id.example.test"
+	server := newTestServer(t, service)
+	for _, path := range []string{"/auth/session", "/console", "/admin/role-bindings"} {
+		response := request(t, noRedirectClient(), server.URL+path, http.MethodGet, "", map[string]string{"Accept": "application/json"}, id)
+		response.Body.Close()
+		want := http.StatusUnauthorized
+		if path == "/console" {
+			want = http.StatusFound
+			if !strings.HasPrefix(response.Header.Get("Location"), "/auth/login?") {
+				t.Errorf("old issuer console did not redirect to login")
+			}
+		}
+		if response.StatusCode != want {
+			t.Errorf("old issuer session at %s: status=%d want=%d", path, response.StatusCode, want)
+		}
+	}
+	response := request(t, noRedirectClient(), server.URL+"/admin/role-bindings", http.MethodPost, `{"subject":"injected-admin","role":"admin"}`, map[string]string{"Content-Type": "application/json", "Origin": "https://console.example.test", "X-CSRF-Token": csrf}, id)
+	response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Errorf("old issuer session mutation status=%d", response.StatusCode)
+	}
+	if _, err := store.Binding(context.Background(), service.issuer, "injected-admin"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("old issuer session changed new issuer bindings: %v", err)
+	}
+	// A denied session must stay revoked if the operator later restores the issuer.
+	service.issuer = oldIssuer
+	response = request(t, noRedirectClient(), server.URL+"/auth/session", http.MethodGet, "", nil, id)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusUnauthorized {
+		t.Errorf("issuer rollback revived session: status=%d", response.StatusCode)
+	}
+}

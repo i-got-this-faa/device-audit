@@ -286,3 +286,23 @@ mapping, durable audit events, IdP single logout/back-channel revocation, rate
 limiting, expired-row cleanup and production secret custody remain untested or
 unimplemented. No production identity, telemetry durability, enrollment or
 release qualification is established.
+
+## Review follow-up for #183
+
+On 2026-10-22 regression tests reproduced OIDC client-secret disclosure in help
+and malformed-argument output. A separate test reproduced an old-issuer admin
+session reading protected routes and creating an admin binding for a replacement
+issuer. The fixes resolve the secret fallback after flag parsing and reject and
+revoke issuer-mismatched sessions before authorization. Tests verify that
+explicitly empty secrets override the environment and that restoring the old
+issuer does not revive a denied session.
+
+With Go 1.27.3 and disposable PostgreSQL 17.11, the following passed:
+
+```sh
+TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/postgres?sslmode=disable' \
+  nix develop --command make check cross-build database-check replay-check demo
+```
+
+This remains local component/integration evidence with a fixture IdP. A real
+issuer migration, browser matrix and production secret custody remain unqualified.

@@ -567,6 +567,14 @@ func (s *Service) protect(w http.ResponseWriter, r *http.Request, required Role,
 		return
 	}
 	now := s.now().UTC()
+	if session.Issuer != s.issuer {
+		if err := s.store.RevokeSession(r.Context(), session.IDDigest, now); err != nil {
+			s.unavailable(w, r)
+			return
+		}
+		s.deny(w, r, required, "issuer_changed", session.Subject)
+		return
+	}
 	if !now.Before(session.IdleExpiresAt) || !now.Before(session.AbsoluteExpiresAt) || session.RevokedAt != nil {
 		if err := s.store.RevokeSession(r.Context(), session.IDDigest, now); err != nil {
 			s.unavailable(w, r)

@@ -65,7 +65,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	databaseURL := flags.String("database-url", "", "PostgreSQL URL; empty keeps development samples in memory")
 	oidcIssuer := flags.String("oidc-issuer", defaults.OIDCIssuer, "configured OIDC issuer URL")
 	oidcClientID := flags.String("oidc-client-id", defaults.OIDCClientID, "OIDC confidential client ID")
-	oidcClientSecret := flags.String("oidc-client-secret", defaults.OIDCClientSecret, "OIDC confidential client secret")
+	oidcClientSecret := flags.String("oidc-client-secret", "", "OIDC confidential client secret")
 	oidcRedirectURL := flags.String("oidc-redirect-url", defaults.OIDCRedirectURL, "exact OIDC callback URL")
 	publicOrigin := flags.String("public-origin", defaults.PublicOrigin, "public HTTPS origin used for cookies and Origin checks")
 	bootstrapAdmin := flags.String("bootstrap-admin", defaults.BootstrapAdmin, "local OIDC subject to preprovision as the first admin")
@@ -80,6 +80,9 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	flags.Visit(func(f *flag.Flag) { provided[f.Name] = true })
 	if !provided["database-url"] {
 		*databaseURL = defaults.DatabaseURL
+	}
+	if !provided["oidc-client-secret"] {
+		*oidcClientSecret = defaults.OIDCClientSecret
 	}
 	if *transport != "loopback" {
 		return fmt.Errorf("transport %q: %w", *transport, mesh.ErrNotImplemented)
