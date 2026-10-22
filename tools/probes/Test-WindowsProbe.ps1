@@ -284,6 +284,22 @@ Assert-True ($workerError.failure_reason -eq 'worker_error') 'Worker launch fail
 Assert-FailureReadings -Result $workerError -Source gpu -Reason worker_error -Provenance real
 Remove-Item Function:\Get-Process
 
+$script:cleanupWaitMilliseconds = $null
+$failedCleanupProcess = [pscustomobject]@{ HasExited = $false }
+$failedCleanupProcess | Add-Member ScriptMethod Kill { param($Tree) throw 'PRIVATE_CLEANUP_DETAIL' }
+$failedCleanupProcess | Add-Member ScriptMethod WaitForExit {
+    param($Milliseconds)
+    $script:cleanupWaitMilliseconds = $Milliseconds
+    return $false
+}
+$cleanupOutcome = Stop-ProbeWorkerProcess -Process $failedCleanupProcess -WaitMilliseconds 25
+Assert-True ($cleanupOutcome.kill_failed -and $cleanupOutcome.wait_failed) `
+    'Failed kill and bounded wait must be reported separately'
+Assert-True ($script:cleanupWaitMilliseconds -eq 25) 'Cleanup wait must remain bounded'
+Assert-True (($cleanupOutcome | ConvertTo-Json) -notmatch 'PRIVATE_CLEANUP_DETAIL') `
+    'Raw cleanup exception leaked'
+
+
 if ($IsWindows) {
     $workerTimeout = Invoke-IsolatedProbe -Source network -TimeoutMilliseconds 1
     Assert-True ($workerTimeout.failure_reason -eq 'timeout') 'Hung worker must be terminated with explicit timeout'

@@ -80,22 +80,33 @@ missing disabled-log guard. Both were corrected before the passing run. Review
 also corrected the Windows metadata model: `EventLogLink` supplies `LogName`, not
 `IsEnabled`; enabled state comes from `Get-WinEvent -ListLog`.
 
-The 225-check suite and worker smoke results above predate the scoped review
-fixes. On 22 October, a fresh portable PowerShell 7.6.7 runtime was installed
-outside the checkout after the previous temporary runtime was unavailable.
-The updated suite passed **226 checks**, including null evidence and
-`not_applicable` export for an unassociated provider. A real Linux network worker
-returned two readings; a one-millisecond deadline produced null `timeout`
-readings; the next real worker succeeded. These runs verify portable worker
-lifecycle and fixture behavior, not the unavailable native Windows gates.
+The original implementation checks above predate the scoped review fixes.
+On 22 October, the updated suite passed **229 checks** through the default
+Nix development shell with PowerShell 7.6.7:
 
-No Go or Python files, shared contracts or production telemetry call sites changed,
-so the language-specific `make check`, `make cross-build` and `make model-check`
-gates do not apply to this script-only change. Native Windows provider behavior,
-the selected LocalService token, denied-token comparisons, resource qualification,
-event ingestion/bookmarks and two-machine acceptance were not exercised. The
-existing Windows CI job can run the regression script, but is not physical-target
-evidence. #85, #91, #92 and #93 retain their separate implementation gates.
+```sh
+nix develop --command pwsh -NoLogo -NoProfile -File tools/probes/Test-WindowsProbe.ps1
+```
+
+The new cleanup regression forces worker-tree kill failure and a bounded wait
+that does not complete, checks separate cleanup flags, and checks that exception
+text is not returned. The actual Linux network-worker smoke also passed through
+`nix develop .#powershell`: a worker returned two rate readings, a one-millisecond
+deadline returned two null `timeout` readings with no cleanup failure, and the
+next worker succeeded. These are Linux lifecycle and fixture checks, not native
+Windows qualification or measurements from two physical targets.
+
+This host had no system Nix installation. An isolated nix-portable 2.20.6 runtime
+used the unchanged repository lock; its normal namespace path was denied by the
+host, so the successful runs used its unprivileged `proot` backend. Both default
+and named PowerShell shells executed successfully. `nixfmt --check` passed for
+the changed Nix files. Root `make check` and `make cross-build` also passed using
+the pinned Python test environment, including 29 Python tests.
+
+Native Windows providers, the selected LocalService token, denied-token
+comparisons, resource qualification, event ingestion/bookmarks and two-machine
+acceptance were not exercised. Windows CI remains a regression environment, not
+physical-target evidence. #85, #91, #92 and #93 retain their separate gates.
 
 Independent source review found no confirmed patch defect. It flagged a native
 permission test that must not be skipped: PowerShell's `FilterHashtable` path has
@@ -105,10 +116,12 @@ must still be verified under real denied and service tokens before relying on a
 zero-presence result. Explicit-denial fixtures do not establish that native
 behavior. Windows cleanup of a running NVIDIA subprocess is also untested.
 
-The worker timeout path preserves `timeout` after the deadline even when process
-termination or cleanup raises an error. The regression/smoke checks do not force
-a failed-kill condition; process-tree termination is not guaranteed, and waiting
-for a worker that survives termination can exceed the configured deadline.
+On timeout, the probe retains the primary `timeout` reason and null metric
+catalog independently of cleanup outcomes. `worker_kill_failed` and
+`worker_wait_failed` record cleanup failures without raw error text; the cleanup
+wait is bounded to one second. The regression suite forces kill and wait failures,
+but does not establish termination of an unkillable process tree. Windows cleanup
+of a running NVIDIA subprocess remains untested.
 
 The endpoint remains fixture-driven and the lab schema is not telemetry v2. No
 production collector, model, service, MDM, remote-shell executor or blockchain

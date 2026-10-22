@@ -376,6 +376,24 @@ function Get-WindowsProbeResult {
 }
 
 
+function Stop-ProbeWorkerProcess {
+    param($Process, [ValidateRange(1, 30000)][int]$WaitMilliseconds = 1000)
+    $killFailed = $false
+    $waitFailed = $false
+    $hasExited = $false
+    try { $hasExited = $Process.HasExited } catch { $killFailed = $true }
+    if (-not $hasExited) {
+        try { $Process.Kill($true) } catch { $killFailed = $true }
+        try {
+            if (-not $Process.WaitForExit($WaitMilliseconds)) { $waitFailed = $true }
+        } catch {
+            $waitFailed = $true
+        }
+    }
+    [pscustomobject]@{ kill_failed = $killFailed; wait_failed = $waitFailed }
+}
+
+
 function Invoke-IsolatedProbe {
     param([ValidateSet('cpu', 'memory', 'disk', 'network', 'battery', 'thermal', 'gpu', 'events')][string]$Source,
         [ValidateRange(1, 30000)][int]$TimeoutMilliseconds = 10000)
@@ -393,6 +411,8 @@ function Invoke-IsolatedProbe {
     $failure = 'worker_error'
     $result = $null
     $startedProcess = $false
+    $cleanup = [pscustomobject]@{ kill_failed = $false; wait_failed = $false }
+    $cleanupAttempted = $false
     try {
         if (-not $process.Start()) { throw 'worker_start_failed' }
         $startedProcess = $true
@@ -400,10 +420,8 @@ function Invoke-IsolatedProbe {
         $stderr = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutMilliseconds)) {
             $failure = 'timeout'
-            if (-not $process.HasExited) {
-                try { $process.Kill($true) } catch { }
-            }
-            $process.WaitForExit()
+            $cleanup = Stop-ProbeWorkerProcess -Process $process
+            $cleanupAttempted = $true
         } elseif ($process.ExitCode -eq 0) {
             $payload = $stdout.GetAwaiter().GetResult()
             if ($payload.Length -gt 65536) { throw 'worker_output_too_large' }
@@ -420,13 +438,13 @@ function Invoke-IsolatedProbe {
             $result = $workerResult
         }
         # Errors may contain local identifiers; discard them, including on failure.
-        $null = $stderr.GetAwaiter().GetResult()
+        if ($failure -ne 'timeout') { $null = $stderr.GetAwaiter().GetResult() }
     } catch {
         if ($failure -ne 'timeout') { $failure = 'worker_error' }
         $result = $null
     } finally {
-        if ($startedProcess -and -not $process.HasExited) {
-            try { $process.Kill($true); $process.WaitForExit() } catch { }
+        if ($startedProcess -and -not $cleanupAttempted) {
+            $cleanup = Stop-ProbeWorkerProcess -Process $process
         }
         $process.Dispose()
     }
@@ -439,5 +457,7 @@ function Invoke-IsolatedProbe {
     $result | Add-Member worker_started_at $started -Force
     $result | Add-Member worker_completed_at $completed -Force
     $result | Add-Member worker_wall_ms ([math]::Round($timer.Elapsed.TotalMilliseconds, 3)) -Force
+    $result | Add-Member worker_kill_failed ([bool]$cleanup.kill_failed) -Force
+    $result | Add-Member worker_wait_failed ([bool]$cleanup.wait_failed) -Force
     return $result
 }

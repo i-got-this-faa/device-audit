@@ -6,8 +6,16 @@ contracts. It cannot enroll a device, submit telemetry, install a service,
 elevate, change permissions, run remediation or accept commands from a server.
 Only the eight named sources in the script are allowed.
 
-Use an existing PowerShell 7 session on Windows. No new package or driver is
-installed. NVIDIA measurements additionally require the existing vendor tool
+Use the Nix development shell to run the portable regression suite with pinned
+PowerShell 7.6.7 on Linux or macOS:
+
+```sh
+nix develop --command pwsh -NoLogo -NoProfile -File tools/probes/Test-WindowsProbe.ps1
+```
+
+The default shell and `nix develop .#powershell` include PowerShell. On Windows,
+use an existing PowerShell 7 session; no new package or driver is installed.
+NVIDIA measurements additionally require the existing vendor tool
 at `%SystemRoot%\System32\nvidia-smi.exe`; absence remains explicit missing data.
 
 ```powershell
@@ -26,10 +34,11 @@ maximum run is bounded by 30 sweeps, 300-second start-to-start intervals and a
 30-second worker deadline per source. Defaults are three sweeps, a 15-second
 interval and a 10-second worker deadline. Late sweeps run without catch-up bursts
 and record `cadence_overrun`. Each source runs in a separate child process.
-When the deadline expires, the result keeps `timeout`; termination of the worker
-process tree is attempted, then the worker is waited on. Kill or cleanup errors
-do not change that reason, but termination is not guaranteed and waiting can
-exceed the configured deadline.
+When the deadline expires, the result keeps `timeout`; worker-tree termination
+and a bounded cleanup wait are attempted. `worker_kill_failed` and
+`worker_wait_failed` report cleanup outcomes separately without exposing error
+text. Termination is not guaranteed, and the bounded wait may extend the
+configured deadline by up to one second.
 CIM calls also have a three-second operation timeout (five seconds for CPU).
 The deadline is not a hard real-time guarantee.
 
