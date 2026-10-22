@@ -25,11 +25,13 @@ Output parents must already exist. Existing files are never overwritten. The
 maximum run is bounded by 30 sweeps, 300-second start-to-start intervals and a
 30-second worker deadline per source. Defaults are three sweeps, a 15-second
 interval and a 10-second worker deadline. Late sweeps run without catch-up bursts
-and record `cadence_overrun`. Each source runs in a separate child process. A
-timeout kills its process tree, records `timeout` and proceeds to the next source.
+and record `cadence_overrun`. Each source runs in a separate child process.
+When the deadline expires, the result keeps `timeout`; termination of the worker
+process tree is attempted, then the worker is waited on. Kill or cleanup errors
+do not change that reason, but termination is not guaranteed and waiting can
+exceed the configured deadline.
 CIM calls also have a three-second operation timeout (five seconds for CPU).
-Windows process cleanup and provider cancellation may take additional time;
-the deadline is not a hard real-time guarantee.
+The deadline is not a hard real-time guarantee.
 
 The script records the current interactive token's elevation status. It does
 not impersonate a service account or prove that an unelevated account is free
@@ -42,7 +44,7 @@ this machine's permissions just to turn a missing reading into a successful one.
 Every numeric reading has an explicit name, unit and source-local instance.
 Zero is retained only when actually returned by the provider. Null is never
 converted to zero. Missing readings carry `sensor_unavailable`, `not_applicable`,
-`permission_denied` or `collection_error`. Every reading now includes its fixed
+`permission_denied`, `collection_error`, `timeout` or `worker_error`. Every
 provider and `provenance = real`. Source-wide failure and worker timeout/error
 also emit the catalog's expected metrics as null with units, provider and reason;
 `failure_reason` remains on the source result. A worker failure has no provider

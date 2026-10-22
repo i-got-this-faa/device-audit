@@ -226,8 +226,9 @@ $wheaRecent = Get-FixtureMetric $events event_system_whea_logger_recent_error_pr
 Assert-True ($wheaEnabled.value -eq 1 -and $wheaRecent.value -eq 1) 'Registered WHEA source and recent event were not inventoried'
 $diskEnabled = Get-FixtureMetric $events event_system_disk_enabled
 $diskRecent = Get-FixtureMetric $events event_system_disk_recent_error_present
-Assert-True ($diskEnabled.value -eq 0 -and $null -eq $diskRecent.value -and $diskRecent.missing_reason -eq 'not_applicable') `
-    'Unassociated provider must be distinguished without querying its log'
+Assert-True ($null -eq $diskEnabled.value -and $diskEnabled.missing_reason -eq 'not_applicable' -and
+    $null -eq $diskRecent.value -and $diskRecent.missing_reason -eq 'not_applicable') `
+    'Unassociated provider must remain missing without querying its log'
 $kernelMissing = Get-FixtureMetric $events event_system_kernel_power_enabled
 $kernelRecent = Get-FixtureMetric $events event_system_kernel_power_recent_error_present
 Assert-True ($null -eq $kernelMissing.value -and $kernelMissing.missing_reason -eq 'sensor_unavailable') `
@@ -297,7 +298,9 @@ function New-SyntheticReport {
     $sourceResults = foreach ($source in $script:sources) {
         $readings = foreach ($metric in Get-ProbeMetricCatalog -Source $source) {
             $value = if ($source -eq 'cpu' -and $metric.name -eq 'cpu_utilization') { 0 } else { $null }
-            $reason = if ($null -eq $value) { 'sensor_unavailable' } else { $null }
+            $reason = if ($null -ne $value) { $null } elseif ($metric.name -eq 'event_system_disk_enabled') {
+                'not_applicable'
+            } else { 'sensor_unavailable' }
             $reading = New-Reading -Name $metric.name -Unit $metric.unit -Provider $metric.provider `
                 -Instance 'HOSTILE_INSTANCE_SENTINEL' -Value $value -MissingReason $reason
             $reading.provenance = 'fixture'
@@ -353,6 +356,10 @@ try {
     $evidence = [IO.File]::ReadAllText($evidencePath)
     Assert-True ($evidence.Contains('| cpu | cpu_utilization |') -and $evidence.Contains('0 to 0')) `
         'Minimized evidence must retain a measured numeric zero'
+    $diskEnabledProvider = (Get-ProbeMetricCatalog -Source events |
+        Where-Object { $_.name -ceq 'event_system_disk_enabled' }).provider
+    Assert-True ($evidence.Contains("| events | event_system_disk_enabled | $diskEnabledProvider | boolean | unavailable | not_applicable |")) `
+        'Minimized evidence must preserve a null reason for an unassociated provider'
     Assert-True ($evidence.Contains('sensor_unavailable')) 'Minimized evidence must retain missing reasons'
     Assert-True ($evidence -notmatch 'HOSTILE_ENVIRONMENT_SENTINEL|HOSTILE_INSTANCE_SENTINEL') `
         'Environment or instance strings leaked into minimized evidence'

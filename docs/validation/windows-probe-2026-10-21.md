@@ -65,10 +65,10 @@ were run mid-implementation. After the implementation was ready:
   protection. Synthetic real-shaped exporter inputs are test fixtures only;
   their temporary reports are removed and are not Windows evidence.
 - An actual child-process network probe returned two real .NET rate readings
-  with provider/units on this Linux host. A one-millisecond deadline killed the
-  next actual worker and produced two null metrics with `timeout`; another real
-  network worker then completed successfully. No interface identifiers were
-  exported. This exercises worker lifecycle and .NET collection, not Windows
+  with provider/units on this Linux host. A one-millisecond deadline timed out
+  the next actual worker and produced two null metrics with `timeout`; another
+  real network worker then completed successfully. No interface identifiers
+  were exported. This exercises worker lifecycle and .NET collection, not Windows
   qualification.
 - The actual `Measure-WindowsSensors.ps1` entrypoint rejected Linux with
   `Windows is required; no fixture fallback is provided.` It exited nonzero and
@@ -79,6 +79,10 @@ The focused tests first exposed a Linux-only fixture-path assumption and then a
 missing disabled-log guard. Both were corrected before the passing run. Review
 also corrected the Windows metadata model: `EventLogLink` supplies `LogName`, not
 `IsEnabled`; enabled state comes from `Get-WinEvent -ListLog`.
+
+The 225-check suite and worker smoke results above predate the scoped review
+fixes and do not verify the updated source. On 22 October, they could not be
+rerun: `pwsh` is absent from `PATH`, and `/tmp/device-audit-pwsh/pwsh` is absent.
 
 No Go or Python files, shared contracts or production telemetry call sites changed,
 so the language-specific `make check`, `make cross-build` and `make model-check`
@@ -95,6 +99,11 @@ The preceding `ListLog` access check is intentional, but the complete sequence
 must still be verified under real denied and service tokens before relying on a
 zero-presence result. Explicit-denial fixtures do not establish that native
 behavior. Windows cleanup of a running NVIDIA subprocess is also untested.
+
+The worker timeout path preserves `timeout` after the deadline even when process
+termination or cleanup raises an error. The regression/smoke checks do not force
+a failed-kill condition; process-tree termination is not guaranteed, and waiting
+for a worker that survives termination can exceed the configured deadline.
 
 The endpoint remains fixture-driven and the lab schema is not telemetry v2. No
 production collector, model, service, MDM, remote-shell executor or blockchain

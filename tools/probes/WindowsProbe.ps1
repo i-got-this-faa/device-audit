@@ -289,7 +289,7 @@ function Get-ProbeReadings {
                     }
                     $links = @($metadata.LogLinks | Where-Object { $_.LogName -ceq $candidate.log })
                     if ($links.Count -eq 0) {
-                        New-ProbeReading -Metric $enabledMetric -Value 0 -Instance $candidate.instance -Maximum 1
+                        New-ProbeReading -Metric $enabledMetric -Value $null -Instance $candidate.instance -MissingReason not_applicable
                         New-ProbeReading -Metric $recentMetric -Value $null -Instance $candidate.instance -MissingReason not_applicable
                         continue
                     }
@@ -399,11 +399,11 @@ function Invoke-IsolatedProbe {
         $stdout = $process.StandardOutput.ReadToEndAsync()
         $stderr = $process.StandardError.ReadToEndAsync()
         if (-not $process.WaitForExit($TimeoutMilliseconds)) {
+            $failure = 'timeout'
             if (-not $process.HasExited) {
-                try { $process.Kill($true) } catch { if (-not $process.HasExited) { throw } }
+                try { $process.Kill($true) } catch { }
             }
             $process.WaitForExit()
-            $failure = 'timeout'
         } elseif ($process.ExitCode -eq 0) {
             $payload = $stdout.GetAwaiter().GetResult()
             if ($payload.Length -gt 65536) { throw 'worker_output_too_large' }
@@ -422,7 +422,7 @@ function Invoke-IsolatedProbe {
         # Errors may contain local identifiers; discard them, including on failure.
         $null = $stderr.GetAwaiter().GetResult()
     } catch {
-        $failure = 'worker_error'
+        if ($failure -ne 'timeout') { $failure = 'worker_error' }
         $result = $null
     } finally {
         if ($startedProcess -and -not $process.HasExited) {
