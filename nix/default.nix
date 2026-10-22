@@ -7,6 +7,7 @@ let
     automation = import ./profiles/automation.nix { inherit pkgs; };
     networking = import ./profiles/networking.nix { inherit pkgs; };
     nix = import ./profiles/nix.nix { inherit pkgs; };
+    powershell = import ./profiles/powershell.nix { inherit pkgs; };
   };
   mkShell =
     name: selectedProfiles:
@@ -22,6 +23,7 @@ in
     profiles.models
     profiles.automation
     profiles.nix
+    profiles.powershell
   ];
   go = mkShell "go" [ profiles.go ];
   models = mkShell "models" [ profiles.models ];
@@ -31,4 +33,5 @@ in
     profiles.networking
   ];
   nix = mkShell "nix" [ profiles.nix ];
+  powershell = mkShell "powershell" [ profiles.powershell ];
 }

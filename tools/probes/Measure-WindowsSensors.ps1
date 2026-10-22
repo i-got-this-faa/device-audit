@@ -19,20 +19,15 @@ $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 $elevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $identity.Dispose()
-$os = Get-CimInstance Win32_OperatingSystem -Property Caption,Version,BuildNumber,OSArchitecture -OperationTimeoutSec 3
-$machine = Get-CimInstance Win32_ComputerSystem -Property Model,NumberOfLogicalProcessors -OperationTimeoutSec 3
-$cpu = @(Get-CimInstance Win32_Processor -Property Name -OperationTimeoutSec 3 | ForEach-Object { $_.Name })
-$adapters = @(Get-CimInstance Win32_VideoController -Property Name,DriverVersion -OperationTimeoutSec 3 | ForEach-Object {
-    @{ model = $_.Name; driver_version = $_.DriverVersion }
-})
 $report = [ordered]@{
     schema_version = 'device-audit.windows-probe.v1'
     purpose = 'development_source_availability_and_probe_cost_only'
+    provenance = 'real'
     started_at = [DateTime]::UtcNow.ToString('o')
     environment = @{
-        os = $os.Caption; version = $os.Version; build = $os.BuildNumber; architecture = $os.OSArchitecture
-        model = $machine.Model; processors = $cpu; logical_processors = $machine.NumberOfLogicalProcessors
-        display_adapters = $adapters; elevated = $elevated; powershell = $PSVersionTable.PSVersion.ToString()
+        version = [Environment]::OSVersion.Version.ToString()
+        architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+        elevated = $elevated; powershell = $PSVersionTable.PSVersion.ToString()
         context = 'interactive_token_not_service_qualification'
     }
     samples = $Samples; interval_seconds = $IntervalSeconds; timeout_seconds = $TimeoutSeconds

@@ -3,13 +3,16 @@
 Enable Nix's `nix-command` and `flakes` experimental features. From the repository
 root, run `nix develop` or `nix develop .#<profile>`.
 
-- `default` combines Go, Python model/schema tests, project automation and Nix tools.
+- `default` combines Go, Python model/schema tests, project automation, Nix tools
+  and PowerShell 7.6.7.
 - `go` provides Go 1.27 and a C compiler for `go test -race`. Run `make build test lint cross-build`.
 - `models` provides Python 3.12, jsonschema and RFC 3339 validation. Run `make model-check`.
 - `automation` provides Node.js 24 for `node --test tools/project-sync.test.mjs`.
 - `networking` provides the Go tools and, on Linux, strace and awk for the optional
   syscall proof. Run `make tailcat-lab-check tailcat-lab-proof`.
 - `nix` provides nixfmt, statix and deadnix. Run `nix fmt`, `statix check` and `deadnix`.
+- `powershell` provides PowerShell 7.6.7 for the portable probe regression suite:
+  `nix develop .#powershell --command pwsh -NoLogo -NoProfile -File tools/probes/Test-WindowsProbe.ps1`.
 
 Every shell includes Git, Make, curl and jq. The profiles in `profiles/` declare
 package lists; `default.nix` composes them into shells. The default shell supports
