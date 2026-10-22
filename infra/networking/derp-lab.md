@@ -51,9 +51,10 @@ make check
 make cross-build
 ```
 
-The lab report includes bootstrap-address digests, not bootstrap addresses.
-The private Tailcat address is passed only through anonymous peer pipes. Do not
-publish raw peer pipes or enable upstream credential-bearing debug logs.
+The relay report contains public-key fingerprints, not bootstrap addresses.
+The separate direct-path lab also reports a bootstrap-address digest. The private
+Tailcat address is passed only through anonymous peer pipes. Do not publish raw
+peer pipes or enable upstream credential-bearing debug logs.
 
 ## Read the evidence
 
