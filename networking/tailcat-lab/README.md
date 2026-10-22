@@ -121,8 +121,8 @@ The Tailcat address embeds the PSK and is a secret, despite its name. The test
 passes it through anonymous local pipes. It never writes it to stdout evidence,
 argv, a fixture, or source control. Child environments omit inherited Tailcat
 debug knobs, and logs and errors that could contain credential text are suppressed.
-Reports contain SHA-256 fingerprints of public keys and the bootstrap address,
-not secret keys, raw addresses, telemetry, or device identifiers.
+Reports contain SHA-256 fingerprints of public keys and the bootstrap-address digest,
+not the bootstrap address, secret keys, raw addresses, telemetry, or device identifiers.
 
 This is manual **lab network admission**, not the authenticated HTTPS enrollment
 service planned by #73 and #75. A client with the PSK but an unknown node key

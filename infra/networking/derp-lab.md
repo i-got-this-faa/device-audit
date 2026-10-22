@@ -51,8 +51,9 @@ make check
 make cross-build
 ```
 
-The lab reports only safe observations, not private keys or bootstrap addresses.
-Do not publish raw peer pipes or enable upstream credential-bearing debug logs.
+The lab report includes bootstrap-address digests, not bootstrap addresses.
+The private Tailcat address is passed only through anonymous peer pipes. Do not
+publish raw peer pipes or enable upstream credential-bearing debug logs.
 
 ## Read the evidence
 
