@@ -1,9 +1,10 @@
 # Relay and bootstrap deployment surface
 
-Reserve this directory for a self-hosted DERP relay, DERP map publication,
-TLS/bootstrap configuration, persisted server/endpoint network identity,
-firewall rules and a reproducible connectivity lab. No relay executable or
-deployment is included because Shepherd's original relay is a placeholder.
+This directory contains a [reproducible self-hosted DERP lab](derp-lab.md) and
+records the future deployment boundary for DERP maps, TLS/bootstrap
+configuration, persisted network identity, and firewall rules. The lab runs the
+pinned upstream server, not Shepherd's placeholder relay executable. It is not
+a production deployment.
 
 DERP relays encrypted WireGuard traffic; it does not authenticate application
 requests or validate device reports. Verify authentication/rate-limit options
@@ -61,6 +62,8 @@ does not establish identity.
 - Deny database connections from endpoints, the relay and the public internet.
 
 Validate these cases, secret rotation and restart identity persistence before
-exposing any service. Direct UDP, DERP-only and offline failure behavior still
-need evidence on #14's selected machines. The current unauthenticated loopback
-fixture and unavailable mesh adapter establish none of these access guarantees.
+exposing any service. The [isolated NET04 lab](derp-lab.md) measures blocked-UDP
+DERP traffic and relay restart on one Linux host. Direct UDP, DERP-only and offline
+failure behavior still need evidence on #14's selected machines. The current
+unauthenticated controller fixture and unavailable mesh adapter establish none
+of these production access guarantees.

@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -38,3 +38,5 @@ tailcat-lab-check:
 	cd networking/tailcat-lab && test -z "$$($(GO) fmt ./...)"
 tailcat-lab-proof:
 	GO=$(GO) networking/tailcat-lab/run-proof.sh
+derp-lab-proof:
+	GO=$(GO) sh infra/networking/run-derp-lab.sh

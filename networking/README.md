@@ -50,8 +50,12 @@ network keys, configured admission, and peer identity.
 [Recorded evidence](tailcat-lab/evidence/2026-10-16.md) also names failed experiments and unqualified recovery paths. Run
 `make tailcat-lab-check` and `make tailcat-lab-proof` to reproduce it.
 
-This lab is independent of the production seam and its unavailable constructors.
-The production requirements above, including real-device binding and revocation,
-remain acceptance gates for #25. The local bootstrap is not #84's deployed DERP
-qualification, and it does not implement #73/#75's bootstrap authorization or
-device-evidence signature consumers.
+The [NET04 self-hosted DERP lab](../infra/networking/derp-lab.md) adds a separate
+namespace-isolated blocked-UDP and relay-restart experiment. Run
+`make derp-lab-proof`; its [measured evidence](tailcat-lab/evidence/2026-10-21-derp.md)
+records relay forwarding and recovery without a direct path.
+
+These labs are independent of the production seam and its unavailable
+constructors. The production requirements above, including real-device binding
+and revocation, remain acceptance gates for #25. Neither lab implements
+#73/#75's bootstrap authorization or device-evidence signature consumers.

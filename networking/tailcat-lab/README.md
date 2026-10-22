@@ -7,7 +7,9 @@ UDP tunnel. No public HTTP transport or replacement UDP encryption is used.
 
 The production `networking/mesh.NewServer` and `NewClient` still return
 `ErrNotImplemented`. This lab does not implement enrollment or the controller
-transport. Production mesh #25 and self-hosted DERP qualification #84 remain open.
+transport. Production mesh #25 remains open. The separate
+[NET04 DERP lab](../../infra/networking/derp-lab.md) exercises the same pinned
+seam with UDP blocked and measures relay restart; it is not a public deployment.
 
 ## Reproduce the proof
 
@@ -119,8 +121,8 @@ The Tailcat address embeds the PSK and is a secret, despite its name. The test
 passes it through anonymous local pipes. It never writes it to stdout evidence,
 argv, a fixture, or source control. Child environments omit inherited Tailcat
 debug knobs, and logs and errors that could contain credential text are suppressed.
-Reports contain SHA-256 fingerprints of public keys and the bootstrap address,
-not secret keys, raw addresses, telemetry, or device identifiers.
+Reports contain SHA-256 fingerprints of public keys and the bootstrap-address digest,
+not the bootstrap address, secret keys, raw addresses, telemetry, or device identifiers.
 
 This is manual **lab network admission**, not the authenticated HTTPS enrollment
 service planned by #73 and #75. A client with the PSK but an unknown node key
@@ -138,9 +140,11 @@ it does not prove endpoint measurements true. No blockchain payload is created.
 
 - The proof uses two processes on one Linux host, with direct UDP through a host
   interface and a loopback bootstrap relay. It is not a two-machine LAN test.
-- WAN, NAT traversal, blocked UDP, DERP-only operation, public relay isolation on
-  deployed hosts, Windows/macOS runtime, and long outages are not qualified.
-  Root cross-build checks the existing endpoint binaries, not this lab runtime.
+- WAN, NAT traversal, public relay isolation on deployed hosts, Windows/macOS
+  runtime, and long outages are not qualified. The separate
+  [NET04 lab](../../infra/networking/derp-lab.md) covers same-host blocked-UDP
+  DERP-only operation. Root cross-build checks the existing endpoint binaries,
+  not either lab's cross-platform runtime.
 - Restart measurement covers both peer processes exiting and starting again.
   Client-only, server-only, machine reboot, crash recovery, and in-place live
   revocation remain unqualified. Public key and bootstrap-address digests are
