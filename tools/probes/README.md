@@ -45,8 +45,9 @@ Every numeric reading has an explicit name, unit and source-local instance.
 Zero is retained only when actually returned by the provider. Null is never
 converted to zero. Missing readings carry `sensor_unavailable`, `not_applicable`,
 `permission_denied`, `collection_error`, `timeout` or `worker_error`. Every
-provider and `provenance = real`. Source-wide failure and worker timeout/error
-also emit the catalog's expected metrics as null with units, provider and reason;
+reading includes its fixed provider and `provenance = real`. Source-wide failure
+and worker timeout/error also emit the catalog's expected metrics as null with
+units, provider and reason;
 `failure_reason` remains on the source result. A worker failure has no provider
 timing or resource result. Missing fields must not be treated as measured zeros.
 

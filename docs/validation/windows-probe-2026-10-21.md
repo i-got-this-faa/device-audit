@@ -81,8 +81,13 @@ also corrected the Windows metadata model: `EventLogLink` supplies `LogName`, no
 `IsEnabled`; enabled state comes from `Get-WinEvent -ListLog`.
 
 The 225-check suite and worker smoke results above predate the scoped review
-fixes and do not verify the updated source. On 22 October, they could not be
-rerun: `pwsh` is absent from `PATH`, and `/tmp/device-audit-pwsh/pwsh` is absent.
+fixes. On 22 October, a fresh portable PowerShell 7.6.7 runtime was installed
+outside the checkout after the previous temporary runtime was unavailable.
+The updated suite passed **226 checks**, including null evidence and
+`not_applicable` export for an unassociated provider. A real Linux network worker
+returned two readings; a one-millisecond deadline produced null `timeout`
+readings; the next real worker succeeded. These runs verify portable worker
+lifecycle and fixture behavior, not the unavailable native Windows gates.
 
 No Go or Python files, shared contracts or production telemetry call sites changed,
 so the language-specific `make check`, `make cross-build` and `make model-check`
