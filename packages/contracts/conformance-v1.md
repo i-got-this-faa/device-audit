@@ -8,16 +8,17 @@ make contract-check
 ```
 
 CI runs that exact command after installing `models/test-requirements.txt` and
-the Go version from `go.mod`. The local Projects checkout provides those tools
-through its parent flake:
+the Go version from `go.mod`. This repository provides those tools through its
+own development flake:
 
 ```sh
-nix develop /home/cier/Projects --command make contract-check check cross-build demo
+nix develop --command make contract-check check cross-build demo
 ```
 
-The parent flake is outside this repository. A standalone checkout needs Go
-1.27.1, Make, Python 3.12+ and the pinned test dependencies described in the root
-README. No new production dependency or Python signature library is introduced.
+Without Nix, a standalone checkout needs Go 1.27.1, Make, Python 3.12+ and the
+pinned test dependencies described in the root README. The Nix shell versions
+are recorded in `flake.lock`; see [dependency profiles](../../nix/README.md).
+No new production dependency or Python signature library is introduced.
 
 ## Catalogue and evidence
 

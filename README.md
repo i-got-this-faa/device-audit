@@ -21,6 +21,19 @@ Source traceability does not establish implementation or patent conformance.
 
 ## Start locally
 
+With Nix and flakes enabled, enter the combined development shell:
+
+```sh
+nix develop
+make contract-check check cross-build demo
+node --test tools/project-sync.test.mjs
+```
+
+For automatic activation, install and hook direnv with nix-direnv, then run
+`direnv allow` in this checkout. The root `.envrc` loads the default profile.
+See [dependency profiles](nix/README.md) for smaller task-specific shells and
+the distinction between Nix-locked and pip-pinned Python test dependencies.
+
 Install Go 1.27.1 and Python 3.12+. Go's toolchain auto-selection can download
 the version in `go.mod`. Python dependencies are test-only; install them in a
 virtual environment before running the checks:
@@ -62,6 +75,21 @@ Health remains `unknown`; no trained model or failure forecast is fabricated.
 Run `make contract-check` for the shared Go/schema/Python fixture harness and its
 machine-readable evidence report. See [contract conformance](packages/contracts/conformance-v1.md)
 for the exact reader boundaries and Nix command.
+
+Run `make replay-check` for the independent signed endpoint replay fake.
+To target an already running development controller, use:
+
+```sh
+go run ./tools/fakes/endpoint-replay --controller http://127.0.0.1:8080 --profile scaffold --scenario all
+```
+
+The scaffold profile expects rejection, not successful signed ingestion.
+The controller rejects signed telemetry envelopes with HTTP 400 and has no
+diagnostic or federated routes, which return HTTP 404.
+See the [replay guide](tools/fakes/README.md) for canonical fixture families,
+configurable routes and expected responses, interrupted requests, and limits.
+The contract-aware fake server used by CI is test-only. Neither fake replaces
+real-device qualification or implements controller admission.
 
 ## Repository
 

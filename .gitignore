@@ -2,6 +2,9 @@
 /artifacts/
 .env
 .venv/
+.direnv/
+/result
+/result-*
 __pycache__/
 *.pyc
 *.egg-info/

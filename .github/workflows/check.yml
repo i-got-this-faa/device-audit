@@ -42,6 +42,8 @@ jobs:
       - name: Check shared contract conformance
         run: make contract-check
       - run: make check cross-build demo
+      - name: Assert endpoint replay against contract fake and actual scaffold
+        run: make replay-check
       - name: Save contract conformance evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
