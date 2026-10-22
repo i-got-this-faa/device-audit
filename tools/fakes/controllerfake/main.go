@@ -35,7 +35,11 @@ func main() {
 }
 
 func serve(address, fixedClock string) {
-	ip := net.ParseIP(address)
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		fixtureFail(fmt.Errorf("fixture listener must be a literal loopback host:port: %w", err))
+	}
+	ip := net.ParseIP(host)
 	if ip == nil || !ip.IsLoopback() {
 		fixtureFail(fmt.Errorf("fixture listener must be a literal loopback address"))
 	}

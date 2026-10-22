@@ -2,9 +2,15 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -183,4 +189,99 @@ func TestAcknowledgementContract(t *testing.T) {
 	if acknowledgement.Status != "accepted" || acknowledgement.RejectionReason != nil {
 		t.Fatalf("accepted acknowledgement: %+v", acknowledgement)
 	}
+}
+
+func TestEnrollmentRejectsNonFixtureKey(t *testing.T) {
+	vectors, err := loadVectorFile(vectorsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(Config{Now: func() time.Time { return mustParseTime("2026-10-15T12:00:00Z") }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	httpServer := httptest.NewServer(server.Handler())
+	defer httpServer.Close()
+	var enrollment contracts.EnrollmentEnvelopeV1
+	if err := json.Unmarshal(vectors["valid enrollment"], &enrollment); err != nil {
+		t.Fatal(err)
+	}
+	key := ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize))
+	publicKey := key.Public().(ed25519.PublicKey)
+	enrollment.PublicKey = hex.EncodeToString(publicKey)
+	enrollment.SigningKeyID, err = contracts.SigningKeyIDV1(publicKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	message, err := enrollment.SigningBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	enrollment.Signature = hex.EncodeToString(ed25519.Sign(key, message))
+	if err := enrollment.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	body, err := json.Marshal(enrollment)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ack, err := postEnvelope(context.Background(), httpServer.Client(), httpServer.URL+"/v1/envelopes", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ack.Status != "rejected" || ack.RejectionReason == nil || *ack.RejectionReason != "key_mismatch" {
+		t.Fatalf("non-fixture enrollment: %+v", ack)
+	}
+	server.mu.Lock()
+	if len(server.devices) != 0 || len(server.highWater) != 0 || len(server.challenges) != 0 {
+		t.Error("rejected key changed fixture state")
+	}
+	server.mu.Unlock()
+	// The rejected request must not consume the fixture's challenge or device ID.
+	ack, err = postEnvelope(context.Background(), httpServer.Client(), httpServer.URL+"/v1/envelopes", vectors["valid enrollment"])
+	if err != nil || ack.Status != "accepted" {
+		t.Fatalf("fixture enrollment: %+v err=%v", ack, err)
+	}
+}
+
+func TestServeCLI(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "controllerfake.exe")
+	if output, err := exec.Command("go", "build", "-o", binary, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v %s", err, output)
+	}
+	for _, address := range []string{"0.0.0.0:0", "[::]:0", "localhost:0", "127.0.0.1"} {
+		if output, err := exec.Command(binary, "--listen", address).CombinedOutput(); err == nil || !strings.Contains(string(output), "literal loopback") {
+			t.Fatalf("unsafe listener %q: err=%v output=%s", address, err, output)
+		}
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	listener.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	command := exec.CommandContext(ctx, binary, "--listen", address)
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { cancel(); _ = command.Wait() }()
+	client := &http.Client{Timeout: 200 * time.Millisecond}
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
+		response, err := client.Get("http://" + address + "/healthz")
+		if err == nil {
+			body, readErr := io.ReadAll(response.Body)
+			response.Body.Close()
+			if readErr != nil {
+				t.Fatal(readErr)
+			}
+			if response.StatusCode != http.StatusOK || response.Header.Get("X-Device-Audit-Fixture") != "true" || !strings.Contains(string(body), `"admission":"fixture_keys_only"`) {
+				t.Fatalf("health response=%s", body)
+			}
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatal("fixture CLI did not serve health on a literal loopback host:port")
 }

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
@@ -19,6 +20,9 @@ import (
 const (
 	// FixtureDeploymentID matches the public envelope vectors.
 	FixtureDeploymentID = "deployment:fixture-01"
+
+	// Device public key is pinned by the enrollment contract vectors.
+	fixtureDevicePublicKey = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
 
 	// Controller seed is the public RFC 8032 test seed used by the contract vectors.
 	controllerSeed = "4ccd089b28ff96da9db6c346ec114e0f5b8a319f35aba624da8cf6ed4fb8a6fb"
@@ -142,6 +146,10 @@ func (s *Server) handleEnrollment(w http.ResponseWriter, enrollment contracts.En
 	publicKey, _ := hex.DecodeString(enrollment.PublicKey)
 	if err := verifyRequestSignature(enrollment.SigningKeyID, enrollment.Signature, publicKey, request.signingBytes); err != nil {
 		s.reject(w, request, err.Error(), nil)
+		return
+	}
+	if !bytes.Equal(publicKey, mustHex(fixtureDevicePublicKey)) {
+		s.reject(w, request, "key_mismatch", nil)
 		return
 	}
 	if err := enrollment.Validate(); err != nil {
