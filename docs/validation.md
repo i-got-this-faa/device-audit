@@ -186,3 +186,34 @@ schema readers do not reproduce all Go semantics. Replay clocks and durable mark
 are fixture inputs, not real persisted/restarted services. Both owners' fixture
 review remains required before dependent implementations merge. No live collector,
 authorization, database, training, chain or patent capability is established.
+
+## Independent controller fake, TST01 #17
+
+Validated locally on 2026-10-21 with Go 1.27.1 on Linux amd64. The command below
+uses the public envelope vectors and fixed fixture clock; the CI workflow runs
+the same suite and stores its JSON report as the `controller-fixture` artifact.
+
+```sh
+nix develop /home/cier/Projects --command make fake-check
+```
+
+The four scenarios passed: enrollment assignment (sequences 1 and 2), inclusive
+`expired` rejection, unreachable-controller failure with no acknowledgement, and
+`replay` rejection with an unchanged sequence-2 mark. The client verified each
+controller acknowledgement signature and contract before accepting the result.
+
+This is fixture evidence only. The fake stores identities and sequence marks in
+memory, accepts only public RFC 8032 test keys, issues no enrollment challenge
+and implements no production admission, concurrency or restart durability.
+
+## Review follow-up for #178
+
+On 2026-10-22 both review findings reproduced before the fixes: the fixture CLI
+failed to serve a loopback host:port, and a correctly signed enrollment with a
+non-fixture key was accepted. Regression tests now exercise the compiled CLI's
+health route, reject non-literal/non-loopback listeners, and verify rejection of
+non-fixture keys without consuming device, sequence or challenge state.
+
+`nix develop --command make check cross-build replay-check` passed after rebasing
+onto main. The conflict resolution retains both controller-fixture and
+endpoint-replay commands and documentation.
