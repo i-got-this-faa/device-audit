@@ -76,6 +76,21 @@ Run `make contract-check` for the shared Go/schema/Python fixture harness and it
 machine-readable evidence report. See [contract conformance](packages/contracts/conformance-v1.md)
 for the exact reader boundaries and Nix command.
 
+Run `make replay-check` for the independent signed endpoint replay fake.
+To target an already running development controller, use:
+
+```sh
+go run ./tools/fakes/endpoint-replay --controller http://127.0.0.1:8080 --profile scaffold --scenario all
+```
+
+The scaffold profile expects rejection, not successful signed ingestion.
+The controller rejects signed telemetry envelopes with HTTP 400 and has no
+diagnostic or federated routes, which return HTTP 404.
+See the [replay guide](tools/fakes/README.md) for canonical fixture families,
+configurable routes and expected responses, interrupted requests, and limits.
+The contract-aware fake server used by CI is test-only. Neither fake replaces
+real-device qualification or implements controller admission.
+
 ## Repository
 
 - `apps/controller`, `internal/controller`: working loopback ingestion skeleton.

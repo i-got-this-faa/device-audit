@@ -1,0 +1,130 @@
+{
+  "fixture": true,
+  "fixed_time": "2026-10-19T12:30:00Z",
+  "device_id": "fixture-replay-device",
+  "device_public_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "telemetry": {
+    "fixture_id": "fixture-replay-telemetry-v1",
+    "sequence": 2,
+    "body": {
+      "schema_version": "device-audit.evidence.v1",
+      "deployment_id": "fixture-replay-deployment",
+      "device_id": "fixture-replay-device",
+      "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+      "sequence": 2,
+      "issued_at": "2026-10-19T12:00:00Z",
+      "expires_at": "2026-10-19T13:00:00Z",
+      "payload_schema_version": "device-audit.telemetry.v2",
+      "payload_base64": "eyJzY2hlbWFfdmVyc2lvbiI6ImRldmljZS1hdWRpdC50ZWxlbWV0cnkudjIiLCJkZXZpY2VfaWQiOiJmaXh0dXJlLXJlcGxheS1kZXZpY2UiLCJjb2xsZWN0ZWRfYXQiOiIyMDI2LTEwLTE5VDEyOjAwOjAwWiIsInNvdXJjZSI6ImZpeHR1cmUiLCJtZXRyaWNzIjp7ImNwdV91dGlsaXphdGlvbiI6eyJ2YWx1ZSI6MTIuNSwidW5pdCI6InBlcmNlbnQifX0sImludmVudG9yeSI6eyJjb21wb25lbnRzIjpbXX0sImxvZ19yZWZlcmVuY2VzIjpbXX0=",
+      "payload_sha256": "ebc99c9faa3f087460004ffcce674a7fe7b78f789f7788284491163ef58685a9",
+      "signature": "2f41af36d1303aaea8c1f6b8957780564f33822b4bd988b0daa9fe43ffc30e74c9c49fe9e40a3978b4685c877d15bb4f501b1c70c7b76b7ac856998aef0a4006"
+    }
+  },
+  "diagnostics": {
+    "assignment": {
+      "fixture_id": "fixture-replay-diagnostic-assignment-v1",
+      "sequence": 1,
+      "body": {
+        "schema_version": "device-audit.diagnostic-assignment.v1",
+        "deployment_id": "fixture-replay-deployment",
+        "device_id": "fixture-replay-device",
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "sequence": 1,
+        "issued_at": "2026-10-19T12:00:00Z",
+        "expires_at": "2026-10-19T12:05:00Z",
+        "assignment_id": "fixture-replay-assignment",
+        "probe_id": "storage_health.v1",
+        "arguments": {
+          "component_id": "fixture-replay-storage",
+          "lookback_seconds": null,
+          "max_entries": null
+        },
+        "budget": {
+          "wall_seconds": 60,
+          "max_output_bytes": 4096
+        },
+        "signature": "a7ab11b20003ff46a7383b866a30cd41ea9e3aca9c25721d7a84a2950a2c3400dd56839a796eb57cad5b597ff6b33806c735dcb68e6daa2a62514d2f5148a706"
+      }
+    },
+    "result": {
+      "fixture_id": "fixture-replay-diagnostic-result-v1",
+      "sequence": 3,
+      "body": {
+        "schema_version": "device-audit.diagnostic-result.v1",
+        "deployment_id": "fixture-replay-deployment",
+        "device_id": "fixture-replay-device",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 3,
+        "issued_at": "2026-10-19T12:00:30Z",
+        "expires_at": "2026-10-20T12:00:30Z",
+        "assignment_id": "fixture-replay-assignment",
+        "assignment_sha256": "96b51d3eb10cf7209692e2ff4b631ae3d26c8b03e4114c51140c6ff19ec50a26",
+        "boot_id": "fixture-replay-boot",
+        "started_at": "2026-10-19T12:00:01Z",
+        "finished_at": "2026-10-19T12:00:30Z",
+        "state": "succeeded",
+        "reason": null,
+        "evidence": [
+          {
+            "reference_id": "fixture-replay-evidence",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size_bytes": 1024
+          }
+        ],
+        "signature": "0050ea607291656e3ec52db5923d3ee149c08927d0f61e7bd353c5e9280249f6cab98893e0504e64ad24807b808d15681c8bc8a8e2df03bccac20aa25f037803"
+      }
+    },
+    "controller_public_key": "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+  },
+  "federated": {
+    "round": {
+      "schema_version": "device-audit.federated-round.v1",
+      "deployment_id": "fixture-replay-deployment",
+      "round_id": "fixture-replay-round",
+      "base_model_version": "fixture-replay-base-v1",
+      "base_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_id": "fixture-replay-candidate",
+      "feature_version": "fixture-replay-features-v1",
+      "parameter_count": 2,
+      "opened_at": "2026-10-19T12:00:00Z",
+      "deadline": "2026-10-19T13:00:00Z",
+      "min_participants": 2,
+      "participants": [
+        {
+          "device_id": "fixture-replay-device",
+          "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+          "eligibility": "eligible",
+          "reason": null
+        },
+        {
+          "device_id": "fixture-replay-peer",
+          "signing_key_id": "ed25519:dac073e0123bdea59dd9b3bda9cf6037f63aca82627d7abcd5c4ac29dd74003e",
+          "eligibility": "eligible",
+          "reason": null
+        }
+      ]
+    },
+    "update": {
+      "fixture_id": "fixture-replay-federated-update-v1",
+      "sequence": 4,
+      "body": {
+        "schema_version": "device-audit.federated-update.v1",
+        "deployment_id": "fixture-replay-deployment",
+        "device_id": "fixture-replay-device",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "sequence": 4,
+        "issued_at": "2026-10-19T12:10:00Z",
+        "expires_at": "2026-10-19T13:00:00Z",
+        "round_id": "fixture-replay-round",
+        "base_model_version": "fixture-replay-base-v1",
+        "base_model_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "candidate_id": "fixture-replay-candidate",
+        "feature_version": "fixture-replay-features-v1",
+        "sample_count": 24,
+        "weights_base64": "P9AAAAAAAAC/4AAAAAAAAA==",
+        "update_sha256": "787dcadc08bc0595e2f15c744f12a12613b42a9cc4d510c6c596f50bdbd2375a",
+        "signature": "eb617ae8be6a0b5ade8a537988ebda7cb05cebe5991f58e01f131039e4c9f0c1d342d92ddf93201001f5e874ad18cc7252b06ae1e1aee6672fd0a3e246ff460b"
+      }
+    }
+  }
+}
