@@ -46,6 +46,26 @@ The integration tests create isolated databases and cover:
 
 CI runs the same target against a PostgreSQL 17 service.
 
+## Backup and recovery assumptions
+
+These are provisional deployment requirements from decision #73. Backup and
+restore automation and recovery qualification are not implemented by #19.
+
+- Plan encrypted daily backups to storage outside the database host and a
+  backup before migrations. Successful daily backups assume up to 24 hours of
+  data loss after host loss. This is not a measured recovery guarantee.
+  Retention, restore time and final recovery objectives remain open. A
+  persistent volume alone is not a backup.
+- The deployment operator owns backup access, encryption/recovery keys and
+  restore procedures. Keep recovery keys recoverable independently of the lost
+  host, with access restricted to authorized operators. Dedicate backups and
+  credentials to the deployment's single organization.
+- Before release, prove that committed records survive controller and database
+  restarts, database outages reject writes, and an off-host backup restores onto
+  a clean host. Check enrollment, revocation and replay state after restoring,
+  before reopening ingestion. Stale security state must not silently re-admit
+  devices or reports. Record actual data loss and restore time.
+
 ## Still open
 
 - Persisting devices, telemetry samples, enrollment, revocation and replay
