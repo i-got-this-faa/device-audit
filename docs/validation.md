@@ -240,3 +240,12 @@ listener opens, while a successful run reports `database=connected` and
 This evidence covers schema application only. Telemetry, enrollment, revocation
 and replay state are still memory-only; backup/restore, database outage
 behavior for writes, retention, TLS and least-privilege roles remain untested.
+
+## Review follow-up for #179
+
+On 2026-10-22 a compiled-controller regression test reproduced disclosure of a
+synthetic database password in both help and malformed-argument usage output.
+The flag now registers an empty default and resolves its environment fallback
+after parsing. Tests also verify that an explicitly empty database URL disables
+that fallback. `nix develop --command make check cross-build database-check`
+passed with `TEST_DATABASE_URL` pointing to a disposable PostgreSQL 17.11 cluster.

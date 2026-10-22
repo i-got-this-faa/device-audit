@@ -29,9 +29,14 @@ func run(ctx context.Context, args []string, defaultDatabaseURL string) error {
 	flags := flag.NewFlagSet("controller", flag.ContinueOnError)
 	address := flags.String("listen", "127.0.0.1:8080", "loopback development listener")
 	transport := flags.String("transport", "loopback", "loopback or mesh")
-	databaseURL := flags.String("database-url", defaultDatabaseURL, "PostgreSQL URL; empty keeps development samples in memory")
+	databaseURL := flags.String("database-url", "", "PostgreSQL URL; empty keeps development samples in memory")
 	if err := flags.Parse(args); err != nil {
 		return err
+	}
+	provided := make(map[string]bool)
+	flags.Visit(func(f *flag.Flag) { provided[f.Name] = true })
+	if !provided["database-url"] {
+		*databaseURL = defaultDatabaseURL
 	}
 	if *transport != "loopback" {
 		return fmt.Errorf("transport %q: %w", *transport, mesh.ErrNotImplemented)

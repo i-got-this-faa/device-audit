@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -145,4 +147,41 @@ func testDatabase(t *testing.T) string {
 	testURL := *parsed
 	testURL.Path = "/" + name
 	return testURL.String()
+}
+
+func TestCLIUsageDoesNotExposeDatabaseURL(t *testing.T) {
+	binary := filepath.Join(t.TempDir(), "controller.exe")
+	if output, err := exec.Command("go", "build", "-o", binary, ".").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v %s", err, output)
+	}
+	for _, argument := range []string{"--help", "--invalid-argument"} {
+		command := exec.Command(binary, argument)
+		command.Env = append(os.Environ(), "DEVICE_AUDIT_DATABASE_URL=postgres://user:synthetic-database-password@127.0.0.1/db")
+		output, err := command.CombinedOutput()
+		if err == nil {
+			t.Fatalf("%s should exit with help/parse status", argument)
+		}
+		if strings.Contains(string(output), "synthetic-database-password") {
+			t.Errorf("%s exposed database password", argument)
+		}
+		if !strings.Contains(string(output), "database-url") {
+			t.Fatalf("%s did not print usage", argument)
+		}
+	}
+}
+
+func TestDatabaseEnvironmentFallbackAndExplicitEmpty(t *testing.T) {
+	databaseURL := "postgres://deviceaudit@127.0.0.1:1/device_audit?sslmode=disable&connect_timeout=1"
+	for _, explicitEmpty := range []bool{false, true} {
+		args := []string{"--listen", "invalid-address"}
+		want := "database startup failed"
+		if explicitEmpty {
+			args = append(args, "--database-url=")
+			want = "listen failed"
+		}
+		err := run(context.Background(), args, databaseURL)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("explicit empty=%v: got %v want %s", explicitEmpty, err, want)
+		}
+	}
 }
