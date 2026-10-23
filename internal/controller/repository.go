@@ -17,10 +17,15 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+const (
+	enrollmentChallengeEntropyBytes = 32
+	postgresUniqueViolationSQLState = "23505"
+)
+
 var (
 	ErrRepositoryUnavailable = errors.New("device repository unavailable")
 	ErrRepositoryNotFound    = errors.New("device repository record not found")
-	repositoryIDPattern      = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
+	repositoryIDPattern      = regexp.MustCompile(contracts.OpaqueIDPattern)
 )
 
 // RepositoryRejection is a storage/contract outcome, not a wire acknowledgement.
@@ -105,13 +110,13 @@ func (s *PostgresRepository) CreateEnrollmentChallenge(ctx context.Context, devi
 	if now.IsZero() {
 		return EnrollmentChallenge{}, errors.New("receiver clock is required")
 	}
-	var random [32]byte
+	var random [enrollmentChallengeEntropyBytes]byte
 	if _, err := rand.Read(random[:]); err != nil {
 		return EnrollmentChallenge{}, fmt.Errorf("generate enrollment challenge: %w", err)
 	}
 	challenge := EnrollmentChallenge{
 		ID: hex.EncodeToString(random[:]), DeviceID: deviceID, SigningKeyID: keyID,
-		AuthorizationReference: authorizationReference, CreatedAt: now, ExpiresAt: now.Add(10 * time.Minute),
+		AuthorizationReference: authorizationReference, CreatedAt: now, ExpiresAt: now.Add(contracts.EnrollmentMaxLifetimeV1),
 	}
 	tx, err := s.beginWrite(ctx)
 	if err != nil {
@@ -132,17 +137,17 @@ func (s *PostgresRepository) CreateEnrollmentChallenge(ctx context.Context, devi
 
 func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.EnrollmentEnvelopeV1) error {
 	if envelope.DeploymentID != s.deploymentID {
-		return &RepositoryRejection{Reason: "deployment_mismatch"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionDeploymentMismatch}
 	}
 	if err := envelope.Validate(); err != nil {
-		return &RepositoryRejection{Reason: "invalid_payload"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	publicKey, err := hex.DecodeString(envelope.PublicKey)
 	if err != nil {
-		return &RepositoryRejection{Reason: "invalid_payload"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	if err := envelope.VerifySignature(publicKey); err != nil {
-		return &RepositoryRejection{Reason: "invalid_signature"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
 	}
 	tx, err := s.beginWrite(ctx)
 	if err != nil {
@@ -154,25 +159,25 @@ func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.Enro
 		FROM enrollment_challenges WHERE deployment_id=$1 AND id=$2 FOR UPDATE`,
 		s.deploymentID, envelope.ChallengeID).Scan(&challenge.DeviceID, &challenge.SigningKeyID, &challenge.CreatedAt, &challenge.ExpiresAt, &challenge.ConsumedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return &RepositoryRejection{Reason: "bootstrap_invalid"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionBootstrapInvalid}
 	}
 	if err != nil {
 		return repositoryUnavailable(err)
 	}
 	if challenge.DeviceID != envelope.DeviceID || challenge.SigningKeyID != envelope.SigningKeyID {
-		return &RepositoryRejection{Reason: "bootstrap_invalid"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionBootstrapInvalid}
 	}
 	if challenge.ConsumedAt != nil {
-		return &RepositoryRejection{Reason: "challenge_reused"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionChallengeReused}
 	}
 	now := s.now().UTC()
 	if !now.Before(challenge.ExpiresAt) {
-		return &RepositoryRejection{Reason: "challenge_expired"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionChallengeExpired}
 	}
 	if now.Before(challenge.CreatedAt) {
-		return &RepositoryRejection{Reason: "bootstrap_invalid"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionBootstrapInvalid}
 	}
-	if reason, err := envelope.EnvelopeHeaderV1.FreshnessRejection(now, 0); err != nil {
+	if reason, err := envelope.EnvelopeHeaderV1.FreshnessRejection(now, contracts.UnenrolledSequenceV1); err != nil {
 		return err
 	} else if reason != "" {
 		return &RepositoryRejection{Reason: reason}
@@ -185,12 +190,12 @@ func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.Enro
 	requestDigest, _ := contracts.EnvelopeRequestSHA256V1(signingBytes, envelope.Signature)
 	_, err = tx.ExecContext(ctx, `INSERT INTO device_enrollments
 		(deployment_id, device_id, signing_key_id, public_key, challenge_id, envelope, request_sha256, enrolled_at, last_sequence)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1)`, s.deploymentID, envelope.DeviceID, envelope.SigningKeyID, publicKey,
-		envelope.ChallengeID, string(encoded), decodeRepositoryDigest(requestDigest), now)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, s.deploymentID, envelope.DeviceID, envelope.SigningKeyID, publicKey,
+		envelope.ChallengeID, string(encoded), decodeRepositoryDigest(requestDigest), now, contracts.EnrollmentSequenceV1)
 	if err != nil {
 		var pgError *pgconn.PgError
-		if errors.As(err, &pgError) && pgError.Code == "23505" {
-			return &RepositoryRejection{Reason: "enrollment_conflict"}
+		if errors.As(err, &pgError) && pgError.Code == postgresUniqueViolationSQLState {
+			return &RepositoryRejection{Reason: contracts.EnvelopeRejectionEnrollmentConflict}
 		}
 		return repositoryUnavailable(err)
 	}
@@ -206,10 +211,10 @@ func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.Enro
 // Callers must authorize the authenticated peer before invoking this method.
 func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contracts.EvidenceEnvelopeV1) error {
 	if envelope.DeploymentID != s.deploymentID {
-		return &RepositoryRejection{Reason: "deployment_mismatch"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionDeploymentMismatch}
 	}
 	if err := envelope.Validate(); err != nil {
-		return &RepositoryRejection{Reason: "invalid_payload"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	tx, err := s.beginWrite(ctx)
 	if err != nil {
@@ -222,16 +227,16 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	err = tx.QueryRowContext(ctx, `SELECT public_key, last_sequence, revoked_at FROM device_enrollments
 		WHERE deployment_id=$1 AND device_id=$2 FOR UPDATE`, s.deploymentID, envelope.DeviceID).Scan(&publicKey, &lastSequence, &revokedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return &RepositoryRejection{Reason: "unknown_device"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionUnknownDevice}
 	}
 	if err != nil {
 		return repositoryUnavailable(err)
 	}
 	if revokedAt != nil {
-		return &RepositoryRejection{Reason: "revoked_key"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionRevokedKey}
 	}
 	if err := envelope.VerifySignature(publicKey); err != nil {
-		return &RepositoryRejection{Reason: "invalid_signature"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
 	}
 	// Read the clock after acquiring the lock: a waiter may have expired.
 	now := s.now().UTC()
@@ -243,7 +248,7 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	payload, _ := base64.StdEncoding.Strict().DecodeString(envelope.PayloadBase64)
 	var telemetry contracts.TelemetryV2
 	if err := json.Unmarshal(payload, &telemetry); err != nil {
-		return &RepositoryRejection{Reason: "invalid_payload"}
+		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	encoded, err := json.Marshal(envelope)
 	if err != nil {

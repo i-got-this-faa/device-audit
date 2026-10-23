@@ -24,17 +24,25 @@ import (
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
-var repositoryFixtureTime = time.Date(2026, 10, 15, 12, 0, 0, 0, time.UTC)
+const (
+	repositoryTestTimeout                   = 10 * time.Second
+	repositoryTestPollInterval              = 10 * time.Millisecond
+	repositoryFixtureSeedHex                = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+	repositoryFixturePath                   = "../../packages/contracts/fixtures/envelopes/v1-vectors.json"
+	repositoryFixtureAuthorizationReference = "authorization:fixture"
+	repositoryFixtureEvidenceRequestSHA256  = "0887d62032237d1975aacc3e4e1865b14bcbda46537be3af86c3941bbec70aea"
+	repositoryConcurrentEnrollments         = 8
+)
 
 // Public RFC 8032 test seed, also used by the shared envelope fixtures.
 func repositoryFixtureKey() ed25519.PrivateKey {
-	seed, _ := hex.DecodeString("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
+	seed, _ := hex.DecodeString(repositoryFixtureSeedHex)
 	return ed25519.NewKeyFromSeed(seed)
 }
 
 func repositoryEnvelopes(t *testing.T) (contracts.EnrollmentEnvelopeV1, contracts.EvidenceEnvelopeV1) {
 	t.Helper()
-	data, err := os.ReadFile("../../packages/contracts/fixtures/envelopes/v1-vectors.json")
+	data, err := os.ReadFile(repositoryFixturePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,11 +115,22 @@ func openRepositoryTestDB(t *testing.T) (*sql.DB, string) {
 	return db, parsed.String()
 }
 
+func repositoryFixtureTime(t *testing.T) time.Time {
+	t.Helper()
+	enrollment, _ := repositoryEnvelopes(t)
+	now, err := time.Parse(time.RFC3339, enrollment.IssuedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return now
+}
+
 func fixtureRepository(t *testing.T, db *sql.DB) *PostgresRepository {
 	t.Helper()
 	enrollment, _ := repositoryEnvelopes(t)
+	now := repositoryFixtureTime(t)
 	repo, err := NewPostgresRepository(context.Background(), db, RepositoryConfig{
-		DeploymentID: enrollment.DeploymentID, Now: func() time.Time { return repositoryFixtureTime },
+		DeploymentID: enrollment.DeploymentID, Now: func() time.Time { return now },
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -140,7 +159,7 @@ func signRepositoryEvidence(t *testing.T, envelope *contracts.EvidenceEnvelopeV1
 func enrollRepositoryFixture(t *testing.T, repo *PostgresRepository) contracts.EnrollmentEnvelopeV1 {
 	t.Helper()
 	envelope, _ := repositoryEnvelopes(t)
-	challenge, err := repo.CreateEnrollmentChallenge(context.Background(), envelope.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), "authorization:fixture")
+	challenge, err := repo.CreateEnrollmentChallenge(context.Background(), envelope.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -165,7 +184,8 @@ func requireRepositoryState(t *testing.T, db *sql.DB, sequence uint64, samples i
 	t.Helper()
 	var mark uint64
 	var count int
-	if err := db.QueryRow(`SELECT last_sequence FROM device_enrollments WHERE device_id='asset:fixture-01'`).Scan(&mark); err != nil {
+	enrollment, _ := repositoryEnvelopes(t)
+	if err := db.QueryRow(`SELECT last_sequence FROM device_enrollments WHERE device_id=$1`, enrollment.DeviceID).Scan(&mark); err != nil {
 		t.Fatal(err)
 	}
 	if err := db.QueryRow(`SELECT count(*) FROM device_evidence`).Scan(&count); err != nil {
@@ -193,17 +213,17 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	defer reopened.Close()
 	repo = fixtureRepository(t, reopened)
 	device, err := repo.Device(ctx, enrollment.DeviceID)
-	if err != nil || device.LastSequence != 2 || !reflect.DeepEqual(device.Envelope, enrollment) || !device.EnrolledAt.Equal(repositoryFixtureTime) {
+	if err != nil || device.LastSequence != contracts.FirstEvidenceSequenceV1 || !reflect.DeepEqual(device.Envelope, enrollment) || !device.EnrolledAt.Equal(repositoryFixtureTime(t)) {
 		t.Fatalf("reopened identity=%+v err=%v", device, err)
 	}
-	stored, err := repo.Evidence(ctx, evidence.DeviceID, 2)
+	stored, err := repo.Evidence(ctx, evidence.DeviceID, evidence.Sequence)
 	if err != nil {
 		t.Fatal(err)
 	}
 	payload, _ := base64.StdEncoding.DecodeString(evidence.PayloadBase64)
 	if !bytes.Equal(stored.PayloadBytes, payload) || !reflect.DeepEqual(stored.Envelope, evidence) ||
-		stored.RequestSHA256 != "0887d62032237d1975aacc3e4e1865b14bcbda46537be3af86c3941bbec70aea" ||
-		!stored.ReceivedAt.Equal(repositoryFixtureTime) || !stored.CollectedAt.Equal(repositoryFixtureTime.Add(-24*time.Hour)) {
+		stored.RequestSHA256 != repositoryFixtureEvidenceRequestSHA256 ||
+		!stored.ReceivedAt.Equal(repositoryFixtureTime(t)) || !stored.CollectedAt.Equal(repositoryFixtureTime(t).Add(-contracts.EvidenceMaxLifetimeV1)) {
 		t.Fatalf("stored provenance differs: %+v", stored)
 	}
 	if err := stored.Envelope.VerifySignature(repositoryFixtureKey().Public().(ed25519.PublicKey)); err != nil {
@@ -216,16 +236,17 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	if telemetry.Metrics.GPUUtilization.Value != nil || telemetry.Metrics.GPUUtilization.Unit != "percent" || telemetry.Metrics.GPUUtilization.MissingReason != "sensor_unavailable" {
 		t.Fatalf("nullable metric lost: %+v", telemetry.Metrics.GPUUtilization)
 	}
-	rejection := requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "replay")
-	if rejection.LastSequence == nil || *rejection.LastSequence != 2 {
+	rejection := requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	if rejection.LastSequence == nil || *rejection.LastSequence != contracts.FirstEvidenceSequenceV1 {
 		t.Fatalf("replay lacks committed mark: %+v", rejection)
 	}
 	// Retention of sample bodies must never control replay protection.
 	if _, err := reopened.Exec(`DELETE FROM device_evidence`); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "replay")
-	for _, sequence := range []uint64{100, contracts.MaxEnvelopeSequence} {
+	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	const sequenceGap = 100
+	for _, sequence := range []uint64{sequenceGap, contracts.MaxEnvelopeSequence} {
 		evidence.Sequence = sequence
 		signRepositoryEvidence(t, &evidence)
 		if err := repo.AcceptEvidence(ctx, evidence); err != nil {
@@ -233,9 +254,9 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 		}
 	}
 	requireRepositoryState(t, reopened, contracts.MaxEnvelopeSequence, 2)
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "replay")
+	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
 	evidence.Sequence++
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "invalid_payload")
+	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionInvalidPayload)
 }
 
 func TestRepositoryExactPayloadWhitespace(t *testing.T) {
@@ -255,7 +276,7 @@ func TestRepositoryExactPayloadWhitespace(t *testing.T) {
 	if err := repo.AcceptEvidence(context.Background(), evidence); err != nil {
 		t.Fatal(err)
 	}
-	stored, err := repo.Evidence(context.Background(), evidence.DeviceID, 2)
+	stored, err := repo.Evidence(context.Background(), evidence.DeviceID, evidence.Sequence)
 	if err != nil || !bytes.Equal(stored.PayloadBytes, changed) {
 		t.Fatalf("exact signed bytes were normalized: err=%v", err)
 	}
@@ -266,7 +287,7 @@ func TestRepositoryEnrollmentAtomicityAndConflicts(t *testing.T) {
 	repo := fixtureRepository(t, db)
 	ctx := context.Background()
 	enrollment, _ := repositoryEnvelopes(t)
-	challenge, err := repo.CreateEnrollmentChallenge(ctx, enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), "authorization:fixture")
+	challenge, err := repo.CreateEnrollmentChallenge(ctx, enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -294,21 +315,21 @@ func TestRepositoryEnrollmentAtomicityAndConflicts(t *testing.T) {
 	if err := repo.Enroll(ctx, enrollment); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), "challenge_reused")
+	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionChallengeReused)
 	for _, deviceID := range []string{enrollment.DeviceID, "asset:another"} {
-		challenge, err := repo.CreateEnrollmentChallenge(ctx, deviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), "authorization:fixture")
+		challenge, err := repo.CreateEnrollmentChallenge(ctx, deviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference)
 		if err != nil {
 			t.Fatal(err)
 		}
 		conflict := enrollment
 		conflict.DeviceID, conflict.ChallengeID = deviceID, challenge.ID
 		signRepositoryEnrollment(t, &conflict)
-		requireRepositoryRejection(t, repo.Enroll(ctx, conflict), "enrollment_conflict")
+		requireRepositoryRejection(t, repo.Enroll(ctx, conflict), contracts.EnvelopeRejectionEnrollmentConflict)
 		if err := db.QueryRow(`SELECT consumed_at FROM enrollment_challenges WHERE id=$1`, challenge.ID).Scan(&consumed); err != nil || consumed != nil {
 			t.Fatalf("conflict consumed challenge: %v %v", consumed, err)
 		}
 	}
-	requireRepositoryState(t, db, 1, 0)
+	requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 }
 
 func TestRepositoryRejectsUntrustedOrStaleInput(t *testing.T) {
@@ -322,15 +343,19 @@ func TestRepositoryRejectsUntrustedOrStaleInput(t *testing.T) {
 		reason string
 		change func(*contracts.EvidenceEnvelopeV1)
 	}{
-		{"deployment", "deployment_mismatch", func(e *contracts.EvidenceEnvelopeV1) { e.DeploymentID = "deployment:other" }},
-		{"signature", "invalid_signature", func(e *contracts.EvidenceEnvelopeV1) { e.Signature = strings.Repeat("00", 64) }},
-		{"digest", "invalid_payload", func(e *contracts.EvidenceEnvelopeV1) { e.PayloadSHA256 = strings.Repeat("00", 32) }},
-		{"expired", "expired", func(e *contracts.EvidenceEnvelopeV1) {
-			e.IssuedAt, e.ExpiresAt = "2026-10-14T12:00:00Z", "2026-10-15T12:00:00Z"
+		{"deployment", contracts.EnvelopeRejectionDeploymentMismatch, func(e *contracts.EvidenceEnvelopeV1) { e.DeploymentID = "deployment:other" }},
+		{"signature", contracts.EnvelopeRejectionInvalidSignature, func(e *contracts.EvidenceEnvelopeV1) { e.Signature = strings.Repeat("00", ed25519.SignatureSize) }},
+		{"digest", contracts.EnvelopeRejectionInvalidPayload, func(e *contracts.EvidenceEnvelopeV1) { e.PayloadSHA256 = strings.Repeat("00", sha256.Size) }},
+		{contracts.EnvelopeRejectionExpired, contracts.EnvelopeRejectionExpired, func(e *contracts.EvidenceEnvelopeV1) {
+			now := repositoryFixtureTime(t)
+			e.IssuedAt = now.Add(-contracts.EvidenceMaxLifetimeV1).Format(time.RFC3339)
+			e.ExpiresAt = now.Format(time.RFC3339)
 			signRepositoryEvidence(t, e)
 		}},
-		{"future", "future_timestamp", func(e *contracts.EvidenceEnvelopeV1) {
-			e.IssuedAt, e.ExpiresAt = "2026-10-15T12:05:01Z", "2026-10-16T12:05:01Z"
+		{"future", contracts.EnvelopeRejectionFutureTimestamp, func(e *contracts.EvidenceEnvelopeV1) {
+			issued := repositoryFixtureTime(t).Add(contracts.EnvelopeMaxFutureSkewV1 + time.Second)
+			e.IssuedAt = issued.Format(time.RFC3339)
+			e.ExpiresAt = issued.Add(contracts.EvidenceMaxLifetimeV1).Format(time.RFC3339)
 			signRepositoryEvidence(t, e)
 		}},
 	} {
@@ -338,14 +363,14 @@ func TestRepositoryRejectsUntrustedOrStaleInput(t *testing.T) {
 			changed := evidence
 			tc.change(&changed)
 			requireRepositoryRejection(t, repo.AcceptEvidence(ctx, changed), tc.reason)
-			requireRepositoryState(t, db, 1, 0)
+			requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 		})
 	}
 	if _, err := db.Exec(`UPDATE device_enrollments SET revoked_at=now()`); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "revoked_key")
-	requireRepositoryState(t, db, 1, 0)
+	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionRevokedKey)
+	requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 	if _, err := NewPostgresRepository(ctx, db, RepositoryConfig{DeploymentID: "deployment:other"}); err == nil {
 		t.Fatal("database accepted another configured deployment")
 	}
@@ -376,14 +401,14 @@ func TestRepositoryEvidenceRollbackAtBothWriteBoundaries(t *testing.T) {
 			if err := repo.AcceptEvidence(context.Background(), evidence); !errors.Is(err, ErrRepositoryUnavailable) {
 				t.Fatalf("injected transaction failure=%v", err)
 			}
-			requireRepositoryState(t, db, 1, 0)
+			requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 			if _, err := db.Exec(`DROP TRIGGER fail_write ON device_enrollments`); err != nil {
 				t.Fatal(err)
 			}
 			if err := repo.AcceptEvidence(context.Background(), evidence); err != nil {
 				t.Fatalf("rolled back sequence became unusable: %v", err)
 			}
-			requireRepositoryState(t, db, 2, 1)
+			requireRepositoryState(t, db, evidence.Sequence, 1)
 		})
 	}
 }
@@ -417,20 +442,20 @@ func TestRepositoryConcurrentIndependentWriters(t *testing.T) {
 		if err == nil {
 			accepted++
 		} else {
-			requireRepositoryRejection(t, err, "replay")
+			requireRepositoryRejection(t, err, contracts.EnvelopeRejectionReplay)
 		}
 	}
 	if accepted != 1 {
 		t.Fatalf("accepted %d concurrent duplicates, want 1", accepted)
 	}
-	requireRepositoryState(t, db, 2, 1)
+	requireRepositoryState(t, db, evidence.Sequence, 1)
 	// Race distinct higher sequences. Any serial order is valid; the maximum
 	// must win and no accepted sample may exist beyond the final mark.
 	results = make(chan error, writers)
 	start = make(chan struct{})
 	for i := range writers {
 		next := evidence
-		next.Sequence = uint64(i + 3)
+		next.Sequence = evidence.Sequence + 1 + uint64(i)
 		signRepositoryEvidence(t, &next)
 		wg.Go(func() {
 			<-start
@@ -442,14 +467,14 @@ func TestRepositoryConcurrentIndependentWriters(t *testing.T) {
 	close(results)
 	for err := range results {
 		if err != nil {
-			requireRepositoryRejection(t, err, "replay")
+			requireRepositoryRejection(t, err, contracts.EnvelopeRejectionReplay)
 		}
 	}
 	device, err := repo.Device(context.Background(), evidence.DeviceID)
-	if err != nil || device.LastSequence != writers+2 {
+	if err != nil || device.LastSequence != uint64(writers)+evidence.Sequence {
 		t.Fatalf("concurrent high-water mark=%d err=%v", device.LastSequence, err)
 	}
-	if _, err := repo.Evidence(context.Background(), evidence.DeviceID, writers+2); err != nil {
+	if _, err := repo.Evidence(context.Background(), evidence.DeviceID, uint64(writers)+evidence.Sequence); err != nil {
 		t.Fatalf("maximum committed mark has no sample: %v", err)
 	}
 }
@@ -459,18 +484,18 @@ func TestRepositoryChallengeBindingAndExpiry(t *testing.T) {
 	repo := fixtureRepository(t, db)
 	enrollment, _ := repositoryEnvelopes(t)
 	ctx := context.Background()
-	challenge, err := repo.CreateEnrollmentChallenge(ctx, enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), "authorization:fixture")
+	challenge, err := repo.CreateEnrollmentChallenge(ctx, enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference)
 	if err != nil {
 		t.Fatal(err)
 	}
 	enrollment.ChallengeID = challenge.ID
 	enrollment.DeviceID = "asset:unauthorized"
 	signRepositoryEnrollment(t, &enrollment)
-	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), "bootstrap_invalid")
+	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionBootstrapInvalid)
 	enrollment.DeviceID = challenge.DeviceID
 	signRepositoryEnrollment(t, &enrollment)
 	repo.now = func() time.Time { return challenge.ExpiresAt }
-	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), "challenge_expired")
+	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionChallengeExpired)
 	var consumed bool
 	if err := db.QueryRow(`SELECT consumed_at IS NOT NULL FROM enrollment_challenges WHERE id=$1`, challenge.ID).Scan(&consumed); err != nil || consumed {
 		t.Fatalf("denied enrollment consumed challenge: %v %v", consumed, err)
@@ -484,16 +509,16 @@ func TestRepositoryConcurrentEnrollmentConsumesChallengeOnce(t *testing.T) {
 	db, _ := openRepositoryTestDB(t)
 	repo := fixtureRepository(t, db)
 	enrollment, _ := repositoryEnvelopes(t)
-	challenge, err := repo.CreateEnrollmentChallenge(context.Background(), enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), "authorization:fixture")
+	challenge, err := repo.CreateEnrollmentChallenge(context.Background(), enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference)
 	if err != nil {
 		t.Fatal(err)
 	}
 	enrollment.ChallengeID = challenge.ID
 	signRepositoryEnrollment(t, &enrollment)
 	start := make(chan struct{})
-	results := make(chan error, 8)
+	results := make(chan error, repositoryConcurrentEnrollments)
 	var wg sync.WaitGroup
-	for range 8 {
+	for range repositoryConcurrentEnrollments {
 		wg.Go(func() {
 			<-start
 			results <- repo.Enroll(context.Background(), enrollment)
@@ -507,13 +532,13 @@ func TestRepositoryConcurrentEnrollmentConsumesChallengeOnce(t *testing.T) {
 		if err == nil {
 			accepted++
 		} else {
-			requireRepositoryRejection(t, err, "challenge_reused")
+			requireRepositoryRejection(t, err, contracts.EnvelopeRejectionChallengeReused)
 		}
 	}
 	if accepted != 1 {
 		t.Fatalf("challenge admitted %d enrollments, want 1", accepted)
 	}
-	requireRepositoryState(t, db, 1, 0)
+	requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 }
 
 func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
@@ -524,7 +549,7 @@ func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
 			enrollRepositoryFixture(t, repo)
 			_, evidence := repositoryEnvelopes(t)
 			var clock atomic.Int64
-			clock.Store(repositoryFixtureTime.Unix())
+			clock.Store(repositoryFixtureTime(t).Unix())
 			repo.now = func() time.Time { return time.Unix(clock.Load(), 0) }
 			blocker, err := db.Begin()
 			if err != nil {
@@ -534,7 +559,7 @@ func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
 			if _, err := blocker.Exec(`SELECT 1 FROM device_enrollments FOR UPDATE`); err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), repositoryTestTimeout)
 			defer cancel()
 			result := make(chan error, 1)
 			go func() { result <- repo.AcceptEvidence(ctx, evidence) }()
@@ -548,7 +573,7 @@ func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
 			if cancelWriter {
 				cancel()
 			} else {
-				clock.Store(repositoryFixtureTime.Add(24 * time.Hour).Unix())
+				clock.Store(repositoryFixtureTime(t).Add(contracts.EvidenceMaxLifetimeV1).Unix())
 				if err := blocker.Commit(); err != nil {
 					t.Fatal(err)
 				}
@@ -560,12 +585,12 @@ func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
 						t.Fatalf("waiting writer ignored cancellation: %v", err)
 					}
 				} else {
-					requireRepositoryRejection(t, err, "expired")
+					requireRepositoryRejection(t, err, contracts.EnvelopeRejectionExpired)
 				}
-			case <-time.After(10 * time.Second):
+			case <-time.After(repositoryTestTimeout):
 				t.Fatal("waiting writer did not finish")
 			}
-			requireRepositoryState(t, db, 1, 0)
+			requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 		})
 	}
 }

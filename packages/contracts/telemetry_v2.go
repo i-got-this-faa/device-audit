@@ -10,9 +10,12 @@ import (
 	"unicode/utf8"
 )
 
-const TelemetryV2Version = "device-audit.telemetry.v2"
+const (
+	TelemetryV2Version = "device-audit.telemetry.v2"
+	OpaqueIDPattern    = `^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`
+)
 
-var opaqueIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
+var opaqueIDPattern = regexp.MustCompile(OpaqueIDPattern)
 var sha256Pattern = regexp.MustCompile(`^[a-fA-F0-9]{64}$`)
 
 // MetricV2 keeps units on the wire so consumers cannot infer them from names.

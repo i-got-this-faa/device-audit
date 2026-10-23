@@ -22,7 +22,34 @@ const (
 	AcknowledgementV1Version         = "device-audit.acknowledgement.v1"
 	MaxEnvelopeSequence       uint64 = 9007199254740991
 	MaxEvidencePayloadBytes          = 262144
-	envelopeDomain                   = "device-audit/signature/v1\x00"
+
+	UnenrolledSequenceV1    uint64 = 0
+	EnrollmentSequenceV1    uint64 = 1
+	FirstEvidenceSequenceV1 uint64 = EnrollmentSequenceV1 + 1
+	EnrollmentMaxLifetimeV1        = 10 * time.Minute
+	EvidenceMaxLifetimeV1          = 24 * time.Hour
+	EnvelopeMaxFutureSkewV1        = 5 * time.Minute
+	envelopeDomain                 = "device-audit/signature/v1\x00"
+)
+
+// Envelope rejection values are shared by validators and repository consumers.
+const (
+	EnvelopeRejectionInvalidSignature      = "invalid_signature"
+	EnvelopeRejectionKeyMismatch           = "key_mismatch"
+	EnvelopeRejectionPayloadDigestMismatch = "payload_digest_mismatch"
+	EnvelopeRejectionReplay                = "replay"
+	EnvelopeRejectionExpired               = "expired"
+	EnvelopeRejectionFutureTimestamp       = "future_timestamp"
+	EnvelopeRejectionUnknownDevice         = "unknown_device"
+	EnvelopeRejectionRevokedKey            = "revoked_key"
+	EnvelopeRejectionDeploymentMismatch    = "deployment_mismatch"
+	EnvelopeRejectionBootstrapInvalid      = "bootstrap_invalid"
+	EnvelopeRejectionChallengeExpired      = "challenge_expired"
+	EnvelopeRejectionChallengeReused       = "challenge_reused"
+	EnvelopeRejectionEnrollmentConflict    = "enrollment_conflict"
+	EnvelopeRejectionUnauthorizedPeer      = "unauthorized_peer"
+	EnvelopeRejectionStorageUnavailable    = "storage_unavailable"
+	EnvelopeRejectionInvalidPayload        = "invalid_payload"
 )
 
 var envelopeTimestampPattern = regexp.MustCompile(`^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$`)
@@ -127,7 +154,7 @@ func parseEnvelopeTime(value string) (time.Time, error) {
 }
 
 func (h EnvelopeHeaderV1) validate(version string, lifetime time.Duration) error {
-	if h.SchemaVersion != version || !opaqueIDPattern.MatchString(h.DeploymentID) || !opaqueIDPattern.MatchString(h.DeviceID) || !validEnvelopeKeyID(h.SigningKeyID) || h.Sequence < 1 || h.Sequence > MaxEnvelopeSequence {
+	if h.SchemaVersion != version || !opaqueIDPattern.MatchString(h.DeploymentID) || !opaqueIDPattern.MatchString(h.DeviceID) || !validEnvelopeKeyID(h.SigningKeyID) || h.Sequence < EnrollmentSequenceV1 || h.Sequence > MaxEnvelopeSequence {
 		return fmt.Errorf("invalid envelope version, identity, key ID or sequence")
 	}
 	issued, err := parseEnvelopeTime(h.IssuedAt)
@@ -145,10 +172,10 @@ func (h EnvelopeHeaderV1) validate(version string, lifetime time.Duration) error
 }
 
 func (e EnrollmentEnvelopeV1) validateSigningFields() error {
-	if err := e.EnvelopeHeaderV1.validate(EnrollmentV1Version, 10*time.Minute); err != nil {
+	if err := e.EnvelopeHeaderV1.validate(EnrollmentV1Version, EnrollmentMaxLifetimeV1); err != nil {
 		return err
 	}
-	if e.Sequence != 1 || !fixedEnvelopeHex(e.PublicKey, ed25519.PublicKeySize) || !opaqueIDPattern.MatchString(e.ChallengeID) {
+	if e.Sequence != EnrollmentSequenceV1 || !fixedEnvelopeHex(e.PublicKey, ed25519.PublicKeySize) || !opaqueIDPattern.MatchString(e.ChallengeID) {
 		return fmt.Errorf("invalid enrollment key, challenge or initial sequence")
 	}
 	return nil
@@ -167,10 +194,10 @@ func (e EnrollmentEnvelopeV1) Validate() error {
 }
 
 func (e EvidenceEnvelopeV1) validateSigningFields() error {
-	if err := e.EnvelopeHeaderV1.validate(EvidenceEnvelopeV1Version, 24*time.Hour); err != nil {
+	if err := e.EnvelopeHeaderV1.validate(EvidenceEnvelopeV1Version, EvidenceMaxLifetimeV1); err != nil {
 		return err
 	}
-	if e.Sequence < 2 || e.PayloadSchemaVersion != TelemetryV2Version || !fixedEnvelopeHex(e.PayloadSHA256, sha256.Size) {
+	if e.Sequence < FirstEvidenceSequenceV1 || e.PayloadSchemaVersion != TelemetryV2Version || !fixedEnvelopeHex(e.PayloadSHA256, sha256.Size) {
 		return fmt.Errorf("invalid evidence sequence, payload version or digest")
 	}
 	return nil
@@ -189,7 +216,7 @@ func (e EvidenceEnvelopeV1) Validate() error {
 	}
 	digest := sha256.Sum256(payload)
 	if hex.EncodeToString(digest[:]) != e.PayloadSHA256 {
-		return fmt.Errorf("payload_digest_mismatch")
+		return fmt.Errorf(EnvelopeRejectionPayloadDigestMismatch)
 	}
 	if err := rejectEnvelopeDuplicateKeys(payload); err != nil {
 		return err
@@ -211,10 +238,10 @@ func (a AcknowledgementV1) validateBody() error {
 	if a.SchemaVersion != AcknowledgementV1Version || !opaqueIDPattern.MatchString(a.DeploymentID) || !opaqueIDPattern.MatchString(a.DeviceID) || !validEnvelopeKeyID(a.ControllerKeyID) || !validEnvelopeKeyID(a.RequestKeyID) || !fixedEnvelopeHex(a.RequestSHA256, sha256.Size) {
 		return fmt.Errorf("invalid acknowledgement identity or correlation")
 	}
-	if (a.RequestSchemaVersion != EnrollmentV1Version && a.RequestSchemaVersion != EvidenceEnvelopeV1Version) || a.RequestSequence < 1 || a.RequestSequence > MaxEnvelopeSequence {
+	if (a.RequestSchemaVersion != EnrollmentV1Version && a.RequestSchemaVersion != EvidenceEnvelopeV1Version) || a.RequestSequence < EnrollmentSequenceV1 || a.RequestSequence > MaxEnvelopeSequence {
 		return fmt.Errorf("invalid acknowledgement request version or sequence")
 	}
-	if (a.RequestSchemaVersion == EnrollmentV1Version && a.RequestSequence != 1) || (a.RequestSchemaVersion == EvidenceEnvelopeV1Version && a.RequestSequence < 2) {
+	if (a.RequestSchemaVersion == EnrollmentV1Version && a.RequestSequence != EnrollmentSequenceV1) || (a.RequestSchemaVersion == EvidenceEnvelopeV1Version && a.RequestSequence < FirstEvidenceSequenceV1) {
 		return fmt.Errorf("request version and sequence disagree")
 	}
 	if _, err := parseEnvelopeTime(a.ReceivedAt); err != nil {
@@ -232,7 +259,7 @@ func (a AcknowledgementV1) validateBody() error {
 		if a.RejectionReason == nil || !validEnvelopeRejection(*a.RejectionReason) {
 			return fmt.Errorf("rejected acknowledgement requires explicit reason")
 		}
-		if *a.RejectionReason == "replay" && (a.LastSequence == nil || *a.LastSequence < a.RequestSequence) {
+		if *a.RejectionReason == EnvelopeRejectionReplay && (a.LastSequence == nil || *a.LastSequence < a.RequestSequence) {
 			return fmt.Errorf("replay requires a known high-water mark >= request sequence")
 		}
 	default:
@@ -243,7 +270,14 @@ func (a AcknowledgementV1) validateBody() error {
 
 func validEnvelopeRejection(reason string) bool {
 	switch reason {
-	case "invalid_signature", "key_mismatch", "payload_digest_mismatch", "replay", "expired", "future_timestamp", "unknown_device", "revoked_key", "deployment_mismatch", "bootstrap_invalid", "challenge_expired", "challenge_reused", "enrollment_conflict", "unauthorized_peer", "storage_unavailable", "invalid_payload":
+	case EnvelopeRejectionInvalidSignature, EnvelopeRejectionKeyMismatch,
+		EnvelopeRejectionPayloadDigestMismatch, EnvelopeRejectionReplay,
+		EnvelopeRejectionExpired, EnvelopeRejectionFutureTimestamp,
+		EnvelopeRejectionUnknownDevice, EnvelopeRejectionRevokedKey,
+		EnvelopeRejectionDeploymentMismatch, EnvelopeRejectionBootstrapInvalid,
+		EnvelopeRejectionChallengeExpired, EnvelopeRejectionChallengeReused,
+		EnvelopeRejectionEnrollmentConflict, EnvelopeRejectionUnauthorizedPeer,
+		EnvelopeRejectionStorageUnavailable, EnvelopeRejectionInvalidPayload:
 		return true
 	}
 	return false
@@ -313,14 +347,14 @@ func verifyEnvelopeSignature(publicKey ed25519.PublicKey, keyID, signature strin
 		return err
 	}
 	if fingerprint != keyID {
-		return fmt.Errorf("key_mismatch")
+		return fmt.Errorf(EnvelopeRejectionKeyMismatch)
 	}
 	if err := validateEnvelopeSignature(signature); err != nil {
 		return err
 	}
 	sig, _ := hex.DecodeString(signature)
 	if !ed25519.Verify(publicKey, message, sig) {
-		return fmt.Errorf("invalid_signature")
+		return fmt.Errorf(EnvelopeRejectionInvalidSignature)
 	}
 	return nil
 }
@@ -378,9 +412,9 @@ func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64)
 	var lifetime time.Duration
 	switch h.SchemaVersion {
 	case EnrollmentV1Version:
-		lifetime = 10 * time.Minute
+		lifetime = EnrollmentMaxLifetimeV1
 	case EvidenceEnvelopeV1Version:
-		lifetime = 24 * time.Hour
+		lifetime = EvidenceMaxLifetimeV1
 	default:
 		return "", fmt.Errorf("not a supported request version")
 	}
@@ -393,13 +427,13 @@ func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64)
 	issued, _ := parseEnvelopeTime(h.IssuedAt)
 	expires, _ := parseEnvelopeTime(h.ExpiresAt)
 	if !now.Before(expires) {
-		return "expired", nil
+		return EnvelopeRejectionExpired, nil
 	}
-	if issued.After(now.Add(5 * time.Minute)) {
-		return "future_timestamp", nil
+	if issued.After(now.Add(EnvelopeMaxFutureSkewV1)) {
+		return EnvelopeRejectionFutureTimestamp, nil
 	}
 	if h.Sequence <= lastSequence {
-		return "replay", nil
+		return EnvelopeRejectionReplay, nil
 	}
 	return "", nil
 }

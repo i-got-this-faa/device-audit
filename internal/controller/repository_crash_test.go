@@ -19,12 +19,24 @@ import (
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/infra/database"
+	"github.com/i-got-this-faa/device-audit/packages/contracts"
+)
+
+const (
+	repositoryWriterURLEnv                = "DEVICE_AUDIT_TEST_WRITER_URL"
+	repositoryWriterOperationEnv          = "DEVICE_AUDIT_TEST_WRITER_OPERATION"
+	repositoryRestartTestEnv              = "TEST_POSTGRES_RESTART"
+	repositoryWriterEnroll                = "enroll"
+	repositoryWriterEvidence              = "evidence"
+	repositoryWriterCommitted             = "committed"
+	repositoryWriterApplicationName       = "device-audit-83-writer"
+	repositoryWriterLockKey         int64 = 830083
 )
 
 // The subprocess calls the real repository and stops before delivering any
 // application response. Parent tests kill it at database-observed boundaries.
 func TestRepositoryWriterProcess(t *testing.T) {
-	databaseURL := os.Getenv("DEVICE_AUDIT_TEST_WRITER_URL")
+	databaseURL := os.Getenv(repositoryWriterURLEnv)
 	if databaseURL == "" {
 		return
 	}
@@ -35,7 +47,7 @@ func TestRepositoryWriterProcess(t *testing.T) {
 	defer db.Close()
 	repo := fixtureRepository(t, db)
 	enrollment, evidence := repositoryEnvelopes(t)
-	if os.Getenv("DEVICE_AUDIT_TEST_WRITER_OPERATION") == "enroll" {
+	if os.Getenv(repositoryWriterOperationEnv) == repositoryWriterEnroll {
 		if err := db.QueryRow(`SELECT id FROM enrollment_challenges WHERE consumed_at IS NULL`).Scan(&enrollment.ChallengeID); err != nil {
 			t.Fatal(err)
 		}
@@ -47,16 +59,16 @@ func TestRepositoryWriterProcess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Fprintln(os.Stdout, "committed")
+	fmt.Fprintln(os.Stdout, repositoryWriterCommitted)
 	var responseGate [1]byte
 	_, _ = io.ReadFull(os.Stdin, responseGate[:])
 }
 
 func waitRepositoryCondition(t *testing.T, condition func(context.Context) (bool, error)) {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), repositoryTestTimeout)
 	defer cancel()
-	ticker := time.NewTicker(10 * time.Millisecond)
+	ticker := time.NewTicker(repositoryTestPollInterval)
 	defer ticker.Stop()
 	for {
 		ready, err := condition(ctx)
@@ -75,16 +87,16 @@ func waitRepositoryCondition(t *testing.T, condition func(context.Context) (bool
 }
 
 func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
-	for _, operation := range []string{"enroll", "evidence"} {
+	for _, operation := range []string{repositoryWriterEnroll, repositoryWriterEvidence} {
 		for _, committed := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/committed=%v", operation, committed), func(t *testing.T) {
 				db, databaseURL := openRepositoryTestDB(t)
 				repo := fixtureRepository(t, db)
 				enrollment, _ := repositoryEnvelopes(t)
-				if operation == "evidence" {
+				if operation == repositoryWriterEvidence {
 					enrollRepositoryFixture(t, repo)
 				} else {
-					if _, err := repo.CreateEnrollmentChallenge(context.Background(), enrollment.DeviceID, ed25519.PublicKey(repositoryFixtureKey()[32:]), "authorization:fixture"); err != nil {
+					if _, err := repo.CreateEnrollmentChallenge(context.Background(), enrollment.DeviceID, repositoryFixtureKey().Public().(ed25519.PublicKey), repositoryFixtureAuthorizationReference); err != nil {
 						t.Fatal(err)
 					}
 				}
@@ -96,28 +108,28 @@ func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
 						t.Fatal(err)
 					}
 					defer blocker.Close()
-					if _, err := blocker.ExecContext(context.Background(), `SELECT pg_advisory_lock(830083)`); err != nil {
+					if _, err := blocker.ExecContext(context.Background(), `SELECT pg_advisory_lock($1)`, repositoryWriterLockKey); err != nil {
 						t.Fatal(err)
 					}
-					defer blocker.ExecContext(context.Background(), `SELECT pg_advisory_unlock(830083)`)
+					defer blocker.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, repositoryWriterLockKey)
 					table := "device_enrollments"
-					if operation == "enroll" {
+					if operation == repositoryWriterEnroll {
 						table = "enrollment_challenges"
 					}
 					// The row insertion has happened, but this update must finish
 					// before the repository can send COMMIT to PostgreSQL.
-					if _, err := db.Exec(`CREATE FUNCTION block_writer() RETURNS trigger LANGUAGE plpgsql AS $$
-						BEGIN PERFORM pg_advisory_xact_lock(830083); RETURN NEW; END $$;
-						CREATE TRIGGER block_writer BEFORE UPDATE ON ` + table + ` FOR EACH ROW EXECUTE FUNCTION block_writer()`); err != nil {
+					if _, err := db.Exec(fmt.Sprintf(`CREATE FUNCTION block_writer() RETURNS trigger LANGUAGE plpgsql AS $$
+						BEGIN PERFORM pg_advisory_xact_lock(%d); RETURN NEW; END $$;
+						CREATE TRIGGER block_writer BEFORE UPDATE ON `+table+` FOR EACH ROW EXECUTE FUNCTION block_writer()`, repositoryWriterLockKey)); err != nil {
 						t.Fatal(err)
 					}
 				}
 				parsed, _ := url.Parse(databaseURL)
 				query := parsed.Query()
-				query.Set("application_name", "device-audit-83-writer")
+				query.Set("application_name", repositoryWriterApplicationName)
 				parsed.RawQuery = query.Encode()
 				command := exec.Command(os.Args[0], "-test.run=^TestRepositoryWriterProcess$")
-				command.Env = append(os.Environ(), "DEVICE_AUDIT_TEST_WRITER_URL="+parsed.String(), "DEVICE_AUDIT_TEST_WRITER_OPERATION="+operation)
+				command.Env = append(os.Environ(), repositoryWriterURLEnv+"="+parsed.String(), repositoryWriterOperationEnv+"="+operation)
 				var stderr bytes.Buffer
 				command.Stderr = &stderr
 				stdout, err := command.StdoutPipe()
@@ -141,18 +153,18 @@ func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
 					}()
 					select {
 					case result := <-line:
-						if result != "committed\n" {
+						if result != repositoryWriterCommitted+"\n" {
 							t.Fatalf("writer did not reach commit: %q", result)
 						}
-					case <-time.After(10 * time.Second):
+					case <-time.After(repositoryTestTimeout):
 						t.Fatal("writer did not commit")
 					}
 				} else {
 					waitRepositoryCondition(t, func(ctx context.Context) (bool, error) {
 						var waiting bool
 						err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity
-							WHERE datname=current_database() AND application_name='device-audit-83-writer'
-							AND wait_event_type='Lock' AND wait_event='advisory')`).Scan(&waiting)
+							WHERE datname=current_database() AND application_name=$1
+							AND wait_event_type='Lock' AND wait_event='advisory')`, repositoryWriterApplicationName).Scan(&waiting)
 						return waiting, err
 					})
 				}
@@ -166,21 +178,21 @@ func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
 					t.Fatalf("writer failed before kill: %s", &stderr)
 				}
 				if blocker != nil {
-					if _, err := blocker.ExecContext(context.Background(), `SELECT pg_advisory_unlock(830083)`); err != nil {
+					if _, err := blocker.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, repositoryWriterLockKey); err != nil {
 						t.Fatal(err)
 					}
 				}
 				waitRepositoryCondition(t, func(ctx context.Context) (bool, error) {
 					var gone bool
 					err := db.QueryRowContext(ctx, `SELECT NOT EXISTS (SELECT 1 FROM pg_stat_activity
-						WHERE datname=current_database() AND application_name='device-audit-83-writer')`).Scan(&gone)
+						WHERE datname=current_database() AND application_name=$1)`, repositoryWriterApplicationName).Scan(&gone)
 					return gone, err
 				})
-				if operation == "evidence" {
+				if operation == repositoryWriterEvidence {
 					if committed {
-						requireRepositoryState(t, db, 2, 1)
+						requireRepositoryState(t, db, contracts.FirstEvidenceSequenceV1, 1)
 					} else {
-						requireRepositoryState(t, db, 1, 0)
+						requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 					}
 				} else {
 					device, err := repo.Device(context.Background(), enrollment.DeviceID)
@@ -189,7 +201,7 @@ func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
 						t.Fatal(scanErr)
 					}
 					if committed {
-						if err != nil || device.LastSequence != 1 || !consumed {
+						if err != nil || device.LastSequence != contracts.EnrollmentSequenceV1 || !consumed {
 							t.Fatalf("committed enrollment incomplete: mark=%d consumed=%v err=%v", device.LastSequence, consumed, err)
 						}
 					} else if !errors.Is(err, ErrRepositoryNotFound) || consumed {
@@ -202,7 +214,7 @@ func TestRepositoryWriterKillBeforeAndAfterCommit(t *testing.T) {
 }
 
 func TestRepositoryPostgresCrashRecovery(t *testing.T) {
-	if os.Getenv("TEST_POSTGRES_RESTART") != "1" {
+	if os.Getenv(repositoryRestartTestEnv) != "1" {
 		t.Skip("TEST_POSTGRES_RESTART=1 enables a new isolated PostgreSQL cluster; never restarts TEST_DATABASE_URL")
 	}
 	for _, binary := range []string{"initdb", "pg_ctl"} {
@@ -279,7 +291,7 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	}
 	defer db.Close()
 	repo = fixtureRepository(t, db)
-	requireRepositoryState(t, db, 2, 1)
+	requireRepositoryState(t, db, contracts.FirstEvidenceSequenceV1, 1)
 	device, err := repo.Device(ctx, enrollment.DeviceID)
 	if err != nil || device.Envelope.Signature != enrollment.Signature {
 		t.Fatalf("identity provenance lost after PostgreSQL crash: %v", err)
@@ -288,8 +300,8 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	if err != nil || stored.Envelope.Signature != evidence.Signature {
 		t.Fatalf("evidence provenance lost after PostgreSQL crash: %v", err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), "replay")
-	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), "challenge_reused")
+	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionChallengeReused)
 	contents, err := os.ReadFile(log)
 	if err != nil || !strings.Contains(string(contents), "database system was interrupted") {
 		t.Fatalf("restart did not exercise PostgreSQL crash recovery: %v", err)

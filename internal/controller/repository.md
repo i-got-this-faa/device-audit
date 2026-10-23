@@ -7,6 +7,12 @@ test clocks must be safe for concurrent calls. Never populate either value from
 request metadata. Database/session credentials and device signing keys are
 separate from mesh admission, console sessions and future chain signers.
 
+Fixed v1 sequence, lifetime and rejection values come from the named constants
+in `packages/contracts/envelopes_v1.go`. Repository constants name challenge
+entropy and the PostgreSQL uniqueness SQLSTATE. Migration SQL retains the
+versioned schema bounds; changing a Go constant cannot redefine an applied
+migration.
+
 This is an internal repository. No production HTTP route calls it yet. The
 existing `/v1/telemetry` fixture keeps its memory store and normalized digest.
 Repository success means its transaction committed; it does not issue a signed
