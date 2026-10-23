@@ -446,7 +446,7 @@ stored mark is independent of sample retention and must be shared by future
 diagnostic/federated consumers. Transaction-local synchronous commit overrides
 an asynchronous session default; host durability remains a deployment concern.
 
-[Local evidence](evidence/83-device-repository.md) records real PostgreSQL 17.11
+[PR validation evidence](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745) records real PostgreSQL 17.11
 integration, rollback, contention, writer termination and abrupt database
 recovery checks. The controller's unsigned fixture route remains in memory.
 Authorized bootstrap/admission, signed responses, revocation authority/races,

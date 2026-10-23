@@ -77,4 +77,4 @@ and rejection check alone are not that capability.
 Run `make database-check` with `TEST_DATABASE_URL` for database integration and
 writer-kill tests. Run `make storage-crash-check` with local PostgreSQL server
 tools for a fresh isolated cluster's abrupt shutdown/recovery test. See the
-[recorded evidence](../../docs/evidence/83-device-repository.md).
+[PR validation evidence](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745).

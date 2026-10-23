@@ -73,7 +73,7 @@ checks identity, provenance, challenge consumption and replay state after crash
 recovery. The test requires `fsync=on` and `full_page_writes=on`. This additional
 target is opt-in and is not run by the existing CI database job.
 
-[The #83 evidence record](../../docs/evidence/83-device-repository.md) records
+[The #83 PR evidence comment](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745) records
 the local PostgreSQL 17.11 result and the remaining qualification gaps.
 
 ## Backup and recovery assumptions
