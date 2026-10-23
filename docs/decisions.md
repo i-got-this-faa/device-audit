@@ -15,7 +15,7 @@ discussion can drift and does not automatically become product scope.
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
-| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and versioned migrations implemented in #19; telemetry persistence remains #83 |
+| PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and migrations implemented in #19; #83 adds a separate transactional signed-device repository, with HTTP integration pending |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
@@ -60,9 +60,10 @@ inherited as approved handoff decisions.
 
 The current loopback fixture still loses samples on restart. The controller can
 connect to PostgreSQL, apply the #19 migrations and host the #82 administrative
-OIDC/session surface, but telemetry persistence, enrollment, relay deployment
-and the remaining access rules are not implemented. No production capability or
-patent verification is established.
+OIDC/session surface. #83 adds signed enrollment/evidence repository operations,
+but their admission/HTTP integration, relay deployment and the remaining access
+rules are not implemented. No production capability or patent verification is
+established.
 SRC05 #72 has reconciled the supplied PDF and recorded its provenance in
 [the source map](source/patent-map.md). This does not establish implementation
 or patent coverage.
@@ -94,10 +95,11 @@ and a failed migration leaves the previous version without dropping or
 recreating tables. These are implementation choices under #19, not a retention,
 backup, recovery-objective, TLS, least-privilege or production-schema decision.
 The candidate `001_initial.sql` and `002_console_auth.sql` tables are applied.
-Console role bindings, login transactions and sessions are durable; telemetry
-samples, enrollment, revocation and replay state remain in memory until
-#83/#89/#90. #14 still bounds the deployment target; no production persistence
-is claimed.
+Console role bindings, login transactions and sessions are durable. #83 adds
+a separate durable signed-device repository, described below. The fixture API
+continues to use memory; authorized admission, signed acknowledgements and
+revocation authority remain #18/#24/#89/#90. #14 still bounds the deployment
+target; no production persistence is claimed.
 
 ## Provisional telemetry/inventory contract v2
 
@@ -220,9 +222,12 @@ contract bounds. Nullable telemetry values and their explicit units are retained
 Application signing keys, mesh/network credentials, bootstrap authorization and
 future chain signing remain separate. No secret bootstrap or mesh credential is
 placed in the envelopes. Another owner must review sequence, lost-response,
-restart and restore semantics before consumer implementation. Durable storage,
-challenge issuance, authorization, rotation/revocation, protected key storage and
-real restart/restore tests remain unimplemented. #17 is not changed by #75.
+restart and restore semantics before consumer implementation. #83 now implements
+durable challenge storage, atomic consumption and signed
+identity/evidence persistence with isolated crash/restart tests. Authorized
+challenge issuance, admission, rotation/revocation authority, protected key
+storage and backup-restore qualification remain unimplemented. #17 is not
+changed by #75.
 The #80 shared conformance command below now runs the envelope fixtures.
 #14's target selection does not qualify enrollment, service permissions or
 endpoint runtime; SRC05 #72
@@ -424,3 +429,28 @@ canonicalization and pure replay/expiry outcomes. Python does not authenticate
 signatures, and schema validity cannot establish semantic validity. Hashes and
 classifications are retained as CI artifacts. Both owners' fixture review remains
 required before dependent implementations merge; no runtime capability is added.
+
+## Transactional device repository, DB02 #83
+
+The owner confirmed repository-only scope on 23 October 2026, including durable
+challenge storage/consumption and writer-kill plus PostgreSQL-restart evidence.
+Migration 003 adds a database deployment binding and separate trusted signed
+identity/evidence tables. Candidate device rows remain unchanged and gain no
+trust. Signing enrollment requires no mesh key.
+
+The [repository boundary](../internal/controller/repository.md) verifies existing
+v1 envelopes, preserves exact v2 telemetry bytes and signed provenance, and
+atomically commits challenge consumption/initial sequence or evidence/updated
+sequence. PostgreSQL row locks serialize concurrent writers per device. The
+stored mark is independent of sample retention and must be shared by future
+diagnostic/federated consumers. Transaction-local synchronous commit overrides
+an asynchronous session default; host durability remains a deployment concern.
+
+[Local evidence](evidence/83-device-repository.md) records real PostgreSQL 17.11
+integration, rollback, contention, writer termination and abrupt database
+recovery checks. The controller's unsigned fixture route remains in memory.
+Authorized bootstrap/admission, signed responses, revocation authority/races,
+authenticated reconciliation, retention and backup-restore qualification remain
+follow-on work. No new wire contract, production capability or chain payload is
+claimed. Both owners' contract/integration review and a reviewed PR remain
+required before merging dependent work.

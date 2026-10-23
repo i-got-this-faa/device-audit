@@ -1,5 +1,5 @@
 // Package database owns the controller's PostgreSQL connection and versioned
-// schema migrations. It does not persist controller records yet.
+// schema migrations.
 package database
 
 import (

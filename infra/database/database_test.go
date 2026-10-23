@@ -20,8 +20,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 2 {
-		t.Fatalf("schema version=%d want 2", version)
+	if version != 3 {
+		t.Fatalf("schema version=%d want 3", version)
 	}
 	if _, err := db.ExecContext(ctx, `INSERT INTO devices (id, enrolled_at, identity_public_key, mesh_public_key) VALUES ('device:one', now(), '\x01', 'mesh-key')`); err != nil {
 		t.Fatal(err)
@@ -30,8 +30,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart migration: %v", err)
 	}
-	if version != 2 {
-		t.Fatalf("restart version=%d want 2", version)
+	if version != 3 {
+		t.Fatalf("restart version=%d want 3", version)
 	}
 	var count int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&count); err != nil {
@@ -44,7 +44,7 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Version != 2 || len(status.Pending) != 0 {
+	if status.Version != 3 || len(status.Pending) != 0 {
 		t.Fatalf("status=%+v", status)
 	}
 }
@@ -78,6 +78,46 @@ func TestMigrateFromPriorSchemaPreservesData(t *testing.T) {
 	}
 	if label != "kept" {
 		t.Fatalf("prior row changed: %q", label)
+	}
+}
+
+func TestDeviceRepositoryUpgradePreservesUntrustedCandidatesAndConsoleData(t *testing.T) {
+	db := openTestDatabase(t)
+	prior := fstest.MapFS{}
+	for _, name := range []string{"migrations/001_initial.sql", "migrations/002_console_auth.sql"} {
+		body, err := embeddedMigrations.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		prior[name] = &fstest.MapFile{Data: body}
+	}
+	if version, err := MigrateFS(context.Background(), db, prior); err != nil || version != 2 {
+		t.Fatalf("install prior schema: version=%d err=%v", version, err)
+	}
+	if _, err := db.Exec(`INSERT INTO devices (id, enrolled_at, identity_public_key, mesh_public_key)
+		VALUES ('candidate:old', now(), '\x01', 'mesh:old');
+		INSERT INTO telemetry_samples (device_id, sequence, collected_at, schema_version, payload, evidence_digest, signature)
+		VALUES ('candidate:old', 0, now(), 'legacy', '{"legacy":true}', decode(repeat('00',32),'hex'), '\x01');
+		INSERT INTO console_role_bindings (issuer, subject, role) VALUES ('https://id.example.test', 'admin:old', 'admin')`); err != nil {
+		t.Fatal(err)
+	}
+	if version, err := Migrate(context.Background(), db); err != nil || version != 3 {
+		t.Fatalf("upgrade: version=%d err=%v", version, err)
+	}
+	var meshKey, role string
+	var legacyPayload bool
+	if err := db.QueryRow(`SELECT mesh_public_key FROM devices WHERE id='candidate:old'`).Scan(&meshKey); err != nil || meshKey != "mesh:old" {
+		t.Fatalf("candidate identity changed: %q %v", meshKey, err)
+	}
+	if err := db.QueryRow(`SELECT (payload->>'legacy')::boolean FROM telemetry_samples WHERE device_id='candidate:old' AND sequence=0`).Scan(&legacyPayload); err != nil || !legacyPayload {
+		t.Fatalf("candidate sample lost: %v %v", legacyPayload, err)
+	}
+	if err := db.QueryRow(`SELECT role FROM console_role_bindings WHERE subject='admin:old'`).Scan(&role); err != nil || role != "admin" {
+		t.Fatalf("console binding changed: %q %v", role, err)
+	}
+	var enrolled int
+	if err := db.QueryRow(`SELECT count(*) FROM device_enrollments`).Scan(&enrolled); err != nil || enrolled != 0 {
+		t.Fatalf("untrusted rows acquired enrollment trust: count=%d err=%v", enrolled, err)
 	}
 }
 
@@ -144,8 +184,8 @@ func TestConcurrentMigrationRunsOnce(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 2 {
-		t.Fatalf("migration ledger rows=%d want 2", count)
+	if count != 3 {
+		t.Fatalf("migration ledger rows=%d want 3", count)
 	}
 }
 
