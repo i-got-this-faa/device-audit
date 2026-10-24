@@ -121,7 +121,8 @@ real-device qualification or implements controller admission.
 - `models`: custom model/training interfaces and a tested weighted aggregation primitive.
 - `networking`: Tailcat/WireGuard/DERP adapter boundary carried over from Shepherd's design.
 - `infra/networking`: relay/bootstrap deployment requirements.
-- `infra/database`: PostgreSQL connection, versioned migrations, console auth tables and candidate device schema; telemetry persistence remains future work.
+- `infra/database`: PostgreSQL connection, versioned migrations and console auth tables.
+- `internal/controller/repository.go`: signed device enrollment, exact evidence bytes and atomic sequence persistence. The unsigned fixture API remains in memory.
 - `contracts`: smart-contract commitment requirements; blockchain selection is open.
 - `apps/web-console`: Go template console/auth routes, session policy and acceptance matrix; fleet pages and browser qualification remain open.
 

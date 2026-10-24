@@ -3,10 +3,10 @@
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 selects PostgreSQL provisionally for a single-organization deployment. Task #19
 binds the controller to PostgreSQL and applies versioned migrations. Schema
-version 2 adds the #82 console role bindings, one-use login transactions and
-server-side sessions. This does **not** make telemetry durable: samples still
-live in the controller's in-memory development store until #83 and its
-dependent work.
+version 3 adds #83's deployment-bound signed-device repository alongside the
+#82 console identity tables. Repository writes are durable transactions; the
+unsigned fixture HTTP API still uses its separate in-memory store. No signed
+admission or ingestion route is wired to this repository yet.
 
 ## Implemented binding
 
@@ -25,6 +25,9 @@ dependent work.
   adds `console_role_bindings`, `console_login_transactions` and
   `console_sessions`; raw session and login identifiers are stored only as
   SHA-256 digests.
+- `003_device_repository.sql` adds `controller_deployments`,
+  `enrollment_challenges`, `device_enrollments` and `device_evidence`. The old
+  candidate tables remain unchanged and are never imported as trusted identities.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -48,12 +51,30 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 2 and the configured
+- health output for a connected database, schema version 3 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
-  transactions, session touch/revocation and subject-session revocation.
+  transactions, session touch/revocation and subject-session revocation;
+- real version-2 upgrades retaining candidate samples and console bindings,
+  without granting candidate rows enrollment trust;
+- enrollment/challenge and evidence/sequence rollback, independent concurrent
+  writers, exact signed-byte preservation, gaps/exhaustion, expiry after lock
+  waits, cancellation, unavailable storage and writer-process kills before and
+  after commit.
 
 CI runs the same target against a PostgreSQL 17 service.
+
+For an abrupt database restart, put PostgreSQL server tools `initdb` and `pg_ctl`
+on `PATH`, then run `make storage-crash-check` as a non-root user. This target
+creates and removes its own disposable loopback cluster. It never restarts the
+server from `TEST_DATABASE_URL`. It commits enrollment and evidence, stops
+PostgreSQL with `pg_ctl -m immediate`, verifies an outage fails writes, then
+checks identity, provenance, challenge consumption and replay state after crash
+recovery. The test requires `fsync=on` and `full_page_writes=on`. This additional
+target is opt-in and is not run by the existing CI database job.
+
+[The #83 PR evidence comment](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745) records
+the local PostgreSQL 17.11 result and the remaining qualification gaps.
 
 ## Backup and recovery assumptions
 
@@ -77,20 +98,23 @@ restore automation and recovery qualification are not implemented by #19.
 
 ## Still open
 
-- Persisting devices, telemetry samples, enrollment, revocation and replay
-  state transactionally (#83, #89, #90).
+- Wiring authorized enrollment and authenticated device traffic to the #83
+  repository (#18, #24, #89), including signed acknowledgements and revocation
+  authority/races (#90).
+- Retention, authenticated receipt lookup and reconciliation after an uncertain
+  commit. Replay is rejection, never proof that a particular payload was stored.
 - Durable audit events, session/login-row cleanup and IdP revocation. Fresh
   authentication is enforced for role changes; future sensitive administrator
   actions must apply the same policy.
 - Selecting the production database version, TLS settings, least-privilege role,
   retention and backup schedule.
-- Proving committed data survives process and database restarts, that outages
-  reject writes, and that an off-host backup restores onto a clean host.
+- Qualifying the deployed controller/database configuration and storage hardware,
+  and proving an off-host backup restores onto a clean host. The isolated #83
+  tests establish neither disaster recovery nor protection from stale backups.
 - Reviewing every future migration for lock time, rollback behavior and
   compatibility with the prior release.
 
-`migrations/001_initial.sql` and `migrations/002_console_auth.sql` remain
-candidate schemas under review; applying them does not qualify the schema or the
-authentication boundary for production. The deployment operator owns database
+The versioned migrations remain schemas under review; applying them does not
+qualify the schema or the authentication boundary for production. The deployment operator owns database
 and backup secrets. Hosting, sizing and recovery objectives remain open under
 #73.
