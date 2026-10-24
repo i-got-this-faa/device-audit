@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -306,4 +307,44 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	if err != nil || !strings.Contains(string(contents), "database system was interrupted") {
 		t.Fatalf("restart did not exercise PostgreSQL crash recovery: %v", err)
 	}
+	// Bootstrap's token and network tables must recover with the signed identity.
+	token, err := repo.IssueBootstrapToken(ctx, contracts.BootstrapTokenRequestV1{SchemaVersion: contracts.BootstrapTokenRequestV1Version, DeviceID: "device:bootstrap-crash"}, "https://id.example.test", "admin:crash-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := newEnrollmentKeys(t)
+	challenge, err := repo.StartEnrollment(ctx, token.Token, contracts.EnrollmentStartV1{SchemaVersion: contracts.EnrollmentStartV1Version, DeploymentID: token.DeploymentID, DeviceID: token.DeviceID, PublicKey: hex.EncodeToString(keys.signing.Public().(ed25519.PublicKey)), NetworkPublicKey: hex.EncodeToString(keys.networkPublic[:])})
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock := &enrollmentClock{}
+	clock.seconds.Store(repo.now().Unix())
+	request := admissionForChallenge(t, clock, challenge, keys)
+	if _, err := repo.AdmitEnrollment(ctx, token.Token, request); err != nil {
+		t.Fatal(err)
+	}
+	run("pg_ctl", "-D", data, "-m", "immediate", "-w", "stop")
+	if _, err := repo.AdmitEnrollment(ctx, token.Token, request); !errors.Is(err, ErrRepositoryUnavailable) {
+		t.Fatalf("bootstrap outage did not fail closed: %v", err)
+	}
+	run("pg_ctl", "-D", data, "-l", log, "-o", options, "-w", "start")
+	db.Close()
+	db, err = database.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	repo = fixtureRepository(t, db)
+	binding, err := repo.NetworkBinding(ctx, token.DeviceID)
+	if err != nil || binding.NetworkPublicKey != request.NetworkPublicKey || binding.SigningKeyID != request.Enrollment.SigningKeyID {
+		t.Fatalf("bootstrap binding lost after crash: %v", err)
+	}
+	device, err = repo.Device(ctx, token.DeviceID)
+	if err != nil || device.LastSequence != contracts.EnrollmentSequenceV1 {
+		t.Fatalf("bootstrap signing state lost after crash: %v", err)
+	}
+	_, err = repo.AdmitEnrollment(ctx, token.Token, request)
+	requireRepositoryRejection(t, err, contracts.EnvelopeRejectionBootstrapInvalid)
+	requireRepositoryRejection(t, repo.Enroll(ctx, request.Enrollment), contracts.EnvelopeRejectionChallengeReused)
+	t.Log("bootstrap signing/network binding, token consumption and challenge consumption survived abrupt PostgreSQL recovery")
 }

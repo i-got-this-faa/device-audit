@@ -14,7 +14,10 @@ The wire contracts reserve telemetry, model update metadata, model-versioned
 predictions, expiring diagnostic tasks, and audit/sustainability results. The
 fixture API exposes only telemetry ingestion and latest-sample retrieval. SEC06
 #82 adds a separate minimal OIDC console/authentication surface; it is not device
-authentication. Future device-facing endpoints must authenticate the transport
+authentication. SEC01 #18 adds TLS bootstrap routes that atomically bind separate
+signing and network keys after one-use token authorization and proof of both
+keys. Network binding is admission state, not a live mesh connection.
+Future steady-state device-facing endpoints must authenticate the transport
 peer, bind it to the device identity, validate signatures/sequence counters, and
 reject replay.
 
