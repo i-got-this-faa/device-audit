@@ -121,6 +121,26 @@
         "device-audit.audit-receipt.v1": "audit-v1.schema.json",
         "device-audit.audit-verification.v1": "audit-v1.schema.json"
       }
+    },
+    {
+      "name": "bootstrap-v1",
+      "fixture": "bootstrap/v1-vectors.json",
+      "payload_field": "message",
+      "valid_field": "contract_valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestBootstrapV1GoldenVectors",
+      "python_tests": [
+        "test_bootstrap_contracts.BootstrapContractTests"
+      ],
+      "schemas": {
+        "device-audit.bootstrap-token-request.v1": "bootstrap-v1.schema.json",
+        "device-audit.bootstrap-token.v1": "bootstrap-v1.schema.json",
+        "device-audit.enrollment-start.v1": "bootstrap-v1.schema.json",
+        "device-audit.enrollment-challenge.v1": "bootstrap-v1.schema.json",
+        "device-audit.enrollment-admission.v1": "bootstrap-v1.schema.json",
+        "device-audit.enrollment-accepted.v1": "bootstrap-v1.schema.json",
+        "device-audit.enrollment-error.v1": "bootstrap-v1.schema.json"
+      }
     }
   ]
 }
