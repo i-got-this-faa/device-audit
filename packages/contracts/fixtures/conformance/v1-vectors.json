@@ -272,6 +272,120 @@
       "expected_python": "unsupported_schema"
     },
     {
+      "name": "valid/device-audit.bootstrap-token-request.v1",
+      "reader_version": "device-audit.bootstrap-token-request.v1",
+      "wire": "{\"device_id\":\"device:fixture\",\"schema_version\":\"device-audit.bootstrap-token-request.v1\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.bootstrap-token-request.v1",
+      "reader_version": "device-audit.bootstrap-token-request.v1",
+      "wire": "{\"device_id\": \"device:fixture\", \"schema_version\": \"device-audit.bootstrap-token-request.v999\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.bootstrap-token.v1",
+      "reader_version": "device-audit.bootstrap-token.v1",
+      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"schema_version\":\"device-audit.bootstrap-token.v1\",\"token\":\"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.bootstrap-token.v1",
+      "reader_version": "device-audit.bootstrap-token.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture\", \"device_id\": \"device:fixture\", \"expires_at\": \"2026-10-24T12:10:00Z\", \"schema_version\": \"device-audit.bootstrap-token.v999\", \"token\": \"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment-start.v1",
+      "reader_version": "device-audit.enrollment-start.v1",
+      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment-start.v1\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment-start.v1",
+      "reader_version": "device-audit.enrollment-start.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture\", \"device_id\": \"device:fixture\", \"network_public_key\": \"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment-start.v999\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment-challenge.v1",
+      "reader_version": "device-audit.enrollment-challenge.v1",
+      "wire": "{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"network_challenge\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-challenge.v1\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment-challenge.v1",
+      "reader_version": "device-audit.enrollment-challenge.v1",
+      "wire": "{\"challenge_id\": \"abababababababababababababababababababababababababababababababab\", \"deployment_id\": \"deployment:fixture\", \"device_id\": \"device:fixture\", \"expires_at\": \"2026-10-24T12:10:00Z\", \"network_challenge\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"network_public_key\": \"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\", \"schema_version\": \"device-audit.enrollment-challenge.v999\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment-admission.v1",
+      "reader_version": "device-audit.enrollment-admission.v1",
+      "wire": "{\"enrollment\":{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"issued_at\":\"2026-10-24T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"16cd48e075ed2ed27b10f95dce2f2118e484215e32ca5b2cf4045783ced79945da6612eaa53137651baff424f9ab19120aeb70f1fd744eeb68e1561ee6ac9b06\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"},\"network_proof\":\"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-admission.v1\",\"signature\":\"2ce6d4244c6a70419bb31508b3b2128e8ebbe21cb2f8afd5a90b89639072bf09dc21c5d5e150d5763c8d2d0e159b49304d8ea02c58fe21bd5a2b60afcb46430d\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f763100000000246465766963652d61756469742e656e726f6c6c6d656e742d61646d697373696f6e2e7631000000406338323262333264373134613164316161363665346564663661386466343036363135383533643466646362303462336636366662343966363161393531353200000040383532306630303938393330613735343734386237646463623433656637356130646266336130643236333831616634656261346139386561613962346536610000004063646364636463646364636463646364636463646364636463646364636463646364636463646364636463646364636463646364636463646364636463646364",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment-admission.v1",
+      "reader_version": "device-audit.enrollment-admission.v1",
+      "wire": "{\"enrollment\": {\"challenge_id\": \"abababababababababababababababababababababababababababababababab\", \"deployment_id\": \"deployment:fixture\", \"device_id\": \"device:fixture\", \"expires_at\": \"2026-10-24T12:10:00Z\", \"issued_at\": \"2026-10-24T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"16cd48e075ed2ed27b10f95dce2f2118e484215e32ca5b2cf4045783ced79945da6612eaa53137651baff424f9ab19120aeb70f1fd744eeb68e1561ee6ac9b06\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}, \"network_proof\": \"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\", \"network_public_key\": \"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\", \"schema_version\": \"device-audit.enrollment-admission.v999\", \"signature\": \"2ce6d4244c6a70419bb31508b3b2128e8ebbe21cb2f8afd5a90b89639072bf09dc21c5d5e150d5763c8d2d0e159b49304d8ea02c58fe21bd5a2b60afcb46430d\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment-accepted.v1",
+      "reader_version": "device-audit.enrollment-accepted.v1",
+      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"last_sequence\":1,\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-accepted.v1\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment-accepted.v1",
+      "reader_version": "device-audit.enrollment-accepted.v1",
+      "wire": "{\"deployment_id\": \"deployment:fixture\", \"device_id\": \"device:fixture\", \"last_sequence\": 1, \"network_public_key\": \"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\", \"schema_version\": \"device-audit.enrollment-accepted.v999\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.enrollment-error.v1",
+      "reader_version": "device-audit.enrollment-error.v1",
+      "wire": "{\"reason\":\"bootstrap_invalid\",\"schema_version\":\"device-audit.enrollment-error.v1\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.enrollment-error.v1",
+      "reader_version": "device-audit.enrollment-error.v1",
+      "wire": "{\"reason\": \"bootstrap_invalid\", \"schema_version\": \"device-audit.enrollment-error.v999\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
       "name": "enrollment freshness sequence already consumed",
       "reader_version": "device-audit.enrollment.v1",
       "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",
@@ -464,124 +578,12 @@
       "expected_python": "invalid_contract"
     },
     {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.bootstrap-token-request.v1",
-      "reader_version": "device-audit.bootstrap-token-request.v1",
-      "wire": "{\"device_id\":\"device:fixture\",\"schema_version\":\"device-audit.bootstrap-token-request.v1\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.bootstrap-token-request.v1",
-      "reader_version": "device-audit.bootstrap-token-request.v1",
-      "wire": "{\"device_id\":\"device:fixture\",\"schema_version\":\"device-audit.unsupported.v999\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.bootstrap-token.v1",
-      "reader_version": "device-audit.bootstrap-token.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"schema_version\":\"device-audit.bootstrap-token.v1\",\"token\":\"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.bootstrap-token.v1",
-      "reader_version": "device-audit.bootstrap-token.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"schema_version\":\"device-audit.unsupported.v999\",\"token\":\"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.enrollment-start.v1",
-      "reader_version": "device-audit.enrollment-start.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment-start.v1\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.enrollment-start.v1",
-      "reader_version": "device-audit.enrollment-start.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.unsupported.v999\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.enrollment-challenge.v1",
-      "reader_version": "device-audit.enrollment-challenge.v1",
-      "wire": "{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"network_challenge\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-challenge.v1\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.enrollment-challenge.v1",
-      "reader_version": "device-audit.enrollment-challenge.v1",
-      "wire": "{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"network_challenge\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.unsupported.v999\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.enrollment-admission.v1",
-      "reader_version": "device-audit.enrollment-admission.v1",
-      "wire": "{\"enrollment\":{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"issued_at\":\"2026-10-24T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"16cd48e075ed2ed27b10f95dce2f2118e484215e32ca5b2cf4045783ced79945da6612eaa53137651baff424f9ab19120aeb70f1fd744eeb68e1561ee6ac9b06\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"},\"network_proof\":\"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-admission.v1\",\"signature\":\"2ce6d4244c6a70419bb31508b3b2128e8ebbe21cb2f8afd5a90b89639072bf09dc21c5d5e150d5763c8d2d0e159b49304d8ea02c58fe21bd5a2b60afcb46430d\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.enrollment-admission.v1",
-      "reader_version": "device-audit.enrollment-admission.v1",
-      "wire": "{\"enrollment\":{\"challenge_id\":\"abababababababababababababababababababababababababababababababab\",\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"expires_at\":\"2026-10-24T12:10:00Z\",\"issued_at\":\"2026-10-24T12:00:00Z\",\"public_key\":\"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\",\"schema_version\":\"device-audit.enrollment.v1\",\"sequence\":1,\"signature\":\"16cd48e075ed2ed27b10f95dce2f2118e484215e32ca5b2cf4045783ced79945da6612eaa53137651baff424f9ab19120aeb70f1fd744eeb68e1561ee6ac9b06\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"},\"network_proof\":\"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.unsupported.v999\",\"signature\":\"2ce6d4244c6a70419bb31508b3b2128e8ebbe21cb2f8afd5a90b89639072bf09dc21c5d5e150d5763c8d2d0e159b49304d8ea02c58fe21bd5a2b60afcb46430d\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.enrollment-accepted.v1",
-      "reader_version": "device-audit.enrollment-accepted.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"last_sequence\":1,\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.enrollment-accepted.v1\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.enrollment-accepted.v1",
-      "reader_version": "device-audit.enrollment-accepted.v1",
-      "wire": "{\"deployment_id\":\"deployment:fixture\",\"device_id\":\"device:fixture\",\"last_sequence\":1,\"network_public_key\":\"8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a\",\"schema_version\":\"device-audit.unsupported.v999\",\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}"
-    },
-    {
-      "expected_go": "accepted",
-      "expected_python": "accepted",
-      "expected_schema": "accepted",
-      "name": "valid/device-audit.enrollment-error.v1",
-      "reader_version": "device-audit.enrollment-error.v1",
-      "wire": "{\"reason\":\"bootstrap_invalid\",\"schema_version\":\"device-audit.enrollment-error.v1\"}"
-    },
-    {
-      "expected_go": "unsupported_schema",
-      "expected_python": "unsupported_schema",
-      "expected_schema": "unsupported_schema",
-      "name": "unsupported/device-audit.enrollment-error.v1",
-      "reader_version": "device-audit.enrollment-error.v1",
-      "wire": "{\"reason\":\"bootstrap_invalid\",\"schema_version\":\"device-audit.unsupported.v999\"}"
-    },
-    {
-      "expected_go": "invalid_contract",
-      "expected_python": "invalid_contract",
-      "expected_schema": "invalid_contract",
       "name": "bootstrap-identifier-final-newline",
       "reader_version": "device-audit.bootstrap-token-request.v1",
-      "wire": "{\"schema_version\":\"device-audit.bootstrap-token-request.v1\",\"device_id\":\"device:fixture\\n\"}"
+      "wire": "{\"schema_version\": \"device-audit.bootstrap-token-request.v1\", \"device_id\": \"device:fixture\\n\"}",
+      "expected_schema": "invalid_contract",
+      "expected_go": "invalid_contract",
+      "expected_python": "invalid_contract"
     }
   ]
 }

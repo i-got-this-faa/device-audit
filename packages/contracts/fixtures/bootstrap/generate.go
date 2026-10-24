@@ -44,25 +44,6 @@ func main() {
 		c.EnrollmentErrorV1{SchemaVersion: c.EnrollmentErrorV1Version, Reason: "bootstrap_invalid"},
 	}
 	var vectors []map[string]any
-	var wires struct {
-		SchemaVersion string            `json:"schema_version"`
-		Vectors       []json.RawMessage `json:"vectors"`
-	}
-	wirePath := "packages/contracts/fixtures/conformance/v1-vectors.json"
-	data, err := os.ReadFile(wirePath)
-	must(err)
-	must(json.Unmarshal(data, &wires))
-	var kept []json.RawMessage
-	for _, w := range wires.Vectors {
-		var header struct {
-			ReaderVersion string `json:"reader_version"`
-		}
-		must(json.Unmarshal(w, &header))
-		if !strings.Contains(header.ReaderVersion, "bootstrap-") && !strings.Contains(header.ReaderVersion, "enrollment-start.") && !strings.Contains(header.ReaderVersion, "enrollment-challenge.") && !strings.Contains(header.ReaderVersion, "enrollment-admission.") && !strings.Contains(header.ReaderVersion, "enrollment-accepted.") && !strings.Contains(header.ReaderVersion, "enrollment-error.") {
-			kept = append(kept, w)
-		}
-	}
-	wires.Vectors = kept
 	for _, v := range values {
 		encoded, err := json.Marshal(v)
 		must(err)
@@ -75,17 +56,6 @@ func main() {
 			vector["signature_valid"] = true
 		}
 		vectors = append(vectors, vector)
-		for _, unsupported := range []bool{false, true} {
-			name, expected := "valid/", "accepted"
-			if unsupported {
-				object["schema_version"] = "device-audit.unsupported.v999"
-				name, expected = "unsupported/", "unsupported_schema"
-			}
-			wire, err := json.Marshal(object)
-			must(err)
-			wires.Vectors = append(wires.Vectors, raw(map[string]any{"name": name + version, "reader_version": version, "wire": string(wire), "expected_go": expected, "expected_schema": expected, "expected_python": expected}))
-		}
-		object["schema_version"] = version
 		for _, field := range []string{"missing", "unknown"} {
 			clone := map[string]any{}
 			for k, v := range object {
@@ -121,14 +91,11 @@ func main() {
 		vectors = append(vectors, map[string]any{"name": bad.name, "message": v, "contract_valid": false, "schema_valid": bad.schema})
 	}
 	admission.NetworkProof = strings.Repeat("ee", 32)
-	message, err = admission.SigningBytes()
+	message, err := admission.SigningBytes()
 	must(err)
 	vectors = append(vectors, map[string]any{"name": "altered-network-proof", "message": admission, "contract_valid": true, "schema_valid": true, "canonical_hex": hex.EncodeToString(message), "signature_valid": false})
 	vectors = append(vectors, map[string]any{"name": "identifier-final-newline", "message": c.BootstrapTokenRequestV1{SchemaVersion: c.BootstrapTokenRequestV1Version, DeviceID: "device:fixture\n"}, "contract_valid": false, "schema_valid": false})
-	newlineWire, _ := json.Marshal(c.BootstrapTokenRequestV1{SchemaVersion: c.BootstrapTokenRequestV1Version, DeviceID: "device:fixture\n"})
-	wires.Vectors = append(wires.Vectors, raw(map[string]any{"name": "bootstrap-identifier-final-newline", "reader_version": c.BootstrapTokenRequestV1Version, "wire": string(newlineWire), "expected_go": "invalid_contract", "expected_schema": "invalid_contract", "expected_python": "invalid_contract"}))
 	write("packages/contracts/fixtures/bootstrap/v1-vectors.json", map[string]any{"schema_version": "device-audit.bootstrap-fixtures.v1", "vectors": vectors})
-	write(wirePath, wires)
 }
 
 func must(err error) {
@@ -141,5 +108,3 @@ func write(path string, value any) {
 	must(err)
 	must(os.WriteFile(path, append(data, '\n'), 0644))
 }
-
-func raw(value any) json.RawMessage { data, err := json.Marshal(value); must(err); return data }

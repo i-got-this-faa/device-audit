@@ -28,6 +28,8 @@ def main():
             if source.get("canonical_hex"):
                 context["canonical_hex"] = source["canonical_hex"]
                 context["verification_key"] = source.get("verification_key", source.get("public_key", collection.get("verification_key")))
+                if version == "device-audit.enrollment-admission.v1":
+                    context["verification_key"] = payload["enrollment"]["public_key"]
                 if context["verification_key"] is None:
                     raise ValueError(f"missing verification key for {version}")
             add("valid/" + version, version, json.dumps(payload, separators=(",", ":")), **context)
@@ -79,6 +81,10 @@ def main():
     telemetry = copy.deepcopy(telemetry)
     del telemetry["metrics"]["gpu_utilization"]["missing_reason"]
     add("null_metric_without_reason", "device-audit.telemetry.v2", json.dumps(telemetry),
+        schema="invalid_contract", go="invalid_contract", python="invalid_contract")
+    bootstrap = json.loads((CONTRACTS / "fixtures/bootstrap/v1-vectors.json").read_text(encoding="utf-8"))["vectors"]
+    newline = next(v for v in bootstrap if v["name"] == "identifier-final-newline")
+    add("bootstrap-identifier-final-newline", newline["message"]["schema_version"], json.dumps(newline["message"]),
         schema="invalid_contract", go="invalid_contract", python="invalid_contract")
     path = CONTRACTS / catalogue["wire_vectors"]
     path.write_text(json.dumps(dict(schema_version="device-audit.conformance-wire.v1", vectors=vectors), indent=2) + "\n", encoding="utf-8")

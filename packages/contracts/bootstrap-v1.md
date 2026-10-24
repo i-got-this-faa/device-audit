@@ -62,7 +62,11 @@ separate work.
 Errors use `enrollment-error.v1` with `reason`. Malformed requests are 400,
 authorization/proof/expiry failures 403, consumed challenges or conflicting
 bindings 409, and unavailable/uncertain storage 503. Plaintext requests return
-403 `tls_required` before reading credentials. Invalid, unknown, expired or
+403 `tls_required` before reading credentials. The configured TLS listener does
+not parse plaintext HTTP requests. TLS rejection does not revoke a token already
+disclosed by a client. Do not use such a token; wait for its expiry before
+issuing a replacement. Early token revocation is separate work.
+Invalid, unknown, expired or
 consumed bootstrap tokens share `bootstrap_invalid`. Rejections disclose no
 device sequence, database error, token or proof. Body size is bounded to 16 KiB;
 queries are forbidden. Strict readers reject missing/null/unknown/duplicate

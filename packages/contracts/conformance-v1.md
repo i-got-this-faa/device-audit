@@ -101,6 +101,7 @@ Regenerate envelopes before the derived raw-wire cases, then run the command:
 
 ```sh
 go run packages/contracts/fixtures/envelopes/generate.go
+go run packages/contracts/fixtures/bootstrap/generate.go
 python3 tools/generate_contract_wire_vectors.py
 make contract-check check cross-build
 ```
