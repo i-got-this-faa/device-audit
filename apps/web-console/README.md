@@ -20,6 +20,10 @@ Implemented routes:
 - `GET|POST /admin/role-bindings` lists bindings and changes a subject's
   `viewer`/`admin` role. Admin-only.
 - `GET /signed-out` is the public post-logout page.
+- With #18 enrollment configured, `POST /admin/bootstrap-tokens` issues a
+  device-scoped ten-minute credential. It requires TLS, admin scope, CSRF,
+  exact Origin and authentication within five minutes. See the
+  [enrollment guide](../../infra/enrollment/README.md).
 
 Sessions are stored in PostgreSQL schema version 2. The session browser state
 is the opaque `__Host-device-audit-session` cookie: `Secure`, `HttpOnly`,

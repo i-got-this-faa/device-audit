@@ -61,9 +61,9 @@ inherited as approved handoff decisions.
 The current loopback fixture still loses samples on restart. The controller can
 connect to PostgreSQL, apply the #19 migrations and host the #82 administrative
 OIDC/session surface. #83 adds signed enrollment/evidence repository operations,
-but their admission/HTTP integration, relay deployment and the remaining access
-rules are not implemented. No production capability or patent verification is
-established.
+and #18 now adds TLS bootstrap admission. Signed telemetry HTTP integration,
+relay deployment and the remaining access rules are not implemented. No
+production capability or patent verification is established.
 SRC05 #72 has reconciled the supplied PDF and recorded its provenance in
 [the source map](source/patent-map.md). This does not establish implementation
 or patent coverage.
@@ -224,10 +224,10 @@ future chain signing remain separate. No secret bootstrap or mesh credential is
 placed in the envelopes. Another owner must review sequence, lost-response,
 restart and restore semantics before consumer implementation. #83 now implements
 durable challenge storage, atomic consumption and signed
-identity/evidence persistence with isolated crash/restart tests. Authorized
-challenge issuance, admission, rotation/revocation authority, protected key
-storage and backup-restore qualification remain unimplemented. #17 is not
-changed by #75.
+identity/evidence persistence with isolated crash/restart tests. The later #18
+implementation below adds authorized challenge issuance and bootstrap admission.
+Rotation/revocation authority, protected endpoint key storage and backup-restore
+qualification remain open. #17 is not changed by #75.
 The #80 shared conformance command below now runs the envelope fixtures.
 #14's target selection does not qualify enrollment, service permissions or
 endpoint runtime; SRC05 #72
@@ -449,8 +449,55 @@ an asynchronous session default; host durability remains a deployment concern.
 [PR validation evidence](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745) records real PostgreSQL 17.11
 integration, rollback, contention, writer termination and abrupt database
 recovery checks. The controller's unsigned fixture route remains in memory.
-Authorized bootstrap/admission, signed responses, revocation authority/races,
-authenticated reconciliation, retention and backup-restore qualification remain
+The later #18 implementation below adds authorized bootstrap admission. Signed
+responses, revocation authority/races, authenticated reconciliation, retention and backup-restore qualification remain
 follow-on work. No new wire contract, production capability or chain payload is
 claimed. Both owners' contract/integration review and a reviewed PR remain
 required before merging dependent work.
+
+## One-use bootstrap admission, SEC01 #18
+
+The owner requested completion of #18 on 24 October 2026 after its dependencies
+#73, #80, #82 and #83 closed. [Bootstrap admission v1](../packages/contracts/bootstrap-v1.md)
+adds a separate wrapper around unchanged signing enrollment v1. Token issuance
+requires the existing administrator session, Origin/CSRF checks and verified
+OIDC authentication within five minutes. The fresh-admin middleware is shared
+with role changes.
+
+Tokens contain 256 random bits, authorize one device in the configured deployment
+and expire after ten minutes. Only their SHA-256 digests and issuance provenance
+are stored. Challenge creation binds one signing/network key tuple to the token.
+A NaCl anonymous sealed box encrypts a fresh 32-byte proof to the endpoint's
+canonical X25519 public key. The endpoint signs its recovered proof, network key
+and original enrollment fingerprint using the separate Ed25519 key. This proves
+possession of both keys without importing Tailcat into the application module.
+The implementation uses pinned `golang.org/x/crypto/nacl/box` v0.58.0. Its
+required `x/sys`, `x/sync` and `x/text` module versions are recorded in go.mod.
+
+Migration 004 adds bootstrap-token, network-challenge and network-binding tables.
+Final admission locks token then challenge and atomically commits both consumed
+marks, the signing identity, initial sequence and unique network binding. The
+internal signing-only repository path remains separate and grants no network
+admission. Both token and envelope expiry are rechecked after possible lock waits.
+Network proof plaintext is never persisted; the binding retains public metadata
+and the complete signed request fingerprint. Lost COMMIT responses remain
+uncertain and retries never fabricate success.
+
+Enrollment is enabled only with a configured deployment ID, PostgreSQL,
+administrator authentication, TLS certificate/key files and HTTPS public origin.
+The loopback listener uses TLS 1.3 and public proxies must verify TLS upstream.
+Forwarded scheme/identity headers cannot bypass these checks. HTTP 201 returns
+a TLS-authenticated admission result after commit, not a signed evidence receipt.
+The [operator guide](../infra/enrollment/README.md) records configuration,
+credential delivery, route exposure and reproduction commands.
+
+Real PostgreSQL/TLS tests cover authorization denials, proof mismatch, expiry,
+concurrent start and redemption across independent repositories, key conflicts,
+every admission-write rollback and deferred COMMIT failure. An isolated abrupt
+PostgreSQL restart preserves both bindings and token/challenge consumption.
+These checks use synthetic endpoint keys and precreated local sessions. They do
+not qualify a real IdP, browser flow, deployed proxy, physical endpoint, mesh
+transport or endpoint key storage. Early bootstrap-token revocation, rate limits,
+cleanup, device revocation, key rotation/recovery, authenticated receipt lookup
+and off-host backup restore remain separate work. Shared contract/integration
+owner review and reviewed PR merges remain required to close #18.

@@ -92,6 +92,12 @@ See the [console plan](apps/web-console/README.md) and
 [authentication decision](docs/decisions.md#administrative-authentication-implementation-sec06-82).
 No real IdP, browser matrix or production identity qualification is claimed.
 
+With a deployment ID, administrator authentication and TLS certificate/key files,
+the controller also enables [one-use bootstrap enrollment](infra/enrollment/README.md).
+It issues expiring credentials and atomically binds separate signing and network
+identities after verifying both proofs. Endpoint key provisioning and the
+production mesh adapter remain separate work.
+
 Run `make contract-check` for the shared Go/schema/Python fixture harness and its
 machine-readable evidence report. See [contract conformance](packages/contracts/conformance-v1.md)
 for the exact reader boundaries and Nix command.
@@ -122,16 +128,18 @@ real-device qualification or implements controller admission.
 - `networking`: Tailcat/WireGuard/DERP adapter boundary carried over from Shepherd's design.
 - `infra/networking`: relay/bootstrap deployment requirements.
 - `infra/database`: PostgreSQL connection, versioned migrations and console auth tables.
-- `internal/controller/repository.go`: signed device enrollment, exact evidence bytes and atomic sequence persistence. The unsigned fixture API remains in memory.
+- `internal/controller/repository.go`, `bootstrap_repository.go`: signed identity/evidence persistence and atomic bootstrap admission. The unsigned fixture API remains in memory.
 - `contracts`: smart-contract commitment requirements; blockchain selection is open.
 - `apps/web-console`: Go template console/auth routes, session policy and acceptance matrix; fleet pages and browser qualification remain open.
 
 Mesh constructors return `ErrNotImplemented`; `--transport mesh` exits with an
-error. The fixture demo accepts literal loopback addresses only. Production
-enrollment, device authentication, durable telemetry, a fleet console, real
-collectors, predictions, diagnostics, federated coordination, lifecycle reports,
-and contract transactions are not implemented. The administrative OIDC/session
-path is a local scaffold, not production identity federation.
+error. The fixture demo accepts literal loopback addresses only. Bootstrap
+admission has local TLS/PostgreSQL integration evidence; deployed identity and
+production qualification remain open. Live mesh device authentication, durable
+telemetry, a fleet console, real collectors, predictions, diagnostics, federated
+coordination, lifecycle reports and contract transactions are not implemented.
+The administrative OIDC/session path remains a local implementation with an
+unqualified real-provider integration.
 [Architecture](docs/architecture.md) explains the boundaries.
 
 ## Decisions and source

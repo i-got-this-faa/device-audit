@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"errors"
 	"flag"
@@ -30,6 +31,9 @@ type environment struct {
 	PublicOrigin     string
 	BootstrapAdmin   string
 	OIDCRequiredAMR  string
+	DeploymentID     string
+	TLSCertFile      string
+	TLSKeyFile       string
 }
 
 func main() {
@@ -49,6 +53,9 @@ func environmentFromOS() environment {
 		PublicOrigin:     os.Getenv("DEVICE_AUDIT_PUBLIC_ORIGIN"),
 		BootstrapAdmin:   os.Getenv("DEVICE_AUDIT_BOOTSTRAP_ADMIN"),
 		OIDCRequiredAMR:  "mfa",
+		DeploymentID:     os.Getenv("DEVICE_AUDIT_DEPLOYMENT_ID"),
+		TLSCertFile:      os.Getenv("DEVICE_AUDIT_TLS_CERT_FILE"),
+		TLSKeyFile:       os.Getenv("DEVICE_AUDIT_TLS_KEY_FILE"),
 	}
 	// An explicitly empty value disables local AMR enforcement; an unset value
 	// keeps the deployment default.
@@ -70,6 +77,9 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	publicOrigin := flags.String("public-origin", defaults.PublicOrigin, "public HTTPS origin used for cookies and Origin checks")
 	bootstrapAdmin := flags.String("bootstrap-admin", defaults.BootstrapAdmin, "local OIDC subject to preprovision as the first admin")
 	requiredAMR := flags.String("oidc-required-amr", defaults.OIDCRequiredAMR, "required ID token amr value; empty relies on the issuer MFA policy")
+	deploymentID := flags.String("deployment-id", defaults.DeploymentID, "enable durable bootstrap enrollment for this configured deployment")
+	tlsCertFile := flags.String("tls-cert-file", defaults.TLSCertFile, "TLS certificate PEM file for the controller listener")
+	tlsKeyFile := flags.String("tls-key-file", defaults.TLSKeyFile, "TLS private-key PEM file for the controller listener")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -86,6 +96,17 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	}
 	if *transport != "loopback" {
 		return fmt.Errorf("transport %q: %w", *transport, mesh.ErrNotImplemented)
+	}
+	var tlsConfig *tls.Config
+	if *tlsCertFile != "" || *tlsKeyFile != "" {
+		certificate, err := tls.LoadX509KeyPair(*tlsCertFile, *tlsKeyFile)
+		if err != nil {
+			return errors.New("valid TLS certificate and private-key files are required")
+		}
+		tlsConfig = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS13}
+	}
+	if *deploymentID != "" && (tlsConfig == nil || !strings.HasPrefix(*publicOrigin, "https://")) {
+		return errors.New("bootstrap enrollment requires TLS and an HTTPS public origin")
 	}
 
 	databaseStatus := "not_configured"
@@ -132,6 +153,20 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		slog.Info("console authentication ready", "issuer", authConfig.issuer)
 	}
 
+	var enrollment *controller.EnrollmentService
+	if *deploymentID != "" {
+		if db == nil || consoleAuth == nil {
+			return errors.New("bootstrap enrollment requires a durable database and configured administrator authentication")
+		}
+		repository, err := controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: *deploymentID})
+		if err != nil {
+			return fmt.Errorf("enrollment repository startup failed: %w", err)
+		}
+		enrollment, err = controller.NewEnrollmentService(repository, consoleAuth)
+		if err != nil {
+			return err
+		}
+	}
 	listener, err := mesh.ListenLocal(*address)
 	if err != nil {
 		return fmt.Errorf("listen failed: %w", err)
@@ -142,7 +177,11 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		SchemaVersion:  schemaVersion,
 		Auth:           consoleAuth,
 		AuthStatus:     authStatus,
+		Enrollment:     enrollment,
 	})
+	if tlsConfig != nil {
+		listener = tls.NewListener(listener, tlsConfig)
+	}
 	server := &http.Server{Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
