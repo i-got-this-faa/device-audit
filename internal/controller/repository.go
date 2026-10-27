@@ -136,6 +136,18 @@ func (s *PostgresRepository) CreateEnrollmentChallenge(ctx context.Context, devi
 }
 
 func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.EnrollmentEnvelopeV1) error {
+	tx, err := s.beginWrite(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if err := s.enrollInTransaction(ctx, tx, envelope); err != nil {
+		return err
+	}
+	return repositoryCommit(tx)
+}
+
+func (s *PostgresRepository) enrollInTransaction(ctx context.Context, tx *sql.Tx, envelope contracts.EnrollmentEnvelopeV1) error {
 	if envelope.DeploymentID != s.deploymentID {
 		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionDeploymentMismatch}
 	}
@@ -149,11 +161,6 @@ func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.Enro
 	if err := envelope.VerifySignature(publicKey); err != nil {
 		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
 	}
-	tx, err := s.beginWrite(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
 	var challenge EnrollmentChallenge
 	err = tx.QueryRowContext(ctx, `SELECT device_id, signing_key_id, created_at, expires_at, consumed_at
 		FROM enrollment_challenges WHERE deployment_id=$1 AND id=$2 FOR UPDATE`,
@@ -203,7 +210,7 @@ func (s *PostgresRepository) Enroll(ctx context.Context, envelope contracts.Enro
 		WHERE deployment_id=$1 AND id=$2`, s.deploymentID, envelope.ChallengeID, now); err != nil {
 		return repositoryUnavailable(err)
 	}
-	return repositoryCommit(tx)
+	return nil
 }
 
 // AcceptEvidence verifies against the locked enrolled key, then commits the

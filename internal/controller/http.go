@@ -28,6 +28,7 @@ type Config struct {
 	SchemaVersion  int
 	Auth           *auth.Service
 	AuthStatus     string
+	Enrollment     *EnrollmentService
 }
 
 type API struct {
@@ -38,6 +39,7 @@ type API struct {
 	schema     int
 	auth       *auth.Service
 	authStatus string
+	enrollment *EnrollmentService
 }
 
 func NewAPI(cfg Config) *API {
@@ -57,12 +59,17 @@ func NewAPI(cfg Config) *API {
 		schema:     cfg.SchemaVersion,
 		auth:       cfg.Auth,
 		authStatus: cfg.AuthStatus,
+		enrollment: cfg.Enrollment,
 	}
 }
 
 func (a *API) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		enrollment := "not_configured"
+		if a.enrollment != nil {
+			enrollment = "configured"
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status":         "ok",
 			"mode":           "development",
@@ -71,12 +78,16 @@ func (a *API) Handler() http.Handler {
 			"schema_version": a.schema,
 			"auth":           a.authStatus,
 			"mesh":           "not_implemented",
+			"enrollment":     enrollment,
 		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
 	mux.HandleFunc("GET /v1/devices/{id}", a.device)
 	if a.auth != nil {
 		a.auth.Register(mux)
+	}
+	if a.enrollment != nil {
+		a.enrollment.Register(mux)
 	}
 	return mux
 }

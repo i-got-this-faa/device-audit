@@ -3,10 +3,12 @@
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 selects PostgreSQL provisionally for a single-organization deployment. Task #19
 binds the controller to PostgreSQL and applies versioned migrations. Schema
-version 3 adds #83's deployment-bound signed-device repository alongside the
-#82 console identity tables. Repository writes are durable transactions; the
-unsigned fixture HTTP API still uses its separate in-memory store. No signed
-admission or ingestion route is wired to this repository yet.
+version 4 adds #18's bootstrap tokens, network challenges and committed network
+bindings alongside #83's signed-device repository and #82 console identity tables.
+Repository writes are durable transactions; the unsigned fixture HTTP API still
+uses its separate in-memory store. The [TLS bootstrap routes](../enrollment/README.md)
+use this repository. Signed
+telemetry ingestion remains separate work.
 
 ## Implemented binding
 
@@ -28,6 +30,11 @@ admission or ingestion route is wired to this repository yet.
 - `003_device_repository.sql` adds `controller_deployments`,
   `enrollment_challenges`, `device_enrollments` and `device_evidence`. The old
   candidate tables remain unchanged and are never imported as trusted identities.
+- `004_bootstrap_admission.sql` adds `bootstrap_tokens`,
+  `enrollment_network_challenges` and `device_network_bindings`. Tokens and
+  decrypted proofs retain only hashes. Public binding metadata and the admission
+  fingerprint commit with signing enrollment and token/challenge consumption.
+  Existing signing-only rows gain no network admission.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -51,7 +58,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 3 and the configured
+- health output for a connected database, schema version 4 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;
@@ -60,7 +67,11 @@ The integration tests create isolated databases and cover:
 - enrollment/challenge and evidence/sequence rollback, independent concurrent
   writers, exact signed-byte preservation, gaps/exhaustion, expiry after lock
   waits, cancellation, unavailable storage and writer-process kills before and
-  after commit.
+  after commit;
+- #18 TLS admission, fresh-admin token issuance, duplicate/concurrent redemption,
+  network proof rejection, lock-wait expiry/cancellation, admission-write
+  rollback and deferred COMMIT failure;
+- version-3 upgrades preserving signing identities without creating network admission.
 
 CI runs the same target against a PostgreSQL 17 service.
 
@@ -69,8 +80,8 @@ on `PATH`, then run `make storage-crash-check` as a non-root user. This target
 creates and removes its own disposable loopback cluster. It never restarts the
 server from `TEST_DATABASE_URL`. It commits enrollment and evidence, stops
 PostgreSQL with `pg_ctl -m immediate`, verifies an outage fails writes, then
-checks identity, provenance, challenge consumption and replay state after crash
-recovery. The test requires `fsync=on` and `full_page_writes=on`. This additional
+checks identity, provenance, bootstrap token consumption, network binding,
+challenge consumption and replay state after crash recovery. The test requires `fsync=on` and `full_page_writes=on`. This additional
 target is opt-in and is not run by the existing CI database job.
 
 [The #83 PR evidence comment](https://github.com/i-got-this-faa/device-audit/pull/186#issuecomment-6359146745) records
@@ -98,13 +109,14 @@ restore automation and recovery qualification are not implemented by #19.
 
 ## Still open
 
-- Wiring authorized enrollment and authenticated device traffic to the #83
-  repository (#18, #24, #89), including signed acknowledgements and revocation
+- Wiring authenticated mesh device traffic to the repository (#24, #89),
+  including signed acknowledgements and revocation
   authority/races (#90).
 - Retention, authenticated receipt lookup and reconciliation after an uncertain
   commit. Replay is rejection, never proof that a particular payload was stored.
 - Durable audit events, session/login-row cleanup and IdP revocation. Fresh
-  authentication is enforced for role changes; future sensitive administrator
+  authentication is enforced for role changes and bootstrap-token issuance;
+  future sensitive administrator
   actions must apply the same policy.
 - Selecting the production database version, TLS settings, least-privilege role,
   retention and backup schedule.

@@ -13,24 +13,34 @@ entropy and the PostgreSQL uniqueness SQLSTATE. Migration SQL retains the
 versioned schema bounds; changing a Go constant cannot redefine an applied
 migration.
 
-This is an internal repository. No production HTTP route calls it yet. The
-existing `/v1/telemetry` fixture keeps its memory store and normalized digest.
-Repository success means its transaction committed; it does not issue a signed
-acknowledgement, authorize a peer or establish sensor truth.
+The [#18 TLS admission service](../../infra/enrollment/README.md) calls the
+bootstrap repository operations. The existing `/v1/telemetry` fixture keeps its
+memory store and normalized digest. Repository success means its transaction
+committed; it does not issue a signed acknowledgement, authenticate a live mesh
+peer or establish sensor truth.
 
 ## Transactions and callers
 
-1. After authorizing bootstrap access, #18's admission service calls
-   `CreateEnrollmentChallenge` with an authorized device ID, signing public key
+1. `IssueBootstrapToken`, `StartEnrollment` and `AdmitEnrollment` implement #18's
+   operator-authorized bootstrap flow. Final admission locks the token, verifies
+   the network proof and commits token/challenge consumption, signed enrollment
+   and a unique network binding together. `NetworkBinding` reads public binding
+   metadata without retaining the plaintext proof. Route authorization and
+   transport behavior are in the linked enrollment guide.
+2. Internal signing-only callers can use `CreateEnrollmentChallenge` with an
+   authorized device ID, signing public key
    and opaque authorization-record reference. The repository generates 256 random
    bits, stores the binding and expires it after ten minutes. Store no bootstrap
    credential in that reference. Authorization-record issuance, revocation and
    delivery are caller responsibilities; a reference alone proves no authority.
-2. `Enroll` validates the enrollment v1 signature and configured deployment,
+   `Enroll` validates the enrollment v1 signature and configured deployment,
    locks the challenge, checks its binding, consumption and expiry, and inserts
    the signed identity with high-water mark 1. Challenge consumption commits in
    that same transaction. Conflicting device/key bindings never replace an
-   enrollment. No key rotation or re-enrollment operation exists.
+   enrollment. These internal signing-only operations grant no network admission.
+   No key rotation or re-enrollment operation exists. Bootstrap uses the same
+   transaction-local signing implementation rather than an independently
+   committing `Enroll` call.
 3. After authenticating and authorizing the peer, #24/#89 call `AcceptEvidence`.
    It locks the enrolled device row, rejects a revoked binding, verifies the
    evidence v1 envelope using the stored key, and checks the server clock and

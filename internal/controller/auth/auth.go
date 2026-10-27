@@ -226,7 +226,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /signed-out", s.signedOut)
 	mux.Handle("GET /console", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.listBindings)))
-	mux.Handle("POST /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.upsertBinding)))
+	mux.Handle("POST /admin/role-bindings", s.RequireFreshAdmin(http.HandlerFunc(s.upsertBinding)))
 }
 
 func (s *Service) login(w http.ResponseWriter, r *http.Request) {
@@ -468,10 +468,6 @@ func (s *Service) listBindings(w http.ResponseWriter, r *http.Request) {
 func (s *Service) upsertBinding(w http.ResponseWriter, r *http.Request) {
 	current, _ := sessionFrom(r.Context())
 	now := s.now().UTC()
-	if current.Session.AuthenticatedAt.IsZero() || current.Session.AuthenticatedAt.After(now) || now.Sub(current.Session.AuthenticatedAt) > 5*time.Minute {
-		s.deny(w, r, RoleAdmin, "fresh_authentication_required", current.Session.Subject)
-		return
-	}
 	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
@@ -544,6 +540,30 @@ func (s *Service) RequireRole(required Role, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s.protect(w, r, required, next)
 	})
+}
+
+// RequireFreshAdmin protects sensitive administrator mutations with the same
+// session, role, Origin and CSRF checks as other protected routes.
+func (s *Service) RequireFreshAdmin(next http.Handler) http.Handler {
+	return s.RequireRole(RoleAdmin, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		current, _ := sessionFrom(r.Context())
+		now := s.now().UTC()
+		if current.Session.AuthenticatedAt.IsZero() || current.Session.AuthenticatedAt.After(now) || now.Sub(current.Session.AuthenticatedAt) > 5*time.Minute {
+			s.deny(w, r, RoleAdmin, "fresh_authentication_required", current.Session.Subject)
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
+}
+
+// SessionIdentity returns the authenticated issuer/subject for off-chain action
+// provenance. It does not authorize an action; use the route middleware first.
+func SessionIdentity(ctx context.Context) (issuer, subject string, ok bool) {
+	current, ok := sessionFrom(ctx)
+	if !ok {
+		return "", "", false
+	}
+	return current.Session.Issuer, current.Session.Subject, true
 }
 
 func (s *Service) protect(w http.ResponseWriter, r *http.Request, required Role, next http.Handler) {

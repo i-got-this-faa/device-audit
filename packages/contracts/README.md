@@ -30,8 +30,8 @@ protocol before using a digest in security decisions or smart contracts.
 ## Shared conformance command, #80
 
 `make contract-check` runs the [versioned conformance catalogue](conformance-v1.md)
-through Go, JSON Schema and the existing Python test readers. It checks 240 golden
-vectors and 52 raw-wire cases across 16 reader versions, including nullable
+through Go, JSON Schema and the existing Python test readers. It checks 267 golden
+vectors and 67 raw-wire cases across 23 reader versions, including nullable
 measurements, canonical bytes, incompatible schemas and pure replay/expiry
 classifications. A passing report records input hashes and tool versions under
 `artifacts/contracts/`; CI retains it. Schema validity, signature authentication,
@@ -238,3 +238,11 @@ semantic/correlation validation and signature tests share vectors with Python
 schema and canonical-byte checks. Duplicate, cancellation and reboot examples
 specify future durable consumer behavior. No scheduler, executor, cancellation
 transport or terminal state store is implemented.
+
+## Bootstrap admission v1, #18
+
+[Bootstrap admission](bootstrap-v1.md) adds expiring operator credentials, a
+network-key possession challenge and an Ed25519-signed admission wrapper while
+retaining signing enrollment v1. The shared fixtures cover strict decoding,
+canonical signing bytes, signature tampering and X25519 encoding boundaries.
+These contracts alone do not implement token issuance or endpoint admission.

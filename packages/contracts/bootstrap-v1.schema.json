@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "device-audit.bootstrap.v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "device_id"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.bootstrap-token-request.v1"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "token",
+        "expires_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.bootstrap-token.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z(?![\\s\\S])"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "public_key",
+        "network_public_key"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment-start.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "network_public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "signing_key_id",
+        "network_public_key",
+        "challenge_id",
+        "network_challenge",
+        "expires_at"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment-challenge.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "signing_key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "network_public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "network_challenge": {
+          "type": "string",
+          "minLength": 108,
+          "maxLength": 108,
+          "pattern": "^[A-Za-z0-9+/]{107}=(?![\\s\\S])"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z(?![\\s\\S])"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "enrollment",
+        "network_public_key",
+        "network_proof",
+        "signature"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment-admission.v1"
+        },
+        "enrollment": {
+          "$ref": "#/$defs/enrollment"
+        },
+        "network_public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "network_proof": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{128}(?![\\s\\S])"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "signing_key_id",
+        "network_public_key",
+        "last_sequence"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment-accepted.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "signing_key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "network_public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "last_sequence": {
+          "const": 1
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "reason"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment-error.v1"
+        },
+        "reason": {
+          "enum": [
+            "invalid_payload",
+            "bootstrap_invalid",
+            "challenge_expired",
+            "challenge_reused",
+            "enrollment_conflict",
+            "invalid_signature",
+            "key_mismatch",
+            "deployment_mismatch",
+            "expired",
+            "future_timestamp",
+            "storage_unavailable",
+            "tls_required"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "enrollment": {
+      "title": "device-audit.enrollment.v1",
+      "description": "Provisional #75 contract. See envelopes-v1.md for canonical bytes, semantic validation, trust, time and durable sequence rules. JSON Schema alone does not verify signatures or replay.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "signing_key_id",
+        "sequence",
+        "issued_at",
+        "expires_at",
+        "public_key",
+        "challenge_id",
+        "signature"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.enrollment.v1"
+        },
+        "deployment_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "signing_key_id": {
+          "type": "string",
+          "pattern": "^ed25519:[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "sequence": {
+          "const": 1
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z(?![\\s\\S])"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z(?![\\s\\S])"
+        },
+        "public_key": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+        },
+        "challenge_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}(?![\\s\\S])"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{128}(?![\\s\\S])"
+        }
+      }
+    }
+  }
+}

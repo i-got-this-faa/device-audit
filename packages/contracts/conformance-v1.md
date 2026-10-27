@@ -22,8 +22,8 @@ No new production dependency or Python signature library is introduced.
 
 ## Catalogue and evidence
 
-`conformance-v1.json` lists eight source suites, their payload/expectation fields,
-schema files, Go golden-test names and Python reader tests. It covers 240 existing
+`conformance-v1.json` lists nine source suites, their payload/expectation fields,
+schema files, Go golden-test names and Python reader tests. It covers 267 existing
 vectors across telemetry v1/v2, prediction, lifecycle, signed envelopes,
 diagnostics, federation and audit. The command checks all declared schemas and
 all fixture expectations, then runs the actual Go contract tests without cached
@@ -32,7 +32,7 @@ subtests against each source file. An omitted fixture/schema, empty suite,
 duplicate reader version, missing Go reader or failing Python test fails the run.
 This catalogue is test metadata, not an application wire registry.
 
-The eight golden suites retain their existing contract-specific assertions.
+The nine golden suites retain their existing contract-specific assertions.
 Go checks typed decoding and semantic rules, signatures and applicable context.
 Python tests check schema shape, plus the independently implemented envelope
 reader, canonical signing bytes, finite binary model weights, update digests and
@@ -58,8 +58,8 @@ production deployment or real-device result.
 
 `fixtures/conformance/v1-vectors.json` preserves exact JSON text in `wire`, so
 repeated keys, numeric token spelling, whitespace and escaped strings survive
-loading the fixture container. Go and Python read the same 52 cases across all
-16 supported reader namespaces. `reader_version` selects the intended consumer;
+loading the fixture container. Go and Python read the same 67 cases across all
+23 supported reader namespaces. `reader_version` selects the intended consumer;
 a valid v2 telemetry payload presented to a v1 reader is deliberately incompatible.
 The file separately declares `expected_go`, `expected_schema` and
 `expected_python` for each case.
@@ -101,6 +101,7 @@ Regenerate envelopes before the derived raw-wire cases, then run the command:
 
 ```sh
 go run packages/contracts/fixtures/envelopes/generate.go
+go run packages/contracts/fixtures/bootstrap/generate.go
 python3 tools/generate_contract_wire_vectors.py
 make contract-check check cross-build
 ```

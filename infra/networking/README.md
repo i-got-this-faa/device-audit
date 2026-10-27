@@ -22,12 +22,12 @@ a release-platform selection. SRC05 #72 separately records source reconciliation
 Expose bootstrap enrollment, administrator access and DERP map publication over
 HTTPS through a proxy. Enrollment requires a single-use, expiring bootstrap
 credential authorized by the operator. Administrator access requires
-authentication and authorization for this deployment. Credential issuance
-remains future work. Administrator OIDC/session policy is selected in
+authentication and authorization for this deployment. The [#18 enrollment service](../enrollment/README.md) implements credential
+issuance and proof-bound admission. Administrator OIDC/session policy is selected in
 [decision #74](../../docs/decisions.md#console-and-administrator-identity-src04-74)
 and a minimal local implementation is recorded under #82. Real provider
-registration, browser qualification and enrollment route implementation remain
-absent. HTTPS alone grants no access. Restrict the public
+registration, browser qualification and deployed proxy qualification remain
+open. Enrollment requires TLS on the upstream connection too. HTTPS alone grants no access. Restrict the public
 proxy to those intended surfaces; device telemetry uses the authenticated mesh,
 and the database has no public listener. The relay receives no database access
 or application secrets. Pin and verify its admission/rate-limit behavior before
@@ -43,7 +43,8 @@ and checks. No raw logs or device identifiers go on-chain.
 
 ## Request cases for future implementation tests
 
-These are expected outcomes, not passing tests or new route contracts. Each
+Bootstrap request cases below now have #18 TLS/PostgreSQL integration tests.
+The remaining cases are requirements for later consumers. Each
 deployment belongs to one organization. A caller's tenant header or device ID
 does not establish identity.
 
@@ -67,4 +68,4 @@ exposing any service. The [isolated NET04 lab](derp-lab.md) measures blocked-UDP
 DERP traffic and relay restart on one Linux host. Direct UDP, DERP-only and offline
 failure behavior still need evidence on #14's selected machines. The current
 unauthenticated loopback fixture API, minimal local console/auth surface and
-unavailable mesh adapter establish none of these production access guarantees.
+unavailable mesh adapter do not establish deployed production access guarantees.
