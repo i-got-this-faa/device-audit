@@ -514,3 +514,25 @@ component identities remain absent, and omitted memberships remain unknown.
 This adds neither automatic cohorts nor network authorization. See the
 [contract](../packages/contracts/inventory-v1.md) and
 [API/storage boundary](../internal/controller/inventory.md).
+
+## Protected console navigation, WEB01 #29
+
+The 27 October 2026 implementation keeps the SRC04 template/ES-module choice.
+`apps/web-console` now owns embedded templates and assets. The existing auth
+service authorizes the workspace, device/workflow destinations and administrator
+access listing before rendering. Device browsing and workflow execution remain
+explicitly unavailable; the shell displays no fixture fleet or fabricated health.
+
+Anonymous navigation preserves only exact allowlisted destinations through OIDC.
+Role denials and auth-store outages render public pages without protected account
+content. The shell adds responsive navigation, keyboard focus, a skip link and
+CSRF-protected form logout that also works without JavaScript. Optional JavaScript
+conceals background/history content until the server revalidates the session and
+ends the local view at its conservative per-page expiry. Server expiry remains
+authoritative. No token is stored in browser storage.
+
+Browser testing found that `no-referrer` caused Chromium logout forms to send
+`Origin: null`. Rendered pages now use `strict-origin`, preserving the real
+Origin while omitting paths and queries. Authentication and CSRF checks are
+unchanged. The [console guide](../apps/web-console/README.md) records the
+repeatable browser target, test dependency, evidence and qualification limits.
