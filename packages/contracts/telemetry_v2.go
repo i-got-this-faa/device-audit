@@ -134,6 +134,23 @@ type InventoryV2 struct {
 	Components       []ComponentV2 `json:"components"`
 }
 
+func (i InventoryV2) Validate() error {
+	if i.Components == nil || len(i.Components) > 64 {
+		return fmt.Errorf("components are required and limited to 64")
+	}
+	for _, id := range []string{i.GroupID, i.NetworkSegmentID} {
+		if id != "" && !opaqueIDPattern.MatchString(id) {
+			return fmt.Errorf("invalid inventory metadata ID")
+		}
+	}
+	for _, c := range i.Components {
+		if !opaqueIDPattern.MatchString(c.ID) || c.Type == "" || utf8.RuneCountInString(c.Type) > 64 || utf8.RuneCountInString(c.Model) > 128 {
+			return fmt.Errorf("invalid component metadata")
+		}
+	}
+	return nil
+}
+
 func (i *InventoryV2) UnmarshalJSON(data []byte) error {
 	if err := requireJSONFieldNames(data, "group_id", "network_segment_id", "components"); err != nil {
 		return err
@@ -226,21 +243,11 @@ func (t TelemetryV2) Validate() error {
 	if t.Source != "fixture" && t.Source != "endpoint" {
 		return fmt.Errorf("source must be fixture or endpoint")
 	}
-	if t.Inventory.Components == nil || t.LogReferences == nil {
-		return fmt.Errorf("components and log_references are required")
+	if err := t.Inventory.Validate(); err != nil {
+		return err
 	}
-	if len(t.Inventory.Components) > 64 || len(t.LogReferences) > 8 {
-		return fmt.Errorf("inventory or log reference collection exceeds its bound")
-	}
-	for _, id := range []string{t.Inventory.GroupID, t.Inventory.NetworkSegmentID} {
-		if id != "" && !opaqueIDPattern.MatchString(id) {
-			return fmt.Errorf("invalid inventory metadata ID")
-		}
-	}
-	for _, c := range t.Inventory.Components {
-		if !opaqueIDPattern.MatchString(c.ID) || c.Type == "" || utf8.RuneCountInString(c.Type) > 64 || utf8.RuneCountInString(c.Model) > 128 {
-			return fmt.Errorf("invalid component metadata")
-		}
+	if t.LogReferences == nil || len(t.LogReferences) > 8 {
+		return fmt.Errorf("log_references are required and limited to 8")
 	}
 	known := 0
 	for _, item := range []struct {

@@ -246,3 +246,11 @@ network-key possession challenge and an Ed25519-signed admission wrapper while
 retaining signing enrollment v1. The shared fixtures cover strict decoding,
 canonical signing bytes, signature tampering and X25519 encoding boundaries.
 These contracts alone do not implement token issuance or endpoint admission.
+
+## Inventory revisions v1, #97
+
+[Inventory revisions](inventory-v1.md) wrap the existing telemetry v2 metadata
+in complete administrator updates and immutable records with enrollment/actor
+provenance. Empty component lists and omitted memberships preserve unknowns.
+Go rejects duplicate component identities in a revision. Shared schema, Go and
+Python fixtures run through `make contract-check` before storage consumers.
