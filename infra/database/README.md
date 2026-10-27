@@ -3,8 +3,8 @@
 [Decision #73](../../docs/decisions.md#provisional-hosting-persistence-and-tenancy-73)
 selects PostgreSQL provisionally for a single-organization deployment. Task #19
 binds the controller to PostgreSQL and applies versioned migrations. Schema
-version 4 adds #18's bootstrap tokens, network challenges and committed network
-bindings alongside #83's signed-device repository and #82 console identity tables.
+version 5 adds #97 inventory revisions alongside #18 bootstrap admission,
+#83 signed-device evidence and #82 console identity tables.
 Repository writes are durable transactions; the unsigned fixture HTTP API still
 uses its separate in-memory store. The [TLS bootstrap routes](../enrollment/README.md)
 use this repository. Signed
@@ -35,6 +35,9 @@ telemetry ingestion remains separate work.
   decrypted proofs retain only hashes. Public binding metadata and the admission
   fingerprint commit with signing enrollment and token/challenge consumption.
   Existing signing-only rows gain no network admission.
+- `005_inventory_revisions.sql` appends complete inventory snapshots with
+  enrollment digest, observation source, authenticated administrator provenance
+  and optimistic revision checks. See [the inventory API](../../internal/controller/inventory.md).
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -58,7 +61,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 4 and the configured
+- health output for a connected database, schema version 5 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

@@ -154,6 +154,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	}
 
 	var enrollment *controller.EnrollmentService
+	var inventory *controller.InventoryService
 	if *deploymentID != "" {
 		if db == nil || consoleAuth == nil {
 			return errors.New("bootstrap enrollment requires a durable database and configured administrator authentication")
@@ -163,6 +164,10 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			return fmt.Errorf("enrollment repository startup failed: %w", err)
 		}
 		enrollment, err = controller.NewEnrollmentService(repository, consoleAuth)
+		if err != nil {
+			return err
+		}
+		inventory, err = controller.NewInventoryService(repository, consoleAuth)
 		if err != nil {
 			return err
 		}
@@ -178,6 +183,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		Auth:           consoleAuth,
 		AuthStatus:     authStatus,
 		Enrollment:     enrollment,
+		Inventory:      inventory,
 	})
 	if tlsConfig != nil {
 		listener = tls.NewListener(listener, tlsConfig)

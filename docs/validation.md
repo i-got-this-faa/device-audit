@@ -306,3 +306,18 @@ TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/postgres?sslmode=disab
 
 This remains local component/integration evidence with a fixture IdP. A real
 issuer migration, browser matrix and production secret custody remain unqualified.
+
+## Inventory revisions, API03 #97, 27 October 2026
+
+On Linux amd64 with Go 1.27.1, Python 3.13.15 and disposable PostgreSQL 17.11,
+`make check cross-build database-check` passed with `TEST_DATABASE_URL` pointing
+at the disposable cluster. `make contract-check` passed with 289 golden vectors,
+71 wire cases and 25 reader versions after the inventory contract addition.
+
+Real PostgreSQL tests verified revision history and clearing unknown metadata,
+enrollment/actor/source provenance, reopen persistence, independent concurrent
+writers with one conflict, deferred commit rollback, storage outages, unknown and
+revoked-device rejection, fresh-admin/role/Origin/CSRF denials, strict bounded
+updates and exact historical queries. They use synthetic identities and sessions;
+they do not qualify a production IdP, physical component identity, off-host
+backup recovery, cohort analytics or inventory tamper resistance.

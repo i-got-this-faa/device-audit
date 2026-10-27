@@ -31,8 +31,8 @@ Observation time must not be in the future relative to record time; older
 observations may be explicitly recorded and remain distinguishable from order
 of recording. Timestamps use RFC 3339. No on-chain payload is created.
 
-Updates require administrator authorization and CSRF/Origin checks; reads require
-viewer authorization. Unknown or revoked devices cannot receive metadata.
+Updates require administrator authorization, authentication within five minutes
+and CSRF/Origin checks; reads require viewer authorization. Unknown or revoked devices cannot receive metadata.
 Storage must retain prior revisions and atomically check the expected revision
 before appending. An unavailable store must fail closed. A lost commit response
 is uncertain; query before retrying, never infer acceptance.

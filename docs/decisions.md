@@ -501,3 +501,16 @@ transport or endpoint key storage. Early bootstrap-token revocation, rate limits
 cleanup, device revocation, key rotation/recovery, authenticated receipt lookup
 and off-host backup restore remain separate work. Shared contract/integration
 owner review and reviewed PR merges remain required to close #18.
+
+## Inventory assertions, API03 #97
+
+The 27 October 2026 implementation reuses telemetry v2's component/group/segment
+shape in separately versioned administrator assertions. Schema version 5 stores
+complete inventory revisions tied to signed enrollment, with source references,
+observation/recording times and session-derived issuer/subject provenance.
+Updates require fresh administrator authentication and optimistic revision
+checks; viewer reads support latest and exact historical revisions. Unknown
+component identities remain absent, and omitted memberships remain unknown.
+This adds neither automatic cohorts nor network authorization. See the
+[contract](../packages/contracts/inventory-v1.md) and
+[API/storage boundary](../internal/controller/inventory.md).
