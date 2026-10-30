@@ -5,7 +5,7 @@ Go `html/template`, embedded CSS and JavaScript ES modules, with progressive
 enhancement. WEB01 [#29](https://github.com/i-got-this-faa/device-audit/issues/29) adds the
 responsive console shell to SEC06 [#82](https://github.com/i-got-this-faa/device-audit/issues/82)
 authentication. Templates and assets are embedded in the Go binary. Node is
-required only for browser tests. Device browsing, evidence views, workflow
+required only for browser tests. WEB06 [#99](https://github.com/i-got-this-faa/device-audit/issues/99) adds fixture device lists and detail views. Production device browsing, workflow
 execution and exports remain separate tasks.
 
 Implemented routes:
@@ -19,8 +19,8 @@ Implemented routes:
   token. `POST /auth/logout` requires CSRF and Origin checks, revokes the
   session and clears the cookie.
 - `GET /console` is the protected workspace. `GET /console/devices` and
-  `GET /console/workflows` are protected navigation destinations with explicit
-  unavailable states until those product features are implemented.
+  `GET /console/devices/{device}` show named device fixtures to viewers and admins.
+  `GET /console/workflows` retains its explicit unavailable state.
 - `GET /console/access` lists role bindings for administrators. Viewers receive
   a public 403 page with no bindings or account details.
 - `GET /console/assets/console.css|console.js` serves public embedded assets.
@@ -46,6 +46,42 @@ preprovisions the first admin with `--bootstrap-admin` or
 The loopback fixture API (`POST /v1/telemetry` and `GET /v1/devices/{id}`) is
 separate. It has no administrator authentication and must not be exposed by the
 public proxy as a console substitute.
+
+## Device fixtures
+
+Open `/console/devices` after sign-in. The default `live` scenario includes
+live, offline, unknown and empty-component samples. Scenario links select
+`?fixture=live|offline|unknown|empty-inventory|loading|error|empty` on list and
+detail pages. These values select local examples, never a database or endpoint.
+The read-error scenario returns HTTP 503; unknown devices, unknown scenarios and
+repeated `fixture` parameters return 404. Recovery links open the ready fixture.
+Loading is a static preview with no pending network request or automatic retry.
+
+The renderer and browser checks share [`fixtures/devices.json`](fixtures/devices.json).
+Its fixed reference clock is `2026-10-19T12:30:00Z`. Connection labels are explicit
+scenario metadata, not heartbeat thresholds or a claim that data is current.
+The empty-component sample reproduces TST02's existing replay telemetry payload;
+a Go test detects drift. Other samples use the unchanged telemetry v2 contract.
+No shared wire contract or signed fixture is modified by this console work.
+
+A fixture banner appears on every device page, with fixture badges on list rows.
+A compact fixture label stays visible while scrolling through measurements.
+Detail pages show sample timestamps, explicit units, absent metrics and each
+nullable metric's missing reason. Zero remains a measurement. Offline values
+are historical; unknown inventory differs from an empty component list.
+Missing group, segment and model identities stay unknown. No health score,
+prediction, network admission or signature verification is inferred by the UI.
+The console does not call the unsigned fixture API or inventory repository.
+
+Known fixture detail paths extend the exact login-return allowlist. Query strings
+are still excluded, so login after expiry returns to the device's default fixture
+scenario. Every list and detail request checks the existing viewer role and
+session store before rendering. A store outage shows the public auth error,
+never fixture device data. Device browsing, scenario selection and recovery
+links also work without JavaScript.
+
+The [WEB06 validation record](../../docs/validation/console-fixtures-99.md)
+records local evidence and remaining qualification work.
 
 ## Configure authentication
 
@@ -183,8 +219,8 @@ viewer. Use a disposable browser profile that trusts the test certificate.
 - Apply the fresh-authentication rule to future sensitive administrator actions.
 - Add durable audit events, login rate limiting and expired session/login-row
   cleanup; qualify IdP single logout or back-channel revocation if required.
-- Build the fleet/device/evidence pages and bounded exports with server-side
-  resource and action authorization.
+- Connect production fleet, device and evidence pages and bounded exports with
+  server-side resource and action authorization. Current device pages use fixtures.
 - Run current and previous stable desktop Chrome, Edge and Firefox checks,
   including keyboard operation, visible focus, 200% zoom and the tested viewport.
 - Deploy behind the HTTPS proxy with operator-owned TLS, client secret and

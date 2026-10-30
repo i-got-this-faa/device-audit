@@ -37,10 +37,9 @@
       <a class="section-link" href="/console/devices"><span><strong>Devices</strong><span>Inventory and device evidence</span></span><span aria-hidden="true">→</span></a>
       <a class="section-link" href="/console/workflows"><span><strong>Workflows</strong><span>Scheduled and health-triggered diagnostics</span></span><span aria-hidden="true">→</span></a>
     </div>
-    <section class="availability"><h2>Available in this release</h2><p>Organization sign-in and protected navigation are available. Device browsing and diagnostic workflows are still being built.</p></section>
+    <section class="availability"><h2>Available in this release</h2><p>Organization sign-in, protected navigation and fixture device browsing are available. Device pages show synthetic samples. Production device browsing and diagnostic workflows are still being built.</p></section>
     {{else if eq .Section "devices"}}
-    <p class="intro">Keep device identity, inventory and evidence together.</p>
-    <section class="empty-state"><span class="status">Not available yet</span><h2>Device browsing is being built</h2><p>Inventory records cannot be browsed in this console yet. No device list or health assessment is shown.</p><a href="/console">Return to workspace <span aria-hidden="true">→</span></a></section>
+    {{template "devices" .Devices}}
     {{else if eq .Section "workflows"}}
     <p class="intro">Follow read-only diagnostic work assigned to devices.</p>
     <section class="empty-state"><span class="status">Not available yet</span><h2>Diagnostic workflows are being built</h2><p>Scheduling and diagnostic results are not available in this console yet.</p><a href="/console">Return to workspace <span aria-hidden="true">→</span></a></section>
