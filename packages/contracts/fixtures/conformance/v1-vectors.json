@@ -386,6 +386,38 @@
       "expected_python": "unsupported_schema"
     },
     {
+      "name": "valid/device-audit.inventory-update.v1",
+      "reader_version": "device-audit.inventory-update.v1",
+      "wire": "{\"schema_version\":\"device-audit.inventory-update.v1\",\"device_id\":\"asset:fixture-01\",\"expected_revision\":0,\"observed_at\":\"2026-10-27T12:00:00Z\",\"source_reference\":\"observation:fixture-1\",\"inventory\":{\"group_id\":\"group:it\",\"network_segment_id\":\"segment:office\",\"components\":[{\"id\":\"component:disk-1\",\"type\":\"storage\",\"model\":\"fixture-model\"}]}}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.inventory-update.v1",
+      "reader_version": "device-audit.inventory-update.v1",
+      "wire": "{\"schema_version\": \"device-audit.inventory-update.v999\", \"device_id\": \"asset:fixture-01\", \"expected_revision\": 0, \"observed_at\": \"2026-10-27T12:00:00Z\", \"source_reference\": \"observation:fixture-1\", \"inventory\": {\"group_id\": \"group:it\", \"network_segment_id\": \"segment:office\", \"components\": [{\"id\": \"component:disk-1\", \"type\": \"storage\", \"model\": \"fixture-model\"}]}}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.inventory-record.v1",
+      "reader_version": "device-audit.inventory-record.v1",
+      "wire": "{\"schema_version\":\"device-audit.inventory-record.v1\",\"device_id\":\"asset:fixture-01\",\"observed_at\":\"2026-10-27T12:00:00Z\",\"source_reference\":\"observation:fixture-1\",\"inventory\":{\"group_id\":\"group:it\",\"network_segment_id\":\"segment:office\",\"components\":[{\"id\":\"component:disk-1\",\"type\":\"storage\",\"model\":\"fixture-model\"}]},\"deployment_id\":\"deployment:fixture\",\"revision\":1,\"recorded_at\":\"2026-10-27T12:01:00Z\",\"enrollment_sha256\":\"abababababababababababababababababababababababababababababababab\",\"actor_issuer\":\"https://id.example.test\",\"actor_subject\":\"admin:fixture\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.inventory-record.v1",
+      "reader_version": "device-audit.inventory-record.v1",
+      "wire": "{\"schema_version\": \"device-audit.inventory-record.v999\", \"device_id\": \"asset:fixture-01\", \"observed_at\": \"2026-10-27T12:00:00Z\", \"source_reference\": \"observation:fixture-1\", \"inventory\": {\"group_id\": \"group:it\", \"network_segment_id\": \"segment:office\", \"components\": [{\"id\": \"component:disk-1\", \"type\": \"storage\", \"model\": \"fixture-model\"}]}, \"deployment_id\": \"deployment:fixture\", \"revision\": 1, \"recorded_at\": \"2026-10-27T12:01:00Z\", \"enrollment_sha256\": \"abababababababababababababababababababababababababababababababab\", \"actor_issuer\": \"https://id.example.test\", \"actor_subject\": \"admin:fixture\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
       "name": "enrollment freshness sequence already consumed",
       "reader_version": "device-audit.enrollment.v1",
       "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",

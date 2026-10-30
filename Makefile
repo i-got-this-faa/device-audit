@@ -18,6 +18,10 @@ cross-build:
 	mkdir -p bin
 	GOOS=windows GOARCH=amd64 $(GO) build -o bin/endpoint-agent-windows.exe ./apps/endpoint-agent
 	GOOS=darwin GOARCH=arm64 $(GO) build -o bin/endpoint-agent-darwin ./apps/endpoint-agent
+.PHONY: browser-check
+browser-check:
+	test -n "$(BROWSER_PATH)" || { echo "BROWSER_PATH must name a Chromium executable" >&2; exit 1; }
+	CONSOLE_BROWSER_TEST=1 BROWSER_PATH="$(BROWSER_PATH)" $(GO) test -race -count=1 -v -run '^TestConsoleBrowser$$' ./internal/controller/auth
 model-check:
 	PYTHONPATH=models/src $(PYTHON) -m unittest discover -s models/tests
 telemetry-check:

@@ -306,3 +306,55 @@ TEST_DATABASE_URL='postgres://deviceaudit@127.0.0.1:55432/postgres?sslmode=disab
 
 This remains local component/integration evidence with a fixture IdP. A real
 issuer migration, browser matrix and production secret custody remain unqualified.
+
+## Inventory revisions, API03 #97, 27 October 2026
+
+On Linux amd64 with Go 1.27.1, Python 3.13.15 and disposable PostgreSQL 17.11,
+`make check cross-build database-check` passed with `TEST_DATABASE_URL` pointing
+at the disposable cluster. `make contract-check` passed with 289 golden vectors,
+71 wire cases and 25 reader versions after the inventory contract addition.
+
+Real PostgreSQL tests verified revision history and clearing unknown metadata,
+enrollment/actor/source provenance, reopen persistence, independent concurrent
+writers with one conflict, deferred commit rollback, storage outages, unknown and
+revoked-device rejection, fresh-admin/role/Origin/CSRF denials, strict bounded
+updates and exact historical queries. They use synthetic identities and sessions;
+they do not qualify a production IdP, physical component identity, off-host
+backup recovery, cohort analytics or inventory tamper resistance.
+
+## Console shell, WEB01 #29, 27 October 2026
+
+Local Linux amd64 validation passed with Go 1.27.1, Python 3.13.15, Node
+22.23.3, Chromium 155.0.8059.84 and disposable PostgreSQL 17.11:
+
+```sh
+TEST_DATABASE_URL='postgres://audit_test@127.0.0.1:55439/postgres?sslmode=disable' \
+BROWSER_PATH=/run/current-system/sw/bin/chromium \
+nix develop /home/cier/Projects --command \
+  make check cross-build contract-check database-check browser-check
+```
+
+The browser suite drove the actual embedded shell and auth routes with a fake
+TLS OIDC issuer and in-memory test sessions. It passed anonymous direct navigation,
+exact return paths, real OIDC/PKCE exchange, viewer denial without protected
+bindings, administrator navigation, 320-pixel navigation with no horizontal
+overflow, keyboard skip/focus, server-expired session rejection, unknown-account
+rejection, logout with actual browser Origin, browser Back after logout,
+auth-store outage, the local expiry timer and navigation/logout without
+JavaScript. Browser JavaScript reported no uncaught errors. Desktop device and
+narrow workflow screenshots in `artifacts/console/` were visually inspected.
+
+The first browser run reproduced a real logout defect: `no-referrer` caused
+`Origin: null`, which correctly failed CSRF/Origin authorization. Changing only
+the rendered page policy to `strict-origin` preserved Origin, omitted URL paths
+and queries, and passed the same form-logout regression. No Origin relaxation
+or CSRF bypass was added.
+
+The shared T3 browser could not inspect the self-signed fixture: navigation
+returned `ERR_CERT_AUTHORITY_INVALID`, and two snapshots timed out. The isolated
+Chromium test context ignored certificates for its disposable loopback fixture.
+The browser did not use a real IdP, deployed TLS proxy, production PostgreSQL
+sessions or physical endpoint. Edge, Firefox, previous stable browsers, native
+200% zoom and assistive-technology checks were not run. The workflow now runs
+`browser-check` and uploads screenshots, but no remote CI result is claimed.
+Reviewed PRs, shared-owner review and merge remain outstanding for issue closure.

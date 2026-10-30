@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}} · Device Audit</title>
+  <link rel="stylesheet" href="/console/assets/console.css">
+  <script type="module" src="/console/assets/console.js"></script>
+</head>
+<body {{if .Subject}}data-protected="true" data-session-expires="{{.ExpiresAt}}"{{end}}>
+<a class="skip-link" href="#main">Skip to content</a>
+{{if .Subject}}
+<div class="workspace">
+  <aside class="rail">
+    <a class="brand" href="/console"><span class="brand-mark" aria-hidden="true">DA</span><span>Device Audit<small>Operations console</small></span></a>
+    <nav aria-label="Main navigation">
+      <a href="/console" {{if eq .Section "overview"}}aria-current="page"{{end}}>Workspace</a>
+      <a href="/console/devices" {{if eq .Section "devices"}}aria-current="page"{{end}}>Devices</a>
+      <a href="/console/workflows" {{if eq .Section "workflows"}}aria-current="page"{{end}}>Workflows</a>
+      {{if eq .Role "admin"}}<a href="/console/access" {{if eq .Section "access"}}aria-current="page"{{end}}>Console access</a>{{end}}
+    </nav>
+    <div class="account">
+      <span class="caption">Signed in as</span>
+      <span class="subject">{{.Subject}}</span>
+      <span class="role">{{.Role}}</span>
+      <form method="post" action="/auth/logout">
+        <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
+        <button type="submit">Sign out</button>
+      </form>
+    </div>
+  </aside>
+  <main id="main" tabindex="-1">
+    <header class="page-heading"><p class="eyebrow">IT operations / {{.Title}}</p><h1>{{.Title}}</h1></header>
+    {{if eq .Section "overview"}}
+    <p class="intro">Review devices and follow diagnostic work from one workspace.</p>
+    <div class="section-list">
+      <a class="section-link" href="/console/devices"><span><strong>Devices</strong><span>Inventory and device evidence</span></span><span aria-hidden="true">→</span></a>
+      <a class="section-link" href="/console/workflows"><span><strong>Workflows</strong><span>Scheduled and health-triggered diagnostics</span></span><span aria-hidden="true">→</span></a>
+    </div>
+    <section class="availability"><h2>Available in this release</h2><p>Organization sign-in and protected navigation are available. Device browsing and diagnostic workflows are still being built.</p></section>
+    {{else if eq .Section "devices"}}
+    <p class="intro">Keep device identity, inventory and evidence together.</p>
+    <section class="empty-state"><span class="status">Not available yet</span><h2>Device browsing is being built</h2><p>Inventory records cannot be browsed in this console yet. No device list or health assessment is shown.</p><a href="/console">Return to workspace <span aria-hidden="true">→</span></a></section>
+    {{else if eq .Section "workflows"}}
+    <p class="intro">Follow read-only diagnostic work assigned to devices.</p>
+    <section class="empty-state"><span class="status">Not available yet</span><h2>Diagnostic workflows are being built</h2><p>Scheduling and diagnostic results are not available in this console yet.</p><a href="/console">Return to workspace <span aria-hidden="true">→</span></a></section>
+    {{else if eq .Section "access"}}
+    <p class="intro">Accounts allowed to use this organization's console.</p>
+    <dl class="binding-list">{{range .Bindings}}<div><dt>{{.Subject}}</dt><dd>{{.Role}}</dd></div>{{end}}</dl>
+    <p class="supporting">Viewers can read the console. Administrators can also manage access. Contact your identity administrator to change an account's access.</p>
+    {{end}}
+  </main>
+</div>
+{{else}}
+<main id="main" class="public-page" tabindex="-1">
+  <a class="brand" href="/console"><span class="brand-mark" aria-hidden="true">DA</span><span>Device Audit<small>Operations console</small></span></a>
+  <p class="eyebrow">Organization access</p>
+  <h1>{{.Title}}</h1>
+  <p class="intro">{{.Message}}</p>
+  {{if eq .Section "signed-out"}}<a class="primary-link" href="/auth/login">Sign in again</a>
+  {{else}}<div class="public-actions"><a class="primary-link" href="/console">Return to workspace</a><a href="/auth/login">Sign in again</a></div>{{end}}
+</main>
+{{end}}
+</body>
+</html>

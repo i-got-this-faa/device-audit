@@ -1,0 +1,733 @@
+{
+  "vectors": [
+    {
+      "name": "initial known inventory",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "stored provenance",
+      "payload": {
+        "schema_version": "device-audit.inventory-record.v1",
+        "device_id": "asset:fixture-01",
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        },
+        "deployment_id": "deployment:fixture",
+        "revision": 1,
+        "recorded_at": "2026-10-27T12:01:00Z",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "unknown identities and memberships",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": []
+        }
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "clear previous memberships",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 1,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": []
+        }
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "missing device identity",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "unknown schema",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v999",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "negative revision",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": -1,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "revision exhausted",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 9007199254740991,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "invalid source",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "bad source",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "invalid time",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "yesterday",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "null inventory",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": null
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "null components",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": null
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "missing components",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {}
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "missing component identity",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": [
+            {
+              "type": "storage"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "blank component identity",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": [
+            {
+              "id": "",
+              "type": "storage"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "duplicate component identity",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            },
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": true
+    },
+    {
+      "name": "unknown membership",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": null,
+          "components": []
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "too many components",
+      "payload": {
+        "schema_version": "device-audit.inventory-update.v1",
+        "device_id": "asset:fixture-01",
+        "expected_revision": 0,
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "components": [
+            {
+              "id": "c:0",
+              "type": "storage"
+            },
+            {
+              "id": "c:1",
+              "type": "storage"
+            },
+            {
+              "id": "c:2",
+              "type": "storage"
+            },
+            {
+              "id": "c:3",
+              "type": "storage"
+            },
+            {
+              "id": "c:4",
+              "type": "storage"
+            },
+            {
+              "id": "c:5",
+              "type": "storage"
+            },
+            {
+              "id": "c:6",
+              "type": "storage"
+            },
+            {
+              "id": "c:7",
+              "type": "storage"
+            },
+            {
+              "id": "c:8",
+              "type": "storage"
+            },
+            {
+              "id": "c:9",
+              "type": "storage"
+            },
+            {
+              "id": "c:10",
+              "type": "storage"
+            },
+            {
+              "id": "c:11",
+              "type": "storage"
+            },
+            {
+              "id": "c:12",
+              "type": "storage"
+            },
+            {
+              "id": "c:13",
+              "type": "storage"
+            },
+            {
+              "id": "c:14",
+              "type": "storage"
+            },
+            {
+              "id": "c:15",
+              "type": "storage"
+            },
+            {
+              "id": "c:16",
+              "type": "storage"
+            },
+            {
+              "id": "c:17",
+              "type": "storage"
+            },
+            {
+              "id": "c:18",
+              "type": "storage"
+            },
+            {
+              "id": "c:19",
+              "type": "storage"
+            },
+            {
+              "id": "c:20",
+              "type": "storage"
+            },
+            {
+              "id": "c:21",
+              "type": "storage"
+            },
+            {
+              "id": "c:22",
+              "type": "storage"
+            },
+            {
+              "id": "c:23",
+              "type": "storage"
+            },
+            {
+              "id": "c:24",
+              "type": "storage"
+            },
+            {
+              "id": "c:25",
+              "type": "storage"
+            },
+            {
+              "id": "c:26",
+              "type": "storage"
+            },
+            {
+              "id": "c:27",
+              "type": "storage"
+            },
+            {
+              "id": "c:28",
+              "type": "storage"
+            },
+            {
+              "id": "c:29",
+              "type": "storage"
+            },
+            {
+              "id": "c:30",
+              "type": "storage"
+            },
+            {
+              "id": "c:31",
+              "type": "storage"
+            },
+            {
+              "id": "c:32",
+              "type": "storage"
+            },
+            {
+              "id": "c:33",
+              "type": "storage"
+            },
+            {
+              "id": "c:34",
+              "type": "storage"
+            },
+            {
+              "id": "c:35",
+              "type": "storage"
+            },
+            {
+              "id": "c:36",
+              "type": "storage"
+            },
+            {
+              "id": "c:37",
+              "type": "storage"
+            },
+            {
+              "id": "c:38",
+              "type": "storage"
+            },
+            {
+              "id": "c:39",
+              "type": "storage"
+            },
+            {
+              "id": "c:40",
+              "type": "storage"
+            },
+            {
+              "id": "c:41",
+              "type": "storage"
+            },
+            {
+              "id": "c:42",
+              "type": "storage"
+            },
+            {
+              "id": "c:43",
+              "type": "storage"
+            },
+            {
+              "id": "c:44",
+              "type": "storage"
+            },
+            {
+              "id": "c:45",
+              "type": "storage"
+            },
+            {
+              "id": "c:46",
+              "type": "storage"
+            },
+            {
+              "id": "c:47",
+              "type": "storage"
+            },
+            {
+              "id": "c:48",
+              "type": "storage"
+            },
+            {
+              "id": "c:49",
+              "type": "storage"
+            },
+            {
+              "id": "c:50",
+              "type": "storage"
+            },
+            {
+              "id": "c:51",
+              "type": "storage"
+            },
+            {
+              "id": "c:52",
+              "type": "storage"
+            },
+            {
+              "id": "c:53",
+              "type": "storage"
+            },
+            {
+              "id": "c:54",
+              "type": "storage"
+            },
+            {
+              "id": "c:55",
+              "type": "storage"
+            },
+            {
+              "id": "c:56",
+              "type": "storage"
+            },
+            {
+              "id": "c:57",
+              "type": "storage"
+            },
+            {
+              "id": "c:58",
+              "type": "storage"
+            },
+            {
+              "id": "c:59",
+              "type": "storage"
+            },
+            {
+              "id": "c:60",
+              "type": "storage"
+            },
+            {
+              "id": "c:61",
+              "type": "storage"
+            },
+            {
+              "id": "c:62",
+              "type": "storage"
+            },
+            {
+              "id": "c:63",
+              "type": "storage"
+            },
+            {
+              "id": "c:64",
+              "type": "storage"
+            }
+          ]
+        }
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "zero revision",
+      "payload": {
+        "schema_version": "device-audit.inventory-record.v1",
+        "device_id": "asset:fixture-01",
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        },
+        "deployment_id": "deployment:fixture",
+        "revision": 0,
+        "recorded_at": "2026-10-27T12:01:00Z",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "future observation",
+      "payload": {
+        "schema_version": "device-audit.inventory-record.v1",
+        "device_id": "asset:fixture-01",
+        "observed_at": "2026-10-28T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        },
+        "deployment_id": "deployment:fixture",
+        "revision": 1,
+        "recorded_at": "2026-10-27T12:01:00Z",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": true
+    },
+    {
+      "name": "invalid enrollment digest",
+      "payload": {
+        "schema_version": "device-audit.inventory-record.v1",
+        "device_id": "asset:fixture-01",
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        },
+        "deployment_id": "deployment:fixture",
+        "revision": 1,
+        "recorded_at": "2026-10-27T12:01:00Z",
+        "enrollment_sha256": "wrong",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "blank actor",
+      "payload": {
+        "schema_version": "device-audit.inventory-record.v1",
+        "device_id": "asset:fixture-01",
+        "observed_at": "2026-10-27T12:00:00Z",
+        "source_reference": "observation:fixture-1",
+        "inventory": {
+          "group_id": "group:it",
+          "network_segment_id": "segment:office",
+          "components": [
+            {
+              "id": "component:disk-1",
+              "type": "storage",
+              "model": "fixture-model"
+            }
+          ]
+        },
+        "deployment_id": "deployment:fixture",
+        "revision": 1,
+        "recorded_at": "2026-10-27T12:01:00Z",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": " "
+      },
+      "valid": false,
+      "schema_valid": false
+    }
+  ]
+}

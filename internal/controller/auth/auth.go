@@ -13,13 +13,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	webconsole "github.com/i-got-this-faa/device-audit/apps/web-console"
 )
 
 type Role string
@@ -219,12 +220,16 @@ func (s *Service) EnsureBinding(ctx context.Context, subject string, role Role) 
 }
 
 func (s *Service) Register(mux *http.ServeMux) {
+	webconsole.RegisterAssets(mux)
 	mux.HandleFunc("GET /auth/login", s.login)
 	mux.HandleFunc("GET /auth/callback", s.callback)
 	mux.Handle("GET /auth/session", s.RequireSession(http.HandlerFunc(s.sessionInfo)))
 	mux.Handle("POST /auth/logout", s.RequireSession(http.HandlerFunc(s.logout)))
 	mux.HandleFunc("GET /signed-out", s.signedOut)
 	mux.Handle("GET /console", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/devices", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/workflows", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/access", s.RequireRole(RoleAdmin, http.HandlerFunc(s.console)))
 	mux.Handle("GET /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.listBindings)))
 	mux.Handle("POST /admin/role-bindings", s.RequireFreshAdmin(http.HandlerFunc(s.upsertBinding)))
 }
@@ -395,7 +400,7 @@ func (s *Service) rejectLogin(w http.ResponseWriter, reason string, status int, 
 	} else {
 		s.logger.Warn("console login rejected", "reason", reason)
 	}
-	http.Error(w, "login rejected", status)
+	s.renderPage(w, status, webconsole.Page{Title: "Sign-in denied", Message: "Your organization sign-in could not be completed. Try signing in again or contact your administrator."})
 }
 
 func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
@@ -416,10 +421,12 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) signedOut(w http.ResponseWriter, r *http.Request) {
-	noStore(w)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
-	_, _ = w.Write([]byte(signedOutPage))
+	page := webconsole.Page{Title: "Signed out", Section: "signed-out", Message: "Your local session has ended. Sign in with your organization account to continue."}
+	if r.URL.Query().Get("reason") == "expired" {
+		page.Title = "Session expired"
+		page.Message = "Sign in again to continue. Your session may have ended after inactivity or reached its time limit."
+	}
+	s.renderPage(w, http.StatusOK, page)
 }
 
 func (s *Service) sessionInfo(w http.ResponseWriter, r *http.Request) {
@@ -444,11 +451,30 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "authentication required", http.StatusUnauthorized)
 		return
 	}
-	noStore(w)
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
-	data := consoleData{Subject: current.Session.Subject, Role: current.Role, CSRFToken: current.Session.CSRFToken}
-	if err := consolePage.Execute(w, data); err != nil {
+	page := webconsole.Page{Title: "Workspace", Section: "overview", Subject: current.Session.Subject,
+		Role: string(current.Role), CSRFToken: current.Session.CSRFToken,
+		ExpiresAt: minTime(current.Session.IdleExpiresAt, current.Session.AbsoluteExpiresAt).Format(time.RFC3339Nano)}
+	switch r.URL.Path {
+	case "/console/devices":
+		page.Title, page.Section = "Devices", "devices"
+	case "/console/workflows":
+		page.Title, page.Section = "Workflows", "workflows"
+	case "/console/access":
+		page.Title, page.Section = "Console access", "access"
+		bindings, err := s.store.Bindings(r.Context(), s.issuer)
+		if err != nil {
+			s.unavailable(w, r)
+			return
+		}
+		for _, binding := range bindings {
+			page.Bindings = append(page.Bindings, webconsole.Binding{Subject: binding.Subject, Role: string(binding.Role)})
+		}
+	}
+	s.renderPage(w, http.StatusOK, page)
+}
+
+func (s *Service) renderPage(w http.ResponseWriter, status int, page webconsole.Page) {
+	if err := webconsole.Render(w, status, page); err != nil {
 		s.logger.Error("console render failed", "error", err)
 	}
 }
@@ -641,6 +667,7 @@ func (s *Service) protect(w http.ResponseWriter, r *http.Request, required Role,
 		s.unavailable(w, r)
 		return
 	}
+	session.LastSeenAt, session.IdleExpiresAt = now, idleExpires
 	current := sessionContext{Session: session, Role: binding.Role}
 	s.logger.Info("console request", "method", r.Method, "resource", r.URL.Path, "outcome", "allowed", "issuer", session.Issuer, "subject", session.Subject, "role", binding.Role, "required_role", required)
 	next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, current)))
@@ -650,7 +677,11 @@ func (s *Service) deny(w http.ResponseWriter, r *http.Request, required Role, re
 	s.logger.Info("console request denied", "method", r.Method, "resource", r.URL.Path, "reason", reason, "required_role", required, "subject", subject)
 	switch reason {
 	case "fresh_authentication_required", "wrong_role", "role_revoked", "role_changed", "csrf_or_origin_rejected":
-		http.Error(w, "forbidden", http.StatusForbidden)
+		if wantsHTML(r) {
+			s.renderPage(w, http.StatusForbidden, webconsole.Page{Title: "Access denied", Message: "Your account cannot open this page or perform this action. Contact your administrator if you need access."})
+		} else {
+			http.Error(w, "forbidden", http.StatusForbidden)
+		}
 		return
 	}
 	if wantsHTML(r) && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
@@ -662,7 +693,11 @@ func (s *Service) deny(w http.ResponseWriter, r *http.Request, required Role, re
 
 func (s *Service) unavailable(w http.ResponseWriter, r *http.Request) {
 	s.logger.Error("console auth store unavailable", "method", r.Method, "resource", r.URL.Path)
-	http.Error(w, "authentication unavailable", http.StatusServiceUnavailable)
+	if wantsHTML(r) {
+		s.renderPage(w, http.StatusServiceUnavailable, webconsole.Page{Title: "Sign-in service unavailable", Message: "Your access could not be checked. Try opening the workspace again in a moment."})
+	} else {
+		http.Error(w, "authentication unavailable", http.StatusServiceUnavailable)
+	}
 }
 
 func (s *Service) validCSRF(r *http.Request, expected string) bool {
@@ -707,7 +742,15 @@ func (s *Service) clearCookie(w http.ResponseWriter, name string) {
 }
 
 func allowedReturnTo(target string) bool {
-	return target == "/console" || target == "/admin/role-bindings"
+	return isConsolePage(target) || target == "/admin/role-bindings"
+}
+
+func isConsolePage(target string) bool {
+	switch target {
+	case "/console", "/console/devices", "/console/workflows", "/console/access":
+		return true
+	}
+	return false
 }
 
 func allowedReturnToRequest(r *http.Request) string {
@@ -718,7 +761,7 @@ func allowedReturnToRequest(r *http.Request) string {
 }
 
 func wantsHTML(r *http.Request) bool {
-	return strings.Contains(r.Header.Get("Accept"), "text/html") || r.URL.Path == "/console"
+	return strings.Contains(r.Header.Get("Accept"), "text/html") || isConsolePage(r.URL.Path)
 }
 
 func isUnsafeMethod(method string) bool {
@@ -765,37 +808,6 @@ func noStore(w http.ResponseWriter) {
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	w.Header().Set("X-Frame-Options", "DENY")
 }
-
-var consolePage = template.Must(template.New("console").Parse(`<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Device Audit console</title></head>
-<body>
-<main>
-<h1>Device Audit console</h1>
-<p>Signed in as <strong>{{.Subject}}</strong> with the <strong>{{.Role}}</strong> role.</p>
-<p>Fleet and device evidence pages are not implemented yet.</p>
-{{if eq .Role "admin"}}<p><a href="/admin/role-bindings">Console role bindings</a></p>{{end}}
-<form method="post" action="/auth/logout">
-<input type="hidden" name="_csrf" value="{{.CSRFToken}}">
-<button type="submit">Sign out</button>
-</form>
-</main>
-</body>
-</html>
-`))
-
-type consoleData struct {
-	Subject   string
-	Role      Role
-	CSRFToken string
-}
-
-var signedOutPage = `<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Signed out</title></head>
-<body><main><h1>Signed out</h1><p>Your local session has ended.</p><a href="/auth/login">Sign in again</a></main></body>
-</html>
-`
 
 // PostgresStore stores opaque identifiers as digests and keeps authorization
 // bindings outside the identity provider.

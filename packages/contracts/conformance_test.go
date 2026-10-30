@@ -37,6 +37,10 @@ func readContractWire(vector contractWireVector) (string, error) {
 	}
 	var value interface{ Validate() error }
 	switch vector.ReaderVersion {
+	case InventoryUpdateV1Version:
+		value = &InventoryUpdateV1{}
+	case InventoryRecordV1Version:
+		value = &InventoryRecordV1{}
 	case BootstrapTokenRequestV1Version, BootstrapTokenV1Version, EnrollmentStartV1Version, EnrollmentChallengeV1Version, EnrollmentAdmissionV1Version, EnrollmentAcceptedV1Version, EnrollmentErrorV1Version:
 		value = bootstrapReader(vector.ReaderVersion)
 	case Version:

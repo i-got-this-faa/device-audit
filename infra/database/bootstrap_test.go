@@ -26,7 +26,7 @@ func TestBootstrapUpgradePreservesSigningOnlyIdentityWithoutNetworkAdmission(t *
 		VALUES ('deployment:prior','device:prior','ed25519:'||repeat('cd',32),decode(repeat('ef',32),'hex'),repeat('ab',32),'{}',decode(repeat('ab',32),'hex'),'2026-10-24T12:01:00Z',42)`); err != nil {
 		t.Fatal(err)
 	}
-	if version, err := Migrate(context.Background(), db); err != nil || version != 4 {
+	if version, err := Migrate(context.Background(), db); err != nil || version != 5 {
 		t.Fatalf("bootstrap upgrade: %d %v", version, err)
 	}
 	var sequence int

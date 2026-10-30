@@ -2,9 +2,11 @@
 
 SRC04 [#74](https://github.com/i-got-this-faa/device-audit/issues/74) selects
 Go `html/template`, embedded CSS and JavaScript ES modules, with progressive
-enhancement. The controller now hosts a minimal server-rendered console and
-administrator authentication surface from SEC06 [#82](https://github.com/i-got-this-faa/device-audit/issues/82).
-It is not a fleet dashboard or a browser-qualified release.
+enhancement. WEB01 [#29](https://github.com/i-got-this-faa/device-audit/issues/29) adds the
+responsive console shell to SEC06 [#82](https://github.com/i-got-this-faa/device-audit/issues/82)
+authentication. Templates and assets are embedded in the Go binary. Node is
+required only for browser tests. Device browsing, evidence views, workflow
+execution and exports remain separate tasks.
 
 Implemented routes:
 
@@ -16,7 +18,13 @@ Implemented routes:
 - `GET /auth/session` returns the signed-in subject, current role and CSRF
   token. `POST /auth/logout` requires CSRF and Origin checks, revokes the
   session and clears the cookie.
-- `GET /console` is the minimal viewer page.
+- `GET /console` is the protected workspace. `GET /console/devices` and
+  `GET /console/workflows` are protected navigation destinations with explicit
+  unavailable states until those product features are implemented.
+- `GET /console/access` lists role bindings for administrators. Viewers receive
+  a public 403 page with no bindings or account details.
+- `GET /console/assets/console.css|console.js` serves public embedded assets.
+  These files contain no session or device data.
 - `GET|POST /admin/role-bindings` lists bindings and changes a subject's
   `viewer`/`admin` role. Admin-only.
 - `GET /signed-out` is the public post-logout page.
@@ -25,7 +33,8 @@ Implemented routes:
   exact Origin and authentication within five minutes. See the
   [enrollment guide](../../infra/enrollment/README.md).
 
-Sessions are stored in PostgreSQL schema version 2. The session browser state
+Sessions use the tables introduced in PostgreSQL schema version 2; the current
+controller migrates to schema version 5. The session browser state
 is the opaque `__Host-device-audit-session` cookie: `Secure`, `HttpOnly`,
 `Path=/`, no `Domain`, `SameSite=Lax`; the short-lived login transaction uses a
 second `__Host-` cookie. Idle expiry is 15 minutes and absolute expiry is
@@ -85,9 +94,10 @@ bit-identical builds or a hosted CI result.
 
 ## Acceptance matrix status
 
-The proxy should expose only console/auth routes and separately authorized
-bootstrap routes. This table records what the local implementation and tests
-cover; it is not a passing browser or production IdP matrix.
+The proxy must expose the intended console routes, embedded assets and auth
+routes. Enrollment and the [inventory API](../../internal/controller/inventory.md)
+need their own explicit exposure policy. Keep the unsigned fixture API private.
+This table records local evidence; it does not qualify a production IdP.
 
 | Request or state | Status |
 | --- | --- |
@@ -98,18 +108,73 @@ cover; it is not a passing browser or production IdP matrix.
 | Missing, expired or reused state, mismatched nonce, invalid token signature, issuer, audience or expiry | Rejected by library/service paths; not every case has a separate browser test |
 | Unknown identity, wrong issuer or missing local binding | Implemented: 403, no account creation |
 | Forged email, group, organization, proxy identity or device header | Implemented: no header is read for roles; forged-header test passes |
-| Viewer reads fleet/device/findings/exports | Not implemented; only the minimal console page exists |
+| Viewer reads fleet/device/findings/exports | Device/workflow destinations implemented as unavailable states; fleet data, findings and exports remain absent |
 | Viewer performs admin action | Implemented for role bindings: 403 with no mutation |
 | Admin performs an allowlisted action | Role-binding management requires authentication within five minutes; durable audit events are not implemented |
 | Missing/invalid CSRF, foreign Origin or mutation over GET | Implemented and tested |
 | Exactly 15 minutes idle or eight hours since login | Implemented in memory-store HTTP tests; server, not cookie, controls it |
 | Role removed or identity revoked | Implemented: next request denied; server-side session is not authority |
-| Session/role store unavailable | Implemented: 503, no memory fallback |
+| Session/role store unavailable | Implemented: 503 with a public recovery page, no memory fallback |
 | Valid CSRF-protected `POST /auth/logout` | Implemented: server session revoked, cookie expired |
 | Replayed cookie after logout or expired session | Implemented in tests; server state rejects reuse |
-| Browser Back or shared-cache replay after logout | Protected responses send `no-store`; no browser test yet |
+| Browser Back or shared-cache replay after logout | Chromium test passes: protected responses send `no-store`; Back revalidates and shows no cached account data after logout |
 | Device signing, mesh or chain credential as admin identity | Not an accepted admin path; no end-to-end test |
 | IdP unavailable | New login fails closed; existing local sessions remain until expiry/revocation |
+
+## Run the browser checks
+
+The test-only dependency is pinned `playwright-core` 1.64.1, Apache-2.0, with no
+transitive packages or installation scripts. It provides browser actions and
+assertions without adding a frontend runtime or downloading a browser during
+`npm ci`. The [Playwright launch reference](https://playwright.dev/docs/api/class-browsertype#browser-type-launch)
+describes the explicit executable path used by these tests.
+
+```sh
+npm ci --prefix apps/web-console --ignore-scripts
+BROWSER_PATH=/absolute/path/to/chromium make browser-check
+```
+
+The Go test starts the actual auth service and embedded console against a
+synthetic TLS OIDC issuer and in-memory test sessions. Test control routes exist
+only in `_test.go`, and no authentication bypass is compiled into the controller.
+The browser ignores certificates only for this disposable loopback test. CI
+installs Chromium selected by the pinned Playwright package and runs this target.
+The local validation used system Chromium 155.0.8059.84 instead. Remote CI has not
+been observed in this change.
+
+The suite covers anonymous direct navigation, allowlisted return paths, the
+OIDC/PKCE callback, viewer denial, admin navigation, logout with the browser's
+actual Origin, expired sessions, browser Back after logout, auth-store outages,
+keyboard focus, the skip link, 320-pixel navigation, horizontal overflow and
+login/navigation/logout without JavaScript. Screenshots are written to
+`artifacts/console/` and uploaded by CI. These are test screenshots, not real
+fleet data or physical-device evidence.
+
+With JavaScript enabled, the shell conceals content on page exit or when the tab
+is hidden. A restored or newly visible tab reloads through session middleware.
+A conservative per-page timer also conceals content at that page's session
+expiry. Activity in another tab may extend the server session; reload to
+revalidate. Without JavaScript, navigation and logout still work, and the server
+checks every protected request. The additional concealment and local timer
+require JavaScript. No service worker or browser storage contains protected data.
+
+Rendered HTML uses `Referrer-Policy: strict-origin`: paths and queries are
+omitted, while same-origin form POSTs retain the Origin needed by CSRF checks.
+`no-referrer` caused real Chromium logout forms to send `Origin: null` and fail
+closed. CSP permits only same-origin styles/scripts and form actions; inline
+scripts, framing and base URL changes are denied.
+
+For a manual synthetic preview, set `CONSOLE_PREVIEW_FILE` to a temporary file
+and run the preview test:
+
+```sh
+CONSOLE_PREVIEW_FILE=/tmp/device-audit-preview-url \
+  go test -count=1 -v -timeout=12m -run '^TestConsolePreview$' ./internal/controller/auth
+```
+
+The test writes its loopback HTTPS URL, stays alive
+for ten minutes and then exits. The issuer automatically signs in the synthetic
+viewer. Use a disposable browser profile that trusts the test certificate.
 
 ## Remaining qualification work
 

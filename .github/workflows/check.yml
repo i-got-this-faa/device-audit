@@ -3,6 +3,34 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  console-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+        working-directory: apps/web-console
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: apps/web-console
+      - name: Locate the pinned Chromium browser
+        working-directory: apps/web-console
+        run: node -e 'console.log("BROWSER_PATH=" + require("playwright-core").chromium.executablePath())' >> "$GITHUB_ENV"
+      - run: make browser-check
+      - name: Save console browser screenshots
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: console-browser
+          path: artifacts/console/
+          if-no-files-found: warn
+          retention-days: 14
   windows-check:
     runs-on: windows-2025
     timeout-minutes: 15
