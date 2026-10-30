@@ -536,3 +536,21 @@ Browser testing found that `no-referrer` caused Chromium logout forms to send
 Origin while omitting paths and queries. Authentication and CSRF checks are
 unchanged. The [console guide](../apps/web-console/README.md) records the
 repeatable browser target, test dependency, evidence and qualification limits.
+
+
+## Fixture device browsing, WEB06 #99
+
+The console renders named local fixture scenarios through the existing protected
+viewer routes. List and detail views share one catalogue under
+`apps/web-console/fixtures`, including the unchanged TST02 replay telemetry
+payload. Existing telemetry v2 types retain nullable values, missing reasons and
+explicit units. No new wire contract, fixture endpoint, database integration or
+signing claim is introduced. Shared contract-owner review remains a merge gate
+if a later change touches shared fixtures or contracts.
+
+Live and offline are scripted example states under a displayed fixed clock.
+Every device page identifies its data as synthetic. Loading and error examples
+are explicit previews; authentication failures still fail closed before fixture
+rendering. See the [console guide](../apps/web-console/README.md#device-fixtures)
+and [local validation](validation/console-fixtures-99.md). Production device reads,
+real telemetry freshness rules and health assessments remain separate work.

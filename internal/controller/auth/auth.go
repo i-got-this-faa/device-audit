@@ -228,6 +228,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /signed-out", s.signedOut)
 	mux.Handle("GET /console", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/devices", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/devices/{device}", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/workflows", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/access", s.RequireRole(RoleAdmin, http.HandlerFunc(s.console)))
 	mux.Handle("GET /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.listBindings)))
@@ -454,9 +455,11 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 	page := webconsole.Page{Title: "Workspace", Section: "overview", Subject: current.Session.Subject,
 		Role: string(current.Role), CSRFToken: current.Session.CSRFToken,
 		ExpiresAt: minTime(current.Session.IdleExpiresAt, current.Session.AbsoluteExpiresAt).Format(time.RFC3339Nano)}
+	status := http.StatusOK
 	switch r.URL.Path {
 	case "/console/devices":
 		page.Title, page.Section = "Devices", "devices"
+		page.Devices, status = webconsole.FixtureDevices(r.URL.Query(), "")
 	case "/console/workflows":
 		page.Title, page.Section = "Workflows", "workflows"
 	case "/console/access":
@@ -469,8 +472,13 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 		for _, binding := range bindings {
 			page.Bindings = append(page.Bindings, webconsole.Binding{Subject: binding.Subject, Role: string(binding.Role)})
 		}
+	default:
+		if deviceID := r.PathValue("device"); deviceID != "" {
+			page.Title, page.Section = "Device detail", "devices"
+			page.Devices, status = webconsole.FixtureDevices(r.URL.Query(), deviceID)
+		}
 	}
-	s.renderPage(w, http.StatusOK, page)
+	s.renderPage(w, status, page)
 }
 
 func (s *Service) renderPage(w http.ResponseWriter, status int, page webconsole.Page) {
@@ -750,7 +758,7 @@ func isConsolePage(target string) bool {
 	case "/console", "/console/devices", "/console/workflows", "/console/access":
 		return true
 	}
-	return false
+	return webconsole.IsDeviceDetailPath(target)
 }
 
 func allowedReturnToRequest(r *http.Request) string {
