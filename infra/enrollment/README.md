@@ -3,8 +3,9 @@
 SEC01 [#18](https://github.com/i-got-this-faa/device-audit/issues/18) implements
 controller bootstrap admission over TLS. One transaction binds an authorized
 opaque device ID to separate Ed25519 signing and X25519 network public keys.
-Endpoint key storage and an installed endpoint enrollment client remain #23.
-The existing endpoint executable still sends fixture telemetry.
+Endpoint key storage and the explicit enrollment CLI are documented under
+[#23](../../apps/endpoint-agent/README.md). Native Windows service qualification
+remains open. The default endpoint mode still sends fixture telemetry.
 
 ## Enable the controller routes
 
@@ -79,7 +80,7 @@ Future mesh/evidence consumers must retrieve the binding, authenticate the
 actual network peer and apply the device revocation policy independently.
 
 Expiry does not delete rows. Cleanup, early bootstrap-token revocation,
-rate limits, endpoint key protection, key rotation/recovery, device revocation,
+rate limits, endpoint service qualification, key rotation/recovery, device revocation,
 authenticated receipt reconciliation and off-host backup restore remain open.
 Keep storage and proxy access restricted. All records remain off-chain.
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -20,7 +21,50 @@ func main() {
 	controllerURL := flag.String("controller", "http://127.0.0.1:8080", "loopback development controller")
 	deviceID := flag.String("device-id", "demo-device", "fixture device ID")
 	transport := flag.String("transport", "loopback", "loopback or mesh")
+	enrollMode := flag.Bool("enroll", false, "enroll using bootstrap-token.v1 JSON on stdin")
+	identityStatus := flag.Bool("identity-status", false, "verify stored admission and print public receipt")
+	stateDir := flag.String("state-dir", "", "private identity directory, required for enrollment/status")
+	enrollmentOrigin := flag.String("enrollment-origin", "", "trusted HTTPS controller origin")
+	caFile := flag.String("ca-file", "", "optional enrollment CA PEM file")
 	flag.Parse()
+	if *enrollMode || *identityStatus {
+		if *stateDir == "" || (*enrollMode && *identityStatus) {
+			fail(fmt.Errorf("choose enrollment or identity status and supply --state-dir"))
+		}
+		var client *http.Client
+		var origin string
+		var token contracts.BootstrapTokenV1
+		var err error
+		if *enrollMode {
+			client, origin, err = enrollmentClient(*enrollmentOrigin, *caFile)
+			if err != nil {
+				fail(err)
+			}
+			defer client.CloseIdleConnections()
+			token, err = readBootstrap(os.Stdin)
+			if err != nil {
+				fail(err)
+			}
+		}
+		store, err := openIdentityStore(*stateDir, *enrollMode)
+		if err != nil {
+			fail(err)
+		}
+		var receipt contracts.EnrollmentAcceptedV1
+		if *enrollMode {
+			receipt, err = enroll(context.Background(), store, client, origin, token)
+		} else {
+			receipt, err = store.status()
+		}
+		store.close()
+		if err != nil {
+			fail(fmt.Errorf("endpoint identity operation failed: %s", err))
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(receipt); err != nil {
+			fail(fmt.Errorf("write public identity status"))
+		}
+		return
+	}
 	if *transport != "loopback" {
 		fail(mesh.ErrNotImplemented)
 	}
