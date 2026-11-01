@@ -1,17 +1,8 @@
 # SEC02 #23 implementation and evidence
 
-Work branch `feat/issue-23-endpoint-keys`, based on remote main
-`5a79934`. Worktree `/tmp/device-audit-issue-23`. The original checkout's
-uncommitted roadmap/source edits are preserved. The user authorized opening and
-babysitting the PR on 1 November 2026, including scoped commits and pushes.
-Merge, issue closure and unrelated project mutations remain unauthorized.
-
-Hard constraints retained from repository and user instructions: keep unrelated
-work; no commit unless requested and no push without permission; existing shared
-wire contracts first; separate networking, signing and chain identities; never
-disclose private material; no raw identifiers/logs on-chain; no unimplemented
-production or patent claims; no MDM/configuration/deployment/shell-agent scope;
-run `make check` and `make cross-build` for Go changes. No Python code is changed.
+Implementation and qualification evidence for
+[PR #195](https://github.com/i-got-this-faa/device-audit/pull/195), based on
+main `5a79934`. Signing, networking and chain identities remain separate.
 
 ## Completion ledger
 
@@ -20,18 +11,17 @@ run `make check` and `make cross-build` for Go changes. No Python code is change
 | Distinct persistent signing/network identities | `apps/endpoint-agent/identity.go`, OS storage files | TLS enrollment plus fresh-process identity-status | proved on Linux | `TestEnrollmentAndProcessRestart` checks both proofs and unchanged key bytes |
 | Damaged or unsafe storage fails closed | endpoint storage and tests | corruption, partial/missing keys, size, modes, links, concurrent lock | proved on Linux | focused package race tests |
 | Secrets absent from routine output | redacted identity formatting and bounded generic transport errors | fresh-process output and formatting checks | proved for exercised paths | endpoint package tests; no real credential used |
-| Windows DPAPI and ACL implementation | `storage_windows.go`, Windows-only tests | Windows test-binary cross-build | in progress | Native Windows run still required; cross-build is portability evidence only |
+| Windows DPAPI and ACL implementation | `storage_windows.go`, Windows-only tests | Native Windows CI plus test-binary cross-build | proved for CI account | Windows endpoint race tests passed on `712fa36`; physical LocalService qualification remains open |
 | Real controller and database integration | endpoint client, existing enrollment handlers/repository | PostgreSQL-backed integration | proved on Linux | `TestEndpointEnrollmentPostgres`: actual TLS handlers, committed signing/network binding and fresh-process receipt |
 | Whole-repository validation | existing Makefile | `make check cross-build` | proved | Vet, race suite, Python suite, fixture scenarios, formatting and both endpoint builds passed |
 | LocalService restart on selected Windows laptop | selected Windows endpoint/service boundary | installed service with per-service SID | blocked | Host is currently Linux; native Windows is a separate installation; do not switch it automatically |
-| Reviewed PR merged | remote GitHub | review and merge | in progress | PR publication/babysitting authorized; merge not requested; issue remains open |
 
 ## Applicable paths
 
 | Path | Applies | Reason and evidence |
 | --- | --- | --- |
 | Explicit enrollment and identity-status CLI | yes | Enrollment alone creates keys; status loads only. Existing fixture mode remains separately identified. |
-| Windows provider | yes | DPAPI user scope, protected directory DACL, inherited file DACL, service SID under LocalService; native tests provided but not run here. |
+| Windows provider | yes | DPAPI user scope, protected directory DACL, inherited file DACL, service SID under LocalService; native tests passed under the Windows CI account, not the physical LocalService token. |
 | Linux/Darwin provider | development only | Restricted Unix files; Linux runtime tests and Darwin cross-build. No V1 support claim. |
 | Bootstrap controller and contracts | yes, unchanged | Existing challenge/admission v1, Ed25519 canonicalization and NaCl sealed box. No wire change required. |
 | Restart, corruption, unreadable state | yes | Fresh process, immutable files, bounded parsing, ownership/ACL validation and fail-closed errors. |
@@ -74,8 +64,16 @@ off-host recovery and remote review/merge remain untested. A protocol fixture,
 development Unix process restart or Windows cross-build does not satisfy those
 release gates. Issue #23 must not be marked Done from this record.
 
-Next steps: publish and monitor the PR so native Windows CI can execute the
-DPAPI/ACL tests, then qualify the selected physical Windows laptop under the
-LocalService/per-service token with service registration work. Obtain the other
-developer's review and merge before closing #23. No automatic OS switch or
-service-account permission change has been attempted.
+## PR review follow-up
+
+CodeRabbit completed review of `712fa36` with one valid finding. HTTP 5xx can
+arrive after a controller commit, so the client now reports uncertain admission
+and advises preserving identity and reconciling with the operator. Regression
+tests cover 500/502/503/504, unchanged stored keys, no accepted receipt, and no
+server-body or credential disclosure. HTTP 403 remains a definite rejection.
+
+Both native Windows CI runs passed the endpoint package, including DPAPI/DACL
+tests. One full Windows run failed the existing OIDC login/replay test at
+`internal/controller/auth/auth_test.go:994`; the duplicate full Windows run
+passed. No authentication code changes are included in this endpoint fix.
+The follow-up push reruns CI and automated reviews on the new head.

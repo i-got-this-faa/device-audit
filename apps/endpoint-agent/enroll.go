@@ -77,6 +77,9 @@ func postEnrollment(ctx context.Context, client *http.Client, endpoint, token st
 	}
 	defer response.Body.Close()
 	if response.StatusCode != status {
+		if response.StatusCode >= http.StatusInternalServerError {
+			return errors.New("enrollment server error; admission may be uncertain; preserve identity and reconcile with operator")
+		}
 		return errors.New("enrollment rejected; retained identity is unchanged")
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, 16385))

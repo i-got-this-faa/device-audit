@@ -311,9 +311,10 @@ func TestCorruptReceiptNeverAppearsInErrors(t *testing.T) {
 }
 
 func TestFailedAdmissionRetainsIdentity(t *testing.T) {
-	for _, failure := range []string{"rejected", "lost-response", "wrong-receipt", "scope-change"} {
+	for _, failure := range []string{"rejected", "lost-response", "wrong-receipt", "scope-change", "server-error", "bad-gateway", "unavailable", "gateway-timeout"} {
 		t.Run(failure, func(t *testing.T) {
 			s, path := testStore(t)
+			serverStatus := map[string]int{"server-error": 500, "bad-gateway": 502, "unavailable": 503, "gateway-timeout": 504}[failure]
 			var starts []contracts.EnrollmentStartV1
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/v1/enrollment/challenges" {
@@ -340,7 +341,11 @@ func TestFailedAdmissionRetainsIdentity(t *testing.T) {
 					json.NewEncoder(w).Encode(receipt)
 					return
 				}
-				w.WriteHeader(403)
+				if serverStatus != 0 {
+					w.WriteHeader(serverStatus)
+				} else {
+					w.WriteHeader(403)
+				}
 				fmt.Fprint(w, "private-server-error-marker")
 			}))
 			defer server.Close()
@@ -350,6 +355,12 @@ func TestFailedAdmissionRetainsIdentity(t *testing.T) {
 			_, err := enroll(context.Background(), s, client, server.URL, token)
 			if err == nil || strings.Contains(err.Error(), "private-server-error-marker") || strings.Contains(err.Error(), token.Token) {
 				t.Fatal("failed admission accepted or secret disclosed")
+			}
+			if serverStatus != 0 && (!strings.Contains(err.Error(), "uncertain") || strings.Contains(err.Error(), "rejected")) {
+				t.Fatal("server failure reported a definite rejection")
+			}
+			if failure == "rejected" && !strings.Contains(err.Error(), "rejected") {
+				t.Fatal("authorization rejection lost its classification")
 			}
 			before, err := s.read(keyFile)
 			if err != nil {
