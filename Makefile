@@ -36,7 +36,7 @@ fake-check:
 	$(GO) run ./tools/fakes/controllerfake --scenario all
 database-check:
 	test -n "$(TEST_DATABASE_URL)" || { echo "TEST_DATABASE_URL is required for database-check" >&2; exit 1; }
-	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(GO) test -race -count=1 ./infra/database ./apps/controller ./internal/controller ./internal/controller/auth
+	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" $(GO) test -race -count=1 ./infra/database ./apps/controller ./apps/endpoint-agent ./internal/controller ./internal/controller/auth
 storage-crash-check:
 	TEST_POSTGRES_RESTART=1 $(GO) test -race -count=1 -v -run '^TestRepositoryPostgresCrashRecovery$$' ./internal/controller
 demo: build
