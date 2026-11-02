@@ -17,7 +17,7 @@ func TestConsoleNavigationAuthorization(t *testing.T) {
 	viewer, _ := addSession(t, store, clock, "viewer:private", RoleViewer)
 	admin, _ := addSession(t, store, clock, "admin:private", RoleAdmin)
 	client := noRedirectClient()
-	for _, path := range []string{"/console", "/console/devices", "/console/workflows", "/console/access"} {
+	for _, path := range []string{"/console", "/console/devices", "/console/devices/fixture-laptop", "/console/workflows", "/console/access"} {
 		r := request(t, client, server.URL+path, "GET", "", map[string]string{"Accept": "text/html"}, "")
 		if r.StatusCode != 302 || !strings.Contains(r.Header.Get("Location"), "return_to=") {
 			t.Fatalf("anonymous %s: %d", path, r.StatusCode)
@@ -49,7 +49,7 @@ func TestConsoleNavigationAuthorization(t *testing.T) {
 		r.Body.Close()
 	}
 	clock.Advance(15 * time.Minute)
-	for _, path := range []string{"/console/devices", "/console/workflows", "/console/access"} {
+	for _, path := range []string{"/console/devices", "/console/devices/fixture-laptop", "/console/workflows", "/console/access"} {
 		r := request(t, client, server.URL+path, "GET", "", map[string]string{}, admin)
 		body := readBody(r)
 		r.Body.Close()
@@ -57,7 +57,7 @@ func TestConsoleNavigationAuthorization(t *testing.T) {
 			t.Fatalf("expired %s: %d", path, r.StatusCode)
 		}
 	}
-	for _, target := range []string{"//attacker.example", "/console/devices?next=https://attacker.example", "/console/devices/../access", "/console/api/devices/x/inventory", "/console/workflows/evil"} {
+	for _, target := range []string{"//attacker.example", "/console/devices?next=https://attacker.example", "/console/devices/../access", "/console/api/devices/x/inventory", "/console/workflows/evil", "/console/devices/unregistered", "/console/devices/fixture-laptop?fixture=live", "/console/devices/fixture-laptop/extra"} {
 		if allowedReturnTo(target) {
 			t.Fatalf("unsafe return path %q", target)
 		}
@@ -75,7 +75,7 @@ func TestConsoleEscapesSubjectsAndFailsClosed(t *testing.T) {
 		t.Fatal("unescaped subject")
 	}
 	store.setFail(true)
-	r = request(t, noRedirectClient(), server.URL+"/console/devices", "GET", "", nil, id)
+	r = request(t, noRedirectClient(), server.URL+"/console/devices/fixture-laptop", "GET", "", nil, id)
 	body = readBody(r)
 	r.Body.Close()
 	if r.StatusCode != 503 || strings.Contains(body, "subject") || strings.Contains(body, "data-protected") {

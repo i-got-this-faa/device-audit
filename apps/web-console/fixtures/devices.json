@@ -1,0 +1,170 @@
+{
+  "fixture": true,
+  "fixed_time": "2026-10-19T12:30:00Z",
+  "devices": [
+    {
+      "id": "fixture-laptop",
+      "name": "Operations laptop",
+      "state": "live",
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-laptop",
+        "collected_at": "2026-10-19T12:29:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 0,
+            "unit": "percent"
+          },
+          "gpu_utilization": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "not_applicable"
+          },
+          "memory_percent": {
+            "value": 64,
+            "unit": "percent"
+          },
+          "disk_used_percent": {
+            "value": 48,
+            "unit": "percent"
+          },
+          "battery_percent": {
+            "value": null,
+            "unit": "percent",
+            "missing_reason": "sensor_unavailable"
+          },
+          "temperature_c": {
+            "value": null,
+            "unit": "celsius",
+            "missing_reason": "permission_denied"
+          },
+          "network_latency_ms": {
+            "value": null,
+            "unit": "milliseconds",
+            "missing_reason": "collection_error"
+          }
+        },
+        "inventory": {
+          "group_id": "fixture:operations",
+          "network_segment_id": "fixture:office",
+          "components": [
+            {
+              "id": "fixture:cpu",
+              "type": "processor",
+              "model": "Example processor"
+            },
+            {
+              "id": "fixture:disk",
+              "type": "storage"
+            }
+          ]
+        },
+        "log_references": []
+      }
+    },
+    {
+      "id": "fixture-offline",
+      "name": "Stores workstation",
+      "state": "offline",
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-offline",
+        "collected_at": "2026-10-18T09:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 12.5,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    },
+    {
+      "id": "fixture-unknown",
+      "name": "Unreported device",
+      "state": "unknown",
+      "telemetry": null
+    },
+    {
+      "id": "fixture-replay-device",
+      "name": "Replay device",
+      "state": "live",
+      "telemetry": {
+        "schema_version": "device-audit.telemetry.v2",
+        "device_id": "fixture-replay-device",
+        "collected_at": "2026-10-19T12:00:00Z",
+        "source": "fixture",
+        "metrics": {
+          "cpu_utilization": {
+            "value": 12.5,
+            "unit": "percent"
+          }
+        },
+        "inventory": {
+          "components": []
+        },
+        "log_references": []
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "live",
+      "label": "Live sample",
+      "state": "ready",
+      "device_ids": [
+        "fixture-laptop",
+        "fixture-offline",
+        "fixture-unknown",
+        "fixture-replay-device"
+      ]
+    },
+    {
+      "name": "offline",
+      "label": "Offline sample",
+      "state": "ready",
+      "device_ids": [
+        "fixture-offline"
+      ]
+    },
+    {
+      "name": "unknown",
+      "label": "Unknown sample",
+      "state": "ready",
+      "device_ids": [
+        "fixture-unknown"
+      ]
+    },
+    {
+      "name": "empty-inventory",
+      "label": "Empty component inventory",
+      "state": "ready",
+      "device_ids": [
+        "fixture-replay-device"
+      ]
+    },
+    {
+      "name": "loading",
+      "label": "Loading",
+      "state": "loading",
+      "device_ids": []
+    },
+    {
+      "name": "error",
+      "label": "Read error",
+      "state": "error",
+      "device_ids": []
+    },
+    {
+      "name": "empty",
+      "label": "Empty device list",
+      "state": "empty",
+      "device_ids": []
+    }
+  ]
+}

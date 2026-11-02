@@ -12,7 +12,7 @@ import (
 //go:embed templates/*.html static/*
 var files embed.FS
 
-var pageTemplate = template.Must(template.ParseFS(files, "templates/page.html"))
+var pageTemplate = template.Must(template.ParseFS(files, "templates/*.html"))
 
 type Binding struct {
 	Subject string
@@ -28,6 +28,7 @@ type Page struct {
 	ExpiresAt string
 	Message   string
 	Bindings  []Binding
+	Devices   *DeviceView
 }
 
 func RegisterAssets(mux *http.ServeMux) {
@@ -47,7 +48,7 @@ func RegisterAssets(mux *http.ServeMux) {
 
 func Render(w http.ResponseWriter, status int, page Page) error {
 	var buffer bytes.Buffer
-	if err := pageTemplate.Execute(&buffer, page); err != nil {
+	if err := pageTemplate.ExecuteTemplate(&buffer, "page.html", page); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

@@ -1,0 +1,33 @@
+{{define "devices"}}
+<div class="fixture-context"><strong class="fixture-badge">Fixture data</strong><span>Synthetic examples</span></div>
+<div class="fixture-notice" role="note"><p>All devices and measurements on this page are synthetic. Live and offline labels describe fixture states, not production telemetry.</p><p class="supporting">Reference clock: <time>{{.FixedTime}}</time>. Scenarios do not advance with the wall clock. No health assessment is available.</p></div>
+<nav class="fixture-picker" aria-label="Fixture scenarios">{{range .Scenarios}}<a href="{{.URL}}" {{if .Selected}}aria-current="true"{{end}}>{{.Label}}</a>{{end}}</nav>
+{{if .IsDetail}}<a class="back-link" href="{{.ListURL}}">← Back to device list</a>{{end}}
+{{if eq .State "loading"}}
+<section class="empty-state" role="status"><span class="status">Loading fixture</span><h2>Waiting for device data</h2><p>This fixture previews a pending read. No request is running and no measurements are shown.</p><a href="?fixture=live">Load ready fixture</a></section>
+{{else if eq .State "error"}}
+<section class="empty-state" role="alert"><span class="status">Read error fixture</span><h2>Device data could not be loaded</h2><p>This is a simulated read failure. Device condition and sensor values are unknown.</p><a href="?fixture=live">Load ready fixture</a></section>
+{{else if eq .State "empty"}}
+<section class="empty-state"><span class="status">Empty fixture</span><h2>No devices in this fixture</h2><p>An empty device list is not evidence that enrolled devices are healthy or absent from your organization.</p><a href="/console/devices?fixture=live">Open populated fixture</a></section>
+{{else if eq .State "not-found"}}
+<section class="empty-state"><h2>Fixture selection not found</h2><p>This device or scenario is not available in the selected fixture.</p><a href="/console/devices?fixture=live">Open device fixtures</a></section>
+{{else if .IsDetail}}
+{{with .Detail}}
+<section class="device-detail" aria-labelledby="device-name"><div class="device-title"><div><p class="eyebrow">Device / {{.ID}}</p><h2 id="device-name">{{.Name}}</h2></div><span class="device-status" data-state="{{.State}}">{{.Status}}</span></div>
+<p class="supporting">Collected at: <time>{{.CollectedAt}}</time></p>
+{{if eq .State "offline"}}<p class="state-warning">Offline fixture. These are historical measurements; current device condition is unknown.</p>{{else if eq .State "unknown"}}<p class="state-warning">No telemetry has been received in this fixture. Connection state, device condition and inventory are unknown.</p>{{end}}
+<h3>Measurements</h3><p class="supporting">Disk space used is not disk health. Battery charge is not battery health or remaining life. Network latency is not throughput.</p>
+<dl class="sensor-list">{{range .Sensors}}<div><dt>{{.Name}}</dt><dd><span class="sensor-value">{{.Value}}</span> <span class="sensor-unit">{{.Unit}}</span><small>{{.Explanation}}</small></dd></div>{{end}}</dl>
+<h3>Component inventory</h3>
+{{if .Inventory}}
+<dl class="inventory-meta"><div><dt>Group</dt><dd>{{if .Inventory.GroupID}}{{.Inventory.GroupID}}{{else}}Unknown: not reported{{end}}</dd></div><div><dt>Network segment</dt><dd>{{if .Inventory.NetworkSegmentID}}{{.Inventory.NetworkSegmentID}}{{else}}Unknown: not reported{{end}}</dd></div></dl>
+{{if .Inventory.Components}}<ul class="component-list">{{range .Inventory.Components}}<li><strong>{{.Type}}</strong><span>{{if .Model}}{{.Model}}{{else}}Model unknown: not reported{{end}}</span><small>{{.ID}}</small></li>{{end}}</ul>
+{{else}}<p class="inventory-empty">No components reported. An empty inventory does not establish that this device has no hardware.</p>{{end}}
+{{else}}<p class="inventory-empty">Inventory unknown. No inventory sample has been received.</p>{{end}}
+</section>
+{{end}}
+{{else}}
+<p class="supporting">{{len .Rows}} fixture devices. Open a device to inspect measurements and missing sensor reasons.</p>
+<ul class="device-list" aria-label="Fixture devices">{{range .Rows}}<li><div class="device-title"><a href="{{.URL}}">{{.Name}}</a><span class="device-status" data-state="{{.State}}">{{.Status}}</span><span class="fixture-badge">Fixture</span></div><dl><div><dt>Device ID</dt><dd>{{.ID}}</dd></div><div><dt>Collected at</dt><dd><time>{{.CollectedAt}}</time></dd></div><div><dt>Inventory</dt><dd>{{if .Inventory}}{{len .Inventory.Components}} components reported{{else}}Unknown: not received{{end}}</dd></div></dl></li>{{end}}</ul>
+{{end}}
+{{end}}

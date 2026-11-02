@@ -79,3 +79,39 @@ h2 { font-size: 1.25rem; font-weight: 600; line-height: 1.35; letter-spacing: -.
   .public-page { margin-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+.fixture-context { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 12px; margin-top: 24px; padding: 10px 0; background: var(--paper); border-bottom: 1px solid var(--line); font-size: .85rem; }
+.fixture-notice { margin-top: 12px; padding: 20px 24px; border: 1px solid #ac802c; border-left-width: 5px; background: #fff8e8; max-width: 86ch; }
+.fixture-notice p { margin: 10px 0 0; }
+.fixture-badge { display: inline-block; color: #62440d; background: #fff0c9; border: 1px solid #b18a41; padding: 2px 8px; font-size: .76rem; font-weight: 650; white-space: nowrap; }
+.fixture-picker { flex-direction: row; flex-wrap: wrap; gap: 8px; margin: 24px 0 32px; }
+.fixture-picker a { border: 1px solid var(--line); padding: 6px 10px; font-size: .85rem; }
+.fixture-picker a[aria-current] { border-color: var(--blue); }
+.back-link { display: inline-block; margin-bottom: 24px; }
+.device-list, .component-list { padding: 0; list-style: none; }
+.device-list > li { padding: 24px 0; border-top: 1px solid var(--line); }
+.device-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+.device-title > a, .device-title h2 { font-size: 1.3rem; font-weight: 600; margin: 0; }
+.device-title .eyebrow { margin-bottom: 8px; overflow-wrap: anywhere; }
+.device-status { color: #305562; font-size: .85rem; border-left: 3px solid #397d77; padding-left: 8px; }
+.device-status[data-state="offline"] { color: #78531a; border-color: #a27430; }
+.device-status[data-state="unknown"] { color: var(--muted); border-color: #788792; }
+.device-list dl, .inventory-meta { margin: 16px 0 0; }
+.device-list dl > div, .inventory-meta > div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; padding: 3px 0; font-size: .9rem; }
+dd { margin: 0; }
+.device-list dt, .inventory-meta dt { color: var(--muted); }
+.device-list dd, .inventory-meta dd, time { overflow-wrap: anywhere; }
+.device-detail { max-width: 900px; }
+.device-detail h3 { margin-top: 36px; font-size: 1.05rem; }
+.state-warning, .inventory-empty { padding: 16px 20px; border-left: 3px solid #ac802c; background: #fff8e8; }
+.sensor-list > div { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr); gap: 12px; padding: 16px 0; border-top: 1px solid var(--line); }
+.sensor-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sensor-unit { color: var(--muted); font-size: .85rem; }
+.sensor-list small, .component-list small { display: block; color: var(--muted); margin-top: 3px; }
+.component-list li { padding: 16px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.component-list span { display: block; }
+@media (max-width: 700px) {
+  .fixture-notice { padding: 16px; }
+  .fixture-picker { margin-top: 20px; }
+  .device-list dl > div, .inventory-meta > div, .sensor-list > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .device-list dl > div { margin-top: 10px; }
+}
