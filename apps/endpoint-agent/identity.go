@@ -109,7 +109,7 @@ func (s *identityStore) load(create bool) (*identity, error) {
 	data, err := s.read(keyFile)
 	if errors.Is(err, os.ErrNotExist) && create {
 		// A receipt without keys is damage, not first provisioning.
-		for _, name := range []string{receiptFile, "scope.json"} {
+		for _, name := range []string{receiptFile, "scope.json", sequenceFile} {
 			if _, err := s.root.Lstat(name); !errors.Is(err, os.ErrNotExist) {
 				return nil, errors.New("identity missing beside admission state")
 			}
@@ -174,19 +174,8 @@ func (s *identityStore) receipt(i *identity, deployment, device string) (contrac
 }
 
 func (s *identityStore) status() (contracts.EnrollmentAcceptedV1, error) {
-	var receipt contracts.EnrollmentAcceptedV1
-	i, err := s.load(false)
-	if err != nil {
-		return receipt, err
-	}
-	data, err := s.read(receiptFile)
-	if err != nil {
-		return receipt, errors.New("admission receipt unavailable")
-	}
-	if json.Unmarshal(data, &receipt) != nil {
-		return receipt, errors.New("invalid admission state")
-	}
-	return s.receipt(i, receipt.DeploymentID, receipt.DeviceID)
+	_, receipt, err := s.admitted()
+	return receipt, err
 }
 
 func verifyAcceptance(v contracts.EnrollmentAcceptedV1, start contracts.EnrollmentStartV1) error {

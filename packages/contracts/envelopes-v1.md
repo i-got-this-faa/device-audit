@@ -120,7 +120,8 @@ is fixed. No controller admission or durable state is implemented here.
 
 Endpoints durably reserve a sequence and immutable signed request before first
 send; restart resumes the same pending request or reserves a higher sequence.
-Spool/retry/recovery implementation is deferred. A controller must atomically
+SEC07 #87 implements crash-safe endpoint reservation before signing in
+`apps/endpoint-agent`; spool/retry/recovery of the signed request is deferred. A controller must atomically
 commit enrollment/challenge consumption or evidence together with the high-water
 mark before returning `accepted`. Parallel requests use that same atomic
 comparison, not a read/check/write race. A lost accepted response can yield a
