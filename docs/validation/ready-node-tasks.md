@@ -6,8 +6,9 @@ is preserved. Implementation is by the primary agent; Luna scouting is read-only
 The user subsequently requested committing current work and putting further
 work on hold until rebooting to Windows. A subsequent request authorized
 publishing this branch and opening a PR; merge is not authorized.
-#87 has read-only scouting only, with no allocator
-implementation. Resume instructions are in `windows-resume-ready-tasks.md`.
+This branch added only scouting for #87. Repository-wide, #87 is now implemented
+in the separate open PR #198 at `ee5bd74`; it is not included in this branch.
+Resume instructions are in `windows-resume-ready-tasks.md`.
 
 ## Hard constraints
 
@@ -28,8 +29,8 @@ implementation. Resume instructions are in `windows-resume-ready-tasks.md`.
 |---|---|---|---|---|
 | #25 persisted admitted mesh | networking, controller, endpoint | restart/admission/application tests, full Go checks | proved locally | Real direct UDP + HTTP across process restarts; full TLS enrollment -> persisted endpoint -> fresh process -> Tailcat -> PostgreSQL evidence before/after restart |
 | #47 chain policy | contracts/release-policy.md, contracts/release-policy.json, decisions | official Base/Ethereum sources; JSON parse; diff check | proved as local decision | Base Mainnet 8453, separate chain signer/2-of-3 admin, verified finalized-head policy; no deployed contract/funding claim |
-| #85 permissions and overhead | tools/probes, telemetry | service/denied access on both physical targets | blocked | No linked Windows target; second target recorded unavailable. docs/validation/collector-budget-85.md records exact measurement gaps and resume matrix |
-| #87 signed evidence allocation | endpoint, telemetry/contracts | forced process restart and canonical signature verification | open, on hold by user | Scouted only; no allocator or signing command implemented |
+| #85 permissions and overhead | tools/probes, telemetry | service/denied access on both physical targets | partially measured; qualification blocked | Existing probe implementation and earlier single-laptop measurements are merged through PRs #169/#181. LocalService/denied-token and two-machine/full-overhead evidence remain. See collector-budget-85.md |
+| #87 signed evidence allocation | endpoint evidence.go and sequence.state in PR #198 | native Windows forced restarts, golden vectors, CI | implemented in separate open PR | PR #198 at ee5bd74 adds --sign-evidence and durable sequence reservation; all reported checks passed when inspected. Unmerged; this branch does not contain it |
 
 ## #25 affected paths
 

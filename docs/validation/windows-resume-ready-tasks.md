@@ -21,14 +21,18 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   descriptor is disabled with no contract, account or credentials. No chain
   transaction or live deployment was attempted. See
   [release policy](../../contracts/release-policy.md).
-- **#85 on hold.** The user can access the existing Windows laptop after reboot.
-  A second physical target is still unavailable. Planned LocalService versus
-  actual denied-permission comparisons and controlled full-system overhead
-  measurements have not run. See [measurement matrix](collector-budget-85.md).
-- **#87 not implemented.** Read-only Luna scouting is complete. The endpoint
-  accepts a pre-signed envelope on stdin in mesh mode; it does not yet allocate
-  sequence numbers or sign telemetry. Test-only manually assigned sequences
-  are not an allocator. See the concrete next implementation steps below.
+- **#85 partially measured; qualification on hold.** Existing Windows probe code
+  and earlier single-laptop measurements are merged through PRs #169/#181.
+  A second physical target is still unavailable. LocalService versus actual
+  denied-permission comparisons and controlled full-system overhead remain.
+  See [measurement matrix](collector-budget-85.md).
+- **#87 implemented in separate [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
+  Its `ee5bd74` commit adds `--sign-evidence`, scope-bound `sequence.state`,
+  durable reservation before signing and forced-process restart/golden-vector
+  tests. Native Windows validation is recorded there; all reported CI checks
+  passed when inspected. It is open and is not included in this branch. The
+  earlier "scouted only" statement described this branch's contribution, not
+  the current repository-wide status. Do not reimplement its allocator.
 
 No issue was closed or marked complete on GitHub. Reviewed PR/merge gates remain.
 The user subsequently requested a PR for this committed work, authorizing branch
@@ -46,9 +50,11 @@ git fetch origin
 git switch --track origin/feat/ready-node-tasks
 ```
 
-If that local branch already exists, switch to it instead of creating it again.
-Use a separate worktree if local changes prevent switching safely. Do not reset
-the Windows checkout.
+If that local branch already exists, switch to it, inspect divergence with
+`git rev-list --left-right --count HEAD...origin/feat/ready-node-tasks`, and
+fast-forward with `git merge --ff-only origin/feat/ready-node-tasks` only when
+local changes permit it. A divergent branch needs reconciliation, not a reset.
+Use a separate worktree if local changes prevent switching safely.
 
 Save the supplied `device-audit-ready.bundle` before rebooting if the Linux
 filesystem will not be accessible. In the existing Windows repository, inspect
@@ -89,29 +95,29 @@ modify live source permissions to obtain success, or infer production cost from
 the PowerShell prototype. Service-token setup and second-target access remain
 explicit prerequisites.
 
-## #87 first implementation action
+## #87 review and integration
 
-Read `apps/endpoint-agent/{identity.go,storage_windows.go,storage_unix.go}` and
-`packages/contracts/{envelopes_v1.go,envelopes-v1.md}`. Preserve the existing
-exclusive identity lock and stored admission binding. Enrollment reserves 1;
-evidence starts at 2 and cannot exceed 9007199254740991. Gaps are allowed.
+Fetch and inspect `origin/feat/issue-87-evidence-sequence` and PR #198's
+`apps/endpoint-agent/evidence.go`, `evidence_test.go` and
+`docs/validation/evidence-sequence-87.md`. The implementation reserves before
+signing, initializes state during enrollment and rejects missing/corrupt,
+scope-mismatched or exhausted sequence state. Its Windows tests exercise forced
+exits before/after commit and kill signing loops after 1, 7 and 23 envelopes.
+The RFC 8032 test seed reproduces CT04 golden bytes/signatures; altered payloads
+and private-material leakage are checked. Windows native checks and contract
+conformance are recorded in that PR, rather than independently rerun here.
 
-Implement a durable reservation before signing. A process killed after a
-reservation must burn that number; a process killed after signing must recover
-the exact persisted request or use a higher sequence. Never sign different
-payloads at the same sequence. Missing/corrupt/mismatched state must fail closed
-once admitted, never reset to 2. Windows replacement/flush semantics need native
-review and forced-process evidence; Unix rename/directory-fsync assumptions do
-not prove Windows durability. Backup rollback needs an external monotonic
-authority or reconciliation and cannot be detected by a lone local counter.
+PR #198 and #197 both modify endpoint entry points and documentation. Neither
+contains the other's implementation. Reconcile those paths before claiming a
+combined signer-to-mesh feature; run the actual newly signed envelope through
+the admitted mesh and PostgreSQL. #198's Windows run skipped PostgreSQL because
+no database was available. No merge or cross-PR integration was performed by
+this status correction.
 
-Reuse CT04 `SigningBytes`, exact payload-byte SHA-256 and Ed25519 signature
-rules. Bind deployment/device/signing ID to stored admission, preserve nullable
-v2 metrics and units, and keep all signing material out of telemetry/logging.
-Test kill-before-sign, kill-after-sign, restart, concurrent process exclusion,
-corruption/missing state, scope mismatch, max sequence/exhaustion and altered
-payload/golden-vector verification. Persist the signed request before first
-send; bounded spool and signed receipt work remain separate #26/#89 tasks.
+Power-loss durability, LocalService execution, old-install sequence-state
+reconciliation and backup rollback remain explicit limits. Process termination
+does not prove power-loss behavior. Durable signed-request spooling/retry and
+signed acknowledgements remain separate follow-on tasks.
 
 ## Checks already passed on Linux
 
