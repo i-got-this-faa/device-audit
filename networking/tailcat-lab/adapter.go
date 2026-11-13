@@ -1,5 +1,5 @@
 // Package lab proves a pinned Tailcat API in a bounded, same-host experiment.
-// It is independent of the unavailable production networking/mesh adapter.
+// It is independent of the application networking/mesh adapter.
 package lab
 
 import (

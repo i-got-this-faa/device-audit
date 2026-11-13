@@ -5,9 +5,10 @@ Two real peer processes exchange a fresh challenge and its SHA-256 response thro
 Tailcat's userspace WireGuard tunnel. The application protocol is TCP inside the
 UDP tunnel. No public HTTP transport or replacement UDP encryption is used.
 
-The production `networking/mesh.NewServer` and `NewClient` still return
-`ErrNotImplemented`. This lab does not implement enrollment or the controller
-transport. Production mesh #25 remains open. The separate
+The application [mesh adapter](../mesh/README.md) now imports the same pin.
+This lab remains an independent transport experiment and does not establish
+application enrollment or controller integration. Production qualification
+remains open. The separate
 [NET04 DERP lab](../../infra/networking/derp-lab.md) exercises the same pinned
 seam with UDP blocked and measures relay restart; it is not a public deployment.
 
@@ -35,8 +36,8 @@ counts. Its temporary trace contains socket addresses, suppresses payloads with
 `-s 0`, and is removed on exit. Do not publish raw traces or bootstrap addresses.
 The [measured run](evidence/2026-10-16.md) contains safe observations.
 
-Run application checks separately. The root module intentionally excludes this
-large experimental dependency graph:
+Run application checks separately. The root module now includes this pinned
+dependency graph for the application adapter:
 
 ```sh
 python3 -m venv .venv

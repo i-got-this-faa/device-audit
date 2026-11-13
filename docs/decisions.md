@@ -10,10 +10,10 @@ discussion can drift and does not automatically become product scope.
 | New repository under i-got-this-faa | Current user request, handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17 | Dedicated `device-audit`; Shepherd remains separate |
 | Go controller | Handoff 15/17 | Selected |
 | Go endpoint agent | Handoff 17 | Selected |
-| Tailcat / userspace WireGuard / DERP | Current request, handoff 15/17, Shepherd spec 14 | Preserve design and package boundary; adapter absent upstream |
+| Tailcat / userspace WireGuard / DERP | Current request, handoff 15/17, Shepherd spec 14 | Pinned admitted application adapter; deployed qualification remains open |
 | Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected; architecture and endpoint qualification open. #22 selects only a historical HDD study. |
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
-| Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Selected direction; chain and contract implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
+| Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Base Mainnet policy selected under #47; contract/deployment implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
 | Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and migrations implemented in #19; #83 adds a separate transactional signed-device repository, with HTTP integration pending |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
@@ -554,3 +554,53 @@ are explicit previews; authentication failures still fail closed before fixture
 rendering. See the [console guide](../apps/web-console/README.md#device-fixtures)
 and [local validation](validation/console-fixtures-99.md). Production device reads,
 real telemetry freshness rules and health assessments remain separate work.
+
+## Admitted mesh application transport, NET02 #25
+
+The 13 November 2026 implementation promotes the NET01 Tailcat pin into the
+application module. The independent lab remains separately versioned. Endpoints
+import their existing protected, admitted X25519 key; the controller exclusively
+provisions persistent Unix node/PSK state. Startup never generates replacement
+identities. An explicit local self-hosted DERP region and a separately delivered
+server key pin replace public relay discovery defaults. PSK-bearing addresses
+use private files, and unsafe address-debug logging is rejected.
+
+New connections resolve the actual tunnel peer against committed, active
+PostgreSQL admission. Each evidence request rechecks admission and scope before
+the existing repository independently verifies CT04 signatures, sequence,
+freshness and revocation in its transaction. Only signed evidence ingestion is
+on the application mesh. Bootstrap, OIDC, inventory and administrator APIs stay
+on their separate HTTPS boundary. Unsigned fixture routes are excluded there
+when mesh mode is selected. No device key is reused as a chain signing key.
+
+The empty HTTP 204 response is a transport-level commit result, not a signed
+acknowledgement. Uncertain commits never become success; callers retain their
+original signed envelope. #89 still owns signed receipts/reconciliation. See
+the [adapter guide](../networking/mesh/README.md) for commands, failure handling,
+restart/direct test scope and unqualified physical/deployed paths. Local
+implementation does not complete reviewer/merge or release qualification gates.
+
+## Release chain and writer policy, CHAIN01 #47
+
+On 13 November 2026, select Base Mainnet, EVM chain ID 8453, for asynchronous
+CT09 blinded audit commitments. Base Sepolia is development-only. Prefer its
+expected rollup write-cost advantage over direct Ethereum L1 execution while
+accepting sequencer, rollup governance/derivation and Ethereum consensus risk.
+This expected cost advantage is an inference, not a measured contract quote.
+
+Use a non-upgradeable registry, a dedicated limited chain writer and a 2-of-3
+hardware-backed administrator multisig. Controller audit/device/mesh/OIDC keys
+remain separate. A dedicated non-exportable signer service has no plaintext
+fallback. Pin network, contract/code, roles and deployment history through a
+reviewed descriptor; the committed example is disabled with absent addresses.
+
+Require verified canonical inclusion at or below Base's L1-derived finalized
+head, independently cross-checked. Inclusion, `safe`, elapsed time and fixed L2
+confirmation counts cannot grant finality. Preserve pending/finalized/reverted
+CT09 observations and clear current finality after a proven reorg. Outages or
+inconsistent sources make current verification unavailable, not successful or
+proven reverted. Keep signed manifests durably off-chain and expose anchoring
+as pending/unverified. The [policy](../contracts/release-policy.md) records exact
+role limits, fee ceilings, nonce reconciliation, retry and incident behavior,
+official protocol sources and follow-on runtime/release gates. No funds, chain
+accounts, contract or signer service have been provisioned by this decision.

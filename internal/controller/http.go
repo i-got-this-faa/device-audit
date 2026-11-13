@@ -30,6 +30,7 @@ type Config struct {
 	AuthStatus     string
 	Enrollment     *EnrollmentService
 	Inventory      *InventoryService
+	MeshStatus     string
 }
 
 type API struct {
@@ -42,6 +43,7 @@ type API struct {
 	authStatus string
 	enrollment *EnrollmentService
 	inventory  *InventoryService
+	meshStatus string
 }
 
 func NewAPI(cfg Config) *API {
@@ -54,6 +56,9 @@ func NewAPI(cfg Config) *API {
 	if cfg.AuthStatus == "" {
 		cfg.AuthStatus = "not_configured"
 	}
+	if cfg.MeshStatus == "" {
+		cfg.MeshStatus = "not_configured"
+	}
 	return &API{
 		devices:    make(map[string]Device),
 		maxDevices: cfg.MaxDevices,
@@ -63,6 +68,7 @@ func NewAPI(cfg Config) *API {
 		authStatus: cfg.AuthStatus,
 		enrollment: cfg.Enrollment,
 		inventory:  cfg.Inventory,
+		meshStatus: cfg.MeshStatus,
 	}
 }
 
@@ -80,7 +86,7 @@ func (a *API) Handler() http.Handler {
 			"database":       a.database,
 			"schema_version": a.schema,
 			"auth":           a.authStatus,
-			"mesh":           "not_implemented",
+			"mesh":           a.meshStatus,
 			"enrollment":     enrollment,
 		})
 	})
