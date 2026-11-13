@@ -31,11 +31,24 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   are not an allocator. See the concrete next implementation steps below.
 
 No issue was closed or marked complete on GitHub. Reviewed PR/merge gates remain.
-The commit is local. Do not assume Windows can fetch it from GitHub until a push
-has been explicitly authorized and verified. A portable Git bundle is produced
-alongside the handoff for transfer without a push.
+The user subsequently requested a PR for this committed work, authorizing branch
+publication. Fetch `feat/ready-node-tasks` from `origin` after its remote head is
+verified. A portable Git bundle was also produced at the pause for offline
+transfer; the published branch is the current source for later handoff updates.
 
-## Bring the local branch to Windows
+## Bring the branch to Windows
+
+In the existing Windows repository, inspect `git status --short --branch` and
+preserve unrelated work. For the published branch:
+
+```powershell
+git fetch origin
+git switch --track origin/feat/ready-node-tasks
+```
+
+If that local branch already exists, switch to it instead of creating it again.
+Use a separate worktree if local changes prevent switching safely. Do not reset
+the Windows checkout.
 
 Save the supplied `device-audit-ready.bundle` before rebooting if the Linux
 filesystem will not be accessible. In the existing Windows repository, inspect
@@ -48,8 +61,8 @@ git fetch C:/path/to/device-audit-ready.bundle refs/heads/feat/ready-node-tasks:
 ```
 
 Switch to `feat/ready-node-tasks` only when local changes permit it, or create a
-separate worktree for that branch. Do not reset the Windows checkout. If the
-branch is later pushed with permission, fetch it from `origin` instead.
+separate worktree for that branch. Do not reset the Windows checkout. Prefer
+the published branch to the earlier bundle when GitHub is available.
 
 ## First Windows checks
 

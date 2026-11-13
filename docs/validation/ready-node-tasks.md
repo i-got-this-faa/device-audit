@@ -4,8 +4,9 @@ Work branch: `feat/ready-node-tasks`. Base: `origin/main` at
 `0a9f2069f312d820332e9cc950dd847e86f6faf5`. The original dirty checkout
 is preserved. Implementation is by the primary agent; Luna scouting is read-only.
 The user subsequently requested committing current work and putting further
-work on hold until rebooting to Windows. Commit is authorized; push, PR and
-merge are not authorized. #87 has read-only scouting only, with no allocator
+work on hold until rebooting to Windows. A subsequent request authorized
+publishing this branch and opening a PR; merge is not authorized.
+#87 has read-only scouting only, with no allocator
 implementation. Resume instructions are in `windows-resume-ready-tasks.md`.
 
 ## Hard constraints
@@ -80,6 +81,7 @@ no host service configuration was changed. Local command logs are under
 DERP, browser or external IdP qualification is inferred.
 
 Reviewed PR merge is part of the issues' definition of done. The user authorized
-a local commit for Windows continuation, but no push or PR. Local implementation
+a local commit for Windows continuation, then publishing the branch and opening
+a PR. No merge is authorized. Local implementation
 is reported separately from GitHub issue completion. Original dirty checkout
 remains untouched. Further implementation is on hold at the user's request.
