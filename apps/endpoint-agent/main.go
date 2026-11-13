@@ -26,11 +26,37 @@ func main() {
 	stateDir := flag.String("state-dir", "", "private identity directory, required for enrollment/status")
 	enrollmentOrigin := flag.String("enrollment-origin", "", "trusted HTTPS controller origin")
 	caFile := flag.String("ca-file", "", "optional enrollment CA PEM file")
+	signEvidence := flag.Bool("sign-evidence", false, "sign a telemetry v2 payload from stdin with the admitted identity")
 	flag.Parse()
-	if *enrollMode || *identityStatus {
-		if *stateDir == "" || (*enrollMode && *identityStatus) {
-			fail(fmt.Errorf("choose enrollment or identity status and supply --state-dir"))
+	modes := 0
+	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence} {
+		if selected {
+			modes++
 		}
+	}
+	if modes > 0 && (*stateDir == "" || modes != 1) {
+		fail(fmt.Errorf("choose one of enrollment, identity status or evidence signing and supply --state-dir"))
+	}
+	if *signEvidence {
+		payload, err := readEvidencePayload(os.Stdin)
+		if err != nil {
+			fail(err)
+		}
+		store, err := openIdentityStore(*stateDir, false)
+		if err != nil {
+			fail(err)
+		}
+		envelope, err := store.signEvidence(payload, time.Now())
+		store.close()
+		if err != nil {
+			fail(fmt.Errorf("endpoint evidence signing failed: %s", err))
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(envelope); err != nil {
+			fail(fmt.Errorf("write signed evidence"))
+		}
+		return
+	}
+	if *enrollMode || *identityStatus {
 		var client *http.Client
 		var origin string
 		var token contracts.BootstrapTokenV1

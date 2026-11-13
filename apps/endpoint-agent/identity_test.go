@@ -122,6 +122,9 @@ func TestEnrollmentAndProcessRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := s.read(sequenceFile); err != nil {
+		t.Fatal("admission saved without sequence state")
+	}
 	i, err := s.load(false)
 	if err != nil {
 		t.Fatal(err)
