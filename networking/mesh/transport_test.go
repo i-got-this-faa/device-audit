@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -250,5 +251,66 @@ func TestMeshConfigurationFailsClosed(t *testing.T) {
 	}
 	if _, _, err := loadServerState(t.TempDir()); err == nil {
 		t.Fatal("missing state accepted")
+	}
+}
+
+func TestAdmissionLookupsBoundedBeforeAuthorization(t *testing.T) {
+	d := derpserver.New(key.NewNode(), discardLog)
+	defer d.Close()
+	h := httptest.NewTLSServer(derpserver.Handler(d))
+	defer h.Close()
+	region := &tailcfg.DERPRegion{RegionID: 1, Nodes: []*tailcfg.DERPNode{{Name: "test", RegionID: 1, HostName: "127.0.0.1", IPv4: "127.0.0.1", IPv6: "none", DERPPort: h.Listener.Addr().(*net.TCPAddr).Port, STUNPort: -1, InsecureForTests: true}}}
+	dir := filepath.Join(t.TempDir(), "server")
+	if err := InitializeServer(dir); err != nil {
+		t.Fatal(err)
+	}
+	entered := make(chan struct{}, maxConcurrentAdmissions)
+	release := make(chan struct{})
+	unblock := sync.OnceFunc(func() { close(release) })
+	defer unblock()
+	s, err := NewServer(ServerConfig{Context: context.Background(), StateDir: dir, DERP: DERPConfig{Region: region}, Allow: func(string) bool {
+		entered <- struct{}{}
+		<-release
+		return true
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { unblock(); s.Close() }()
+	allow := s.(*server).node.AllowClient
+	results := make(chan bool, maxConcurrentAdmissions)
+	for range maxConcurrentAdmissions {
+		go func() { results <- allow(key.NewNode().Public()) }()
+	}
+	for range maxConcurrentAdmissions {
+		select {
+		case <-entered:
+		case <-time.After(3 * time.Second):
+			t.Fatal("admission lookup did not enter")
+		}
+	}
+	saturated := make(chan bool, 1)
+	go func() { saturated <- allow(key.NewNode().Public()) }()
+	select {
+	case allowed := <-saturated:
+		if allowed {
+			t.Fatal("saturated admission accepted a new key")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("saturated admission blocked instead of denying")
+	}
+	select {
+	case <-entered:
+		t.Fatal("saturated admission reached authorization storage")
+	default:
+	}
+	unblock()
+	for range maxConcurrentAdmissions {
+		if !<-results {
+			t.Fatal("in-flight authorized key was rejected")
+		}
+	}
+	if !allow(key.NewNode().Public()) {
+		t.Fatal("admission capacity was not released")
 	}
 }

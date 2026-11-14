@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 	"syscall"
 
@@ -123,6 +124,15 @@ func InitializeServer(dir string) error {
 	defer d.Close()
 	if d.Sync() != nil {
 		return errors.New("sync mesh directory")
+	}
+	// Sync the entry naming the state directory as well as the files inside it.
+	parent, err := os.Open(filepath.Dir(filepath.Clean(dir)))
+	if err != nil {
+		return errors.New("open mesh parent directory for sync")
+	}
+	defer parent.Close()
+	if parent.Sync() != nil {
+		return errors.New("sync mesh parent directory")
 	}
 	return nil
 }

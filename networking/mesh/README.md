@@ -51,7 +51,10 @@ unchanged. Do not copy an endpoint directory to two active installations.
 
 Tailcat's admission hook resolves the actual peer key against PostgreSQL's
 committed network/signing admission join. Unknown peers, revoked devices and
-lookup outages cannot establish a new application session. The request handler
+lookup outages cannot establish a new application session. The server
+limits concurrent admission lookups to four, leaving capacity for evidence and
+administrator operations in the configured ten-connection database pool. A
+saturated admission hook denies immediately; clients may retry later. The handler
 rechecks that binding on each evidence request, checks device/deployment/signing
 scope, and disconnects denied peers. No request header supplies peer identity.
 Repository signature, expiry, sequence and revocation checks remain independent

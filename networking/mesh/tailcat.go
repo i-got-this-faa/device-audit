@@ -21,6 +21,10 @@ import (
 const ApplicationPort = 8080
 const ApplicationHost = "controller.mesh:8080"
 
+// Admission runs before tunnel authentication. Leave database capacity for
+// evidence and administrator requests when distinct unknown keys arrive.
+const maxConcurrentAdmissions = 4
+
 // Region is supplied locally by the operator, never fetched from a public map.
 func validateDERP(cfg DERPConfig) error {
 	if os.Getenv("TS_DEBUG_ADDR") != "" {
@@ -70,8 +74,17 @@ func NewServer(cfg ServerConfig) (Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	admissions := make(chan struct{}, maxConcurrentAdmissions)
 	n := &tailcat.Server{Key: state.Node, PresharedKey: state.PSK, Region: cfg.DERP.Region,
-		AllowClient: func(k key.NodePublic) bool { return cfg.Allow(k.UntypedHexString()) }, Logf: discardLog}
+		AllowClient: func(k key.NodePublic) bool {
+			select {
+			case admissions <- struct{}{}:
+				defer func() { <-admissions }()
+				return cfg.Allow(k.UntypedHexString())
+			default:
+				return false
+			}
+		}, Logf: discardLog}
 	if n.StartContext(cfg.Context) != nil {
 		n.Close()
 		release()

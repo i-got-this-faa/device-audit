@@ -116,10 +116,11 @@ is an operational alert, never a finality rule or automatic evidence rejection.
 | Observation | Current CT09 result | Required action |
 |---|---|---|
 | Not submitted, signing/RPC outage, insufficient funds or fee budget exceeded | Anchor `unverified`; no fabricated transaction receipt | Keep signed manifest/commitment durably off-chain, expose pending delivery, alert and retry later |
-| Submitted with unknown result, or canonical inclusion below finalized head | `pending`, no finality time | Reconcile by stored signed transaction hash, sender nonce and ID/digest before retry; persist the signed transaction and nonce before broadcast |
+| Submitted with unknown result, or canonical inclusion above finalized head | `pending`, no finality time | Reconcile by stored signed transaction hash, sender nonce and ID/digest before retry; persist the signed transaction and nonce before broadcast |
+| Successful canonical inclusion at or below finalized head, with every verification check satisfied | `finalized` with verified observation time | Append the receipt only after the confirmation/finality algorithm above passes |
 | Mined transaction with failed execution | `reverted`, `transaction_failed` | Preserve failure; review cause before resubmitting the same commitment with a new transaction reference |
 | Prior inclusion is no longer canonical | `reverted`, `reorganized` | Clear current finality, preserve old observations and reconcile before resubmission |
-| Trusted canonical state proves the commitment absent | `reverted`, `commitment_absent` | Preserve the observation; retry only the original immutable ID/digest after nonce reconciliation |
+| Reconciliation establishes a prior write was invalidated and trusted canonical state proves its commitment absent | `reverted`, `commitment_absent` | Preserve the observation; retry only the original immutable ID/digest after nonce reconciliation. Absence before inclusion stays `pending` while the transaction can still be included |
 | RPC/history missing, disagreement, wrong chain/code/writer or unverified deployment | Anchor `unverified` on refresh; preserve the last observation as history | Stop submission/finality claims and alert; absence of a response is not proof of a revert |
 | ID exists with another digest | Verification conflict | Stop, alert and retain both off-chain records; never overwrite or silently assign a new ID |
 
