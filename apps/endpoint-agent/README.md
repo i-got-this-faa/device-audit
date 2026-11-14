@@ -103,3 +103,15 @@ Windows-only tests exercise real DPAPI, overly broad and deny-read DACLs when ru
 on Windows. Existing Windows CI runs the package through `tools/check-windows.ps1`.
 That interactive CI account does not prove the selected physical Windows laptop
 or LocalService/per-service token. See the [completion evidence](../../docs/validation/endpoint-keys-23.md).
+
+## Admitted mesh evidence submission
+
+The [mesh guide](../../networking/mesh/README.md) documents private address
+provisioning, a pinned controller public key and explicit DERP configuration.
+`--transport mesh` reads an existing CT04 signed envelope from stdin, verifies
+it against the stored admission/signing identity, and submits through the stored
+X25519 network identity. It never emits unsigned fixture telemetry or creates
+another network key. The empty committed HTTP response is not a signed receipt.
+The PostgreSQL enrollment integration test now continues through a fresh endpoint
+process and actual Tailcat application request before and after mesh restart on
+Unix hosts. Windows device/service execution remains unqualified.

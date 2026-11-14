@@ -13,7 +13,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/i-got-this-faa/device-audit/networking/mesh"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
@@ -26,6 +25,8 @@ func main() {
 	stateDir := flag.String("state-dir", "", "private identity directory, required for enrollment/status")
 	enrollmentOrigin := flag.String("enrollment-origin", "", "trusted HTTPS controller origin")
 	caFile := flag.String("ca-file", "", "optional enrollment CA PEM file")
+	meshServerKey := flag.String("mesh-server-key", "", "trusted controller X25519 public key hex")
+	regionFile := flag.String("derp-region-file", "", "explicit self-hosted DERP region JSON")
 	flag.Parse()
 	if *enrollMode || *identityStatus {
 		if *stateDir == "" || (*enrollMode && *identityStatus) {
@@ -65,8 +66,15 @@ func main() {
 		}
 		return
 	}
+	if *transport == "mesh" {
+		if err := sendMeshEvidence(context.Background(), *stateDir, *meshServerKey, *regionFile, os.Stdin); err != nil {
+			fail(err)
+		}
+		fmt.Println("evidence committed; signed acknowledgement is not available")
+		return
+	}
 	if *transport != "loopback" {
-		fail(mesh.ErrNotImplemented)
+		fail(fmt.Errorf("transport must be loopback or mesh"))
 	}
 	u, err := url.Parse(*controllerURL)
 	if err != nil {

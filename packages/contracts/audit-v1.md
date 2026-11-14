@@ -3,8 +3,9 @@
 `audit_v1.go` and `audit-v1.schema.json` define four separate namespaces. The
 manifest, receipt, verification result and evidence stay off-chain. Only the
 public commitment's opaque fields are eligible for a future chain adapter.
-No chain, account, contract deployment, finality threshold, resolver or retention
-service is selected or implemented. `packages/audit.Anchorer` is unchanged.
+CHAIN01 #47 selects [the release chain and finality policy](../../contracts/release-policy.md).
+No account, contract deployment, resolver or retention service is implemented.
+`packages/audit.Anchorer` is unchanged; these chain-neutral wire types are unchanged.
 
 ## Signed off-chain manifest
 
