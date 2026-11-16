@@ -14,33 +14,39 @@ Its relay executable prints a placeholder message. The public project marks
 the mesh spike/library/relay/integration/connectivity tasks as open: #50, #51,
 #97, #98, #173, #174 and feature #248. No functional networking source was
 copied from Shepherd. The separately versioned Tailcat lab imports pinned upstream modules; it does not vendor their
-source or enable the production adapter.
+source. The application adapter lives in `mesh/` and is not that lab.
 
 Reuse is architectural: preserve a server listener and client HTTP transport
 over userspace WireGuard, persist node identity/server keys and PSK, admit only
 enrolled node keys, bind requests to peer identity, disconnect revoked nodes,
 and use self-hosted DERP when direct connectivity fails. Go 1.27.1 aligns with
 the inspected Tailcat module. The isolated
-[NET01 direct lab](tailcat-lab/README.md) now pins and exercises the upstream API on one Linux host. Cross-platform runtime and production
-acceptance remain open.
+[NET01 direct lab](tailcat-lab/README.md) pins and exercises the upstream API on one Linux host. The application adapter is separate from that lab. NAT/WAN, deployed relay hosts and physical-device qualification remain open.
 
 [`mesh/`](mesh/README.md) implements the pinned admitted adapter. It imports the
-protected endpoint network identity, persists controller identity and requires
-explicit self-hosted relay configuration. It never falls back to public HTTP.
-Loopback fixtures have an explicitly separate listener.
+protected endpoint network identity, persists controller identity on Unix and
+with a Windows ACL store, and requires explicit self-hosted relay configuration.
+It never falls back to public HTTP. Loopback fixtures have an explicitly separate listener.
 
 No node-to-node artifact distribution is required yet: Shepherd used it for
 package/configuration delivery. Add authenticated model distribution if the
 patent implementation needs it, without importing the entire fleet manager.
 
-## Required evidence before enabling the adapter
+## Evidence required before a deployment claim
 
-- Direct LAN, NAT/WAN and blocked-UDP DERP-only round trips.
-- Stable identity/address across controller and endpoint restarts.
-- Unknown peer rejected; admitted peer bound to the right device ID.
-- Revoked peer actively disconnected and rejected on reconnect.
-- Explicit self-hosted DERP map; no public relay defaults in production.
-- Relay configuration, dependency revision/license and measured transport mode.
+- Same-host direct UDP and peer-bound HTTP, including restart, are covered by
+  the Linux/Darwin mesh transport test. NAT/WAN is not.
+- Controller node/PSK state reloads on Unix and Windows. Endpoint network
+  identity reloads from its existing protected store. Power-loss recovery is not
+  covered.
+- Unknown peers are rejected. Admitted peers are checked against PostgreSQL
+  device admission, and a revoked binding is denied on the next request.
+- Explicit self-hosted DERP configuration is required, and public relay defaults
+  are rejected. The separate NET04 lab measures blocked-UDP relay behavior. A
+  deployed DERP path for this adapter is not qualified.
+- Windows ACL checks cover the controller state directory when the mesh package
+  tests run on Windows. The selected physical laptop, LocalService token and
+  installed service remain unqualified.
 
 ## NET01 lab evidence
 
@@ -56,7 +62,9 @@ namespace-isolated blocked-UDP and relay-restart experiment. Run
 `make derp-lab-proof`; its [measured evidence](tailcat-lab/evidence/2026-10-21-derp.md)
 records relay forwarding and recovery without a direct path.
 
-These labs are independent of the production seam and its unavailable
-constructors. The production requirements above, including real-device binding
-and revocation, remain acceptance gates for #25. Neither lab implements
-#73/#75's bootstrap authorization or device-evidence signature consumers.
+These labs are independent of the application adapter. The adapter's tested
+restart, admission and HTTPS separation behavior is recorded in
+[mesh adapter evidence](../docs/validation/mesh-adapters-25.md). NAT/WAN,
+deployed DERP, physical devices and external IdP qualification remain open.
+Neither lab implements #73/#75's bootstrap authorization or device-evidence
+signature consumers.
