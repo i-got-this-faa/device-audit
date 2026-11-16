@@ -8,6 +8,7 @@ import (
 var (
 	machineSIDPattern = regexp.MustCompile(`S-1-5-21-\d+-\d+-\d+-`)
 	logonSIDPattern   = regexp.MustCompile(`S-1-5-5-\d+-\d+`)
+	logonNamePattern  = regexp.MustCompile(`LogonSessionId_\d+_\d+`)
 )
 
 // RedactEvidence hides the computer name, local machine SID, and logon SID.
@@ -18,6 +19,7 @@ func RedactEvidence(text, host string) string {
 	}
 	text = machineSIDPattern.ReplaceAllString(text, "S-1-5-21-<local>-")
 	text = logonSIDPattern.ReplaceAllString(text, "S-1-5-5-<logon>")
+	text = logonNamePattern.ReplaceAllString(text, "LogonSessionId_<logon>")
 	return text
 }
 

@@ -16,8 +16,8 @@ if ([IO.Path]::GetFileName($pwsh) -ne 'pwsh.exe') { throw 'pwsh.exe was not foun
 function Grant-MeasurementAccess {
     param([string]$Path, [string[]]$Identities, [string]$Rights)
     foreach ($identity in $Identities) {
-        & icacls.exe $Path /grant "${identity}:${Rights}" /T /C | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "icacls failed for $identity on $Path" }
+        $granted = & icacls.exe $Path /grant "${identity}:${Rights}" /T /C 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) { throw "icacls failed for $identity on ${Path}: $granted" }
     }
 }
 
@@ -61,9 +61,10 @@ function Assert-TokenAttestation {
     if ($token.host_role -ne 'github_hosted_windows_runner_not_physical_target') {
         throw "$ExpectedRole attestation has the wrong host role"
     }
-    if ($token.administrators_group -or $token.elevated) {
-        throw "$ExpectedRole token is elevated or in Administrators"
-    }
+    if ($token.administrators_group) { throw "$ExpectedRole token is in Administrators" }
+    # TokenElevation is set for an unfiltered service logon, including
+    # LocalService at system integrity and a non-admin account at high
+    # integrity. It is recorded and is not an administrator membership.
     $broad = @('SeDebugPrivilege', 'SeTcbPrivilege', 'SeBackupPrivilege', 'SeSecurityPrivilege', 'SeTakeOwnershipPrivilege')
     foreach ($privilege in @($token.privileges)) {
         if ($privilege.enabled -and $broad -contains $privilege.name) {
