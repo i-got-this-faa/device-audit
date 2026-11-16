@@ -92,10 +92,28 @@ peak was 4,984,832 bytes. `production_budget_approved` is false in both files.
 Do not use these ceilings for the Windows collector, provider-host CPU or
 service-token cost.
 
-Windows CI runs the same command for one 15-second window of two sweeps and
-uploads `artifacts/collector-budget/windows-ci.json`. That file is a
-GitHub-hosted Windows runner result when CI produces it. It is not either
-physical target.
+### Windows CI sampler run
+
+Check scaffold run [43851349580](https://github.com/i-got-this-faa/device-audit/actions/runs/43851349580)
+on `windows-2025` uploaded one synthetic report for commit `ab9050d`. The
+committed copy is [collector-budget-85-windows-ci.json](collector-budget-85-windows-ci.json).
+The runner reported Go 1.27.1, `windows/amd64`, OS version 10.0.26100,
+`AMD EPYC 7763 64-Core Processor` (the registry value keeps trailing spaces),
+4 visible cores and 17,174,360,064 bytes of physical memory. The command was
+one 15-second candidate window: 2 sweeps, 1 repeat, a 1-second baseline and
+200,000 iterations per source.
+
+| Window | Wall (ms) | Process CPU (ms) | One core (%) | Four-core host (%) | RSS peak (bytes) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline | 1000.169 | 0.000 | 0.000000 | 0.000000 | 8,273,920 |
+| probe | 15002.218 | 15.625 | 0.104151 | 0.026038 | 8,314,880 |
+
+Neither sweep overran. Sweep walls were 1.647 ms and 1.8375 ms. All 16 source
+results were synthetic successes. The longest query was 0.7775 ms. Eleven of
+the sixteen queries stayed at 0.000 ms because the process clock did not advance
+during that call. The only non-zero process-CPU sample was 15.625 ms.
+`production_budget_approved` is false. This is a GitHub-hosted runner, not
+either physical Windows target and not a LocalService token.
 
 ## Earlier status, 13 November 2026
 
