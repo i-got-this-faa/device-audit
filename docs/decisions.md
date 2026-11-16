@@ -559,11 +559,22 @@ real telemetry freshness rules and health assessments remain separate work.
 
 The 13 November 2026 implementation promotes the NET01 Tailcat pin into the
 application module. The independent lab remains separately versioned. Endpoints
-import their existing protected, admitted X25519 key; the controller exclusively
-provisions persistent Unix node/PSK state. Startup never generates replacement
-identities. An explicit local self-hosted DERP region and a separately delivered
-server key pin replace public relay discovery defaults. PSK-bearing addresses
-use private files, and unsafe address-debug logging is rejected.
+import their existing protected, admitted X25519 key. The controller provisions
+persistent node/PSK state and startup never generates replacement identities.
+An explicit local self-hosted DERP region and a separately delivered server key
+pin replace public relay discovery defaults. PSK-bearing addresses use private
+files, and unsafe address-debug logging is rejected.
+
+On 16 November 2026 the controller store gained a Windows ACL path beside the
+Unix owner/mode path. Both use the same JSON node and PSK fields. Windows
+protection is a protected DACL for the current user or an enabled per-service
+SID, plus an exclusive lock and reparse/link rejection. It is the permission
+equivalent of mode 0700/0600, not DPAPI encryption of controller mesh state.
+LocalService without a per-service SID fails closed. A GitHub-hosted Windows
+test account can exercise that store; that account is not the selected physical
+laptop and is not a LocalService qualification. Power-loss durability remains
+unclaimed. Unix still fsyncs the state file and its directory; Windows flushes
+the state file and has no directory fsync.
 
 New connections resolve the actual tunnel peer against committed, active
 PostgreSQL admission. Each evidence request rechecks admission and scope before
