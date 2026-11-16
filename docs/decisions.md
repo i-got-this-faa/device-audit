@@ -604,3 +604,14 @@ as pending/unverified. The [policy](../contracts/release-policy.md) records exac
 role limits, fee ceilings, nonce reconciliation, retry and incident behavior,
 official protocol sources and follow-on runtime/release gates. No funds, chain
 accounts, contract or signer service have been provisioned by this decision.
+
+On 16 November 2026 the same decision gained machine-checked descriptor and
+observation fixtures. `contracts/policy` accepts the disabled Base Mainnet
+descriptor and rejects incomplete enabled descriptors, zero addresses, public
+chain ids labeled local or testnet, raised fee ceilings, device identifiers,
+and credential or device-key references. Observation fixtures require one
+finality claim, preserve history, and keep outages and source disagreement
+distinct from reverts. Draft 2020-12 schema validation covers the same
+descriptor vectors. `ReleaseDeploymentObserved` stays false. No RPC query,
+transaction, deployment, measured gas quote, or signer-custody check was added.
+The legacy Anchorer interface remains unimplemented.
