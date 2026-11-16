@@ -139,6 +139,11 @@ func enroll(ctx context.Context, s *identityStore, client *http.Client, origin s
 	if err := verifyAcceptance(accepted, start); err != nil {
 		return accepted, err
 	}
+	// Sequence state precedes the receipt: an admitted identity can never
+	// sign evidence from a silently reset high-water mark.
+	if err := s.initSequence(accepted); err != nil {
+		return accepted, errors.New("admission may have committed but sequence state was not saved; keep identity and reconcile with operator")
+	}
 	data, _ := json.Marshal(accepted)
 	if err := s.write(receiptFile, data); err != nil {
 		return accepted, errors.New("admission may have committed but local receipt was not saved; keep identity and reconcile with operator")

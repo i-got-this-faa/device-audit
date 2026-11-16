@@ -87,6 +87,39 @@ separate work. Local rollback of the public receipt is not remote de-admission.
 The receipt is not a signed acknowledgement or blockchain evidence. No endpoint
 identifier, raw telemetry or private material is written on-chain.
 
+## Signed evidence and sequence allocation, SEC07 #87
+
+An admitted installation signs CT04 `device-audit.evidence.v1` envelopes:
+
+```sh
+endpoint-agent --sign-evidence --state-dir /private/parent/endpoint-identity < telemetry-v2.json
+```
+
+Standard input is one exact `device-audit.telemetry.v2` payload (at most
+262144 bytes) whose `device_id` matches the admission receipt. The payload is
+validated before a sequence is consumed and is hashed as supplied, never
+re-encoded. The envelope binds the receipt's deployment, device and signing key
+ID, a one-hour submission validity window and a freshly reserved sequence. The
+signer verifies its own signature before printing the envelope. Errors are
+generic and never echo payload content or key material.
+
+`sequence.state` holds the reservation high-water mark beside the receipt,
+bound to the admitted scope and protected by a SHA-256 checksum. Enrollment
+creates it at mark 1 before saving the receipt. Each signature first writes the
+next mark to a private temporary file, flushes it, renames it over the state and
+flushes the result (plus the directory on Unix) before signing. A crash before
+the rename leaves the old mark, whose next value was never signed. A crash after
+it leaves a gap, which v1 permits. Missing, corrupt, out-of-scope, below-receipt
+or exhausted state fails closed; the endpoint never restarts from the receipt.
+Admitted installations from before this change lack `sequence.state` and must be
+reconciled by an operator rather than reset.
+
+This produces and signs evidence only. Transport, spooling the signed request
+for retry, acknowledgement handling and controller ingestion remain #24/#25/#26.
+Restoring an older state directory can reopen used local sequences; the
+controller's durable mark still rejects them as `replay`. The signature proves
+integrity and key possession, not sensor truth.
+
 ## Verification
 
 ```sh
