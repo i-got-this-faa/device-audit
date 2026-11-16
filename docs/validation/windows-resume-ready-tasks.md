@@ -25,7 +25,9 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   and earlier single-laptop measurements are merged through PRs #169/#181.
   A second physical target is still unavailable. LocalService versus actual
   denied-permission comparisons and controlled full-system overhead remain.
-  See [measurement matrix](collector-budget-85.md).
+  See [measurement matrix](collector-budget-85.md). On 16 November 2026 the
+  Go permission gate, cadence scheduler and synthetic sampler runs were added;
+  those runs do not convert this Windows session into finished qualification.
 - **#87 implemented in separate [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
   Its `ee5bd74` commit adds `--sign-evidence`, scope-bound `sequence.state`,
   durable reservation before signing and forced-process restart/golden-vector

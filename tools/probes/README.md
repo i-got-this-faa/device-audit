@@ -132,6 +132,31 @@ in the reviewed evidence narrative, without publishing device identifiers.
 Ranges combine source-local instances across sweeps, not stable components or
 host totals. Review the Markdown before publishing it. Export performs no upload.
 
+## Synthetic sampler cadence
+
+`packages/telemetry` and `tools/probes/collectorbudget` measure permission
+checks, candidate cadences and this process's CPU, RSS and per-source query
+time. The sources burn a fixed iteration count. They do not call CIM, WMI,
+event logs or `nvidia-smi`, and the command refuses provenance that would label
+the result as a real or endpoint reading.
+
+```sh
+mkdir -p artifacts/collector-budget
+go run ./tools/probes/collectorbudget \
+  -output artifacts/collector-budget/harness-15s.json \
+  -interval 15s -samples 3 -repeats 2 -baseline 2s -iterations 200000
+go run ./tools/probes/collectorbudget \
+  -output artifacts/collector-budget/harness-60s.json \
+  -interval 60s -samples 3 -repeats 2 -baseline 2s -iterations 200000
+```
+
+`make collector-budget` runs both commands. An existing output file is left in
+place. `-token denied` checks the empty capability set without invoking sources.
+Intervals other than 15s and 60s require `-allow-non-candidate` and are not
+cadence evidence. The 16 November 2026 Linux numbers and the physical Windows
+steps that remain are in
+[collector-budget-85.md](../../docs/validation/collector-budget-85.md).
+
 The [19 October run](../../docs/validation/windows-2026-10-19.md) records one
 physical laptop. #21 and #85 remain open until the second selected machine,
 service/denied-token checks and review requirements are met. Other Windows

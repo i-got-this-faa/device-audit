@@ -604,3 +604,23 @@ as pending/unverified. The [policy](../contracts/release-policy.md) records exac
 role limits, fee ceilings, nonce reconciliation, retry and incident behavior,
 official protocol sources and follow-on runtime/release gates. No funds, chain
 accounts, contract or signer service have been provisioned by this decision.
+
+## Collector permission and cadence harness, TEL04 #85
+
+On 16 November 2026 the telemetry package gained a planning permission catalog,
+a 15-second and 60-second cadence scheduler, and an in-process sampler. The
+catalog is the minimum read set for the selected sources. It rejects
+administrator, LocalSystem, SeDebug, a broad event-log group, WMI ACL changes
+and Security-log access. Planning and denied profiles are unattested capability
+sets. Native token attestation returns an error, including on Windows, until a
+measured LocalService token and a separately provisioned denied token exist.
+
+The sampler preserves nulls on denial, timeout and collection failure, continues
+to later sources, and does not insert catch-up sweeps. Its report schema is
+`device-audit.collector-budget.harness.v1`. It is not telemetry v1 or v2 and it
+carries no device identifier. Process CPU and RSS describe the sampler process
+only. The 16 November Linux measurements and the exact remaining physical
+Windows steps are in [collector-budget-85.md](validation/collector-budget-85.md).
+Those measurements do not approve a production cadence, memory budget or
+service-permission claim. The production collector interface still returns
+`ErrNotImplemented`.
