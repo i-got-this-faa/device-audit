@@ -42,11 +42,12 @@ configured deadline by up to one second.
 CIM calls also have a three-second operation timeout (five seconds for CPU).
 The deadline is not a hard real-time guarantee.
 
-The script records the current interactive token's elevation status. It does
-not impersonate a service account or prove that an unelevated account is free
-of additional group permissions. Use a separately provisioned test environment
-to compare the selected service token and real denied permissions. Never change
-this machine's permissions just to turn a missing reading into a successful one.
+The script labels the process token from its account SID. `S-1-5-19` is
+`local_service_token`. Any other elevated token stays
+`interactive_token_not_service_qualification`. An interactive administrator
+shell cannot relabel itself as the service result. Never change this machine's
+sensor, WMI or event-log permissions just to turn a missing reading into a
+successful one.
 
 ## Meaning of readings
 
@@ -156,6 +157,26 @@ Intervals other than 15s and 60s require `-allow-non-candidate` and are not
 cadence evidence. The 16 November 2026 Linux numbers and the physical Windows
 steps that remain are in
 [collector-budget-85.md](../../docs/validation/collector-budget-85.md).
+
+## Hosted Windows runner service tokens
+
+`.github/workflows/service-budget.yml` is manual (`workflow_dispatch`) and runs
+on `windows-2025`. It installs `collectorservice` as `DeviceAuditLocal`
+(`NT AUTHORITY\LocalService`, per-service SID) and `DeviceAuditDenied` (local
+user `deviceaudit-denied`, also with its own service SID). The denied account
+gets "Log on as a service" only. It is not added to Administrators, Event Log
+Readers or Performance Log Users, and the job does not change sensor, WMI or
+event-log ACLs. Each service writes `whoami /all`, a structured token, the
+PowerShell probe and `collectorbudget` at 15s and 60s (30 sweeps by default).
+The artifact is `service-token-budget`.
+
+```sh
+gh workflow run service-budget.yml --ref <branch>
+```
+
+The script refuses to run unless `GITHUB_ACTIONS=true`. A hosted VM is not a
+physical machine, and the harness provenance stays synthetic. The runner does
+not close the two-physical-machine requirement.
 
 The [19 October run](../../docs/validation/windows-2026-10-19.md) records one
 physical laptop. #21 and #85 remain open until the second selected machine,

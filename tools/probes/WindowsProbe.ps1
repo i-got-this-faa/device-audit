@@ -66,6 +66,15 @@ function Get-CounterRate {
     return ([double]$After - [double]$Before) / $Seconds
 }
 
+function Get-ProbeTokenContext {
+    param([string]$AccountSid, [bool]$Elevated)
+    # The label comes from the process SID. A caller cannot rename an
+    # interactive administrator token into a service result.
+    if ($AccountSid -eq 'S-1-5-19') { return 'local_service_token' }
+    if ($Elevated) { return 'interactive_token_not_service_qualification' }
+    return 'low_privilege_token'
+}
+
 function Get-ProbeSourceProvider {
     param([ValidateSet('cpu', 'memory', 'disk', 'network', 'battery', 'thermal', 'gpu', 'events')][string]$Source)
     switch ($Source) {

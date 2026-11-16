@@ -1,0 +1,36 @@
+name: Windows service token budget
+on:
+  workflow_dispatch:
+    inputs:
+      samples:
+        description: Sweeps per 15s and 60s cadence
+        required: false
+        default: "30"
+permissions:
+  contents: read
+jobs:
+  service-token-budget:
+    runs-on: windows-2025
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Measure LocalService and denied-token cadences
+        shell: pwsh
+        env:
+          BUDGET_SAMPLES: ${{ inputs.samples }}
+        run: |
+          $samples = 30
+          if ($env:BUDGET_SAMPLES -match '^[0-9]+$') { $samples = [int]$env:BUDGET_SAMPLES }
+          ./tools/probes/Invoke-ServiceTokenBudget.ps1 -Samples $samples
+      - name: Upload service-token measurements
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: service-token-budget
+          path: artifacts/service-budget/
+          if-no-files-found: warn
+          retention-days: 14

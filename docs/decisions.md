@@ -624,3 +624,11 @@ Windows steps are in [collector-budget-85.md](validation/collector-budget-85.md)
 Those measurements do not approve a production cadence, memory budget or
 service-permission claim. The production collector interface still returns
 `ErrNotImplemented`.
+
+`AttestNativeToken` still returns an error. A separate manual workflow,
+`service-budget.yml`, can install the probe and synthetic harness as Windows
+services on a GitHub-hosted `windows-2025` runner under `NT AUTHORITY\LocalService`
+and a distinct low-privilege account. Its attestation schema is
+`device-audit.service-token-attestation.v1`. That runner is a hosted VM. It
+does not satisfy the two-physical-machine gate, and the workflow does not
+change sensor, WMI or event-log ACLs or grant administrator rights.
