@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://device-audit.invalid/contracts/release-policy.schema.json",
+  "title": "CHAIN01 release chain descriptor",
+  "description": "Configuration shape for the selected Base policy. Schema acceptance is not deployment, inclusion, or finality evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "policy_version": {
+      "const": "device-audit.chain-policy.v1"
+    },
+    "adapter_id": {
+      "enum": [
+        "base-mainnet-registry-v1",
+        "base-sepolia-registry-v1",
+        "local-evm-registry-v1"
+      ]
+    },
+    "environment": {
+      "enum": ["mainnet", "testnet", "local"]
+    },
+    "chain_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "contract_address": {
+      "$ref": "#/$defs/address"
+    },
+    "runtime_code_keccak256": {
+      "$ref": "#/$defs/hash"
+    },
+    "deployment_transaction_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "deployment_block_hash": {
+      "$ref": "#/$defs/hash"
+    },
+    "administrator_multisig": {
+      "$ref": "#/$defs/address"
+    },
+    "administrator_threshold": {
+      "const": 2
+    },
+    "administrator_owner_count": {
+      "const": 3
+    },
+    "writer_address": {
+      "$ref": "#/$defs/address"
+    },
+    "signer_service_reference": {
+      "$ref": "#/$defs/signer_reference"
+    },
+    "trusted_verifier_reference": {
+      "$ref": "#/$defs/verifier_reference"
+    },
+    "independent_rpc_reference": {
+      "$ref": "#/$defs/rpc_reference"
+    },
+    "finality": {
+      "const": "verified-canonical-l2-at-or-below-l1-derived-finalized-head"
+    },
+    "max_total_fee_wei": {
+      "$ref": "#/$defs/wei"
+    },
+    "rolling_24h_fee_budget_wei": {
+      "$ref": "#/$defs/wei"
+    }
+  },
+  "required": [
+    "policy_version",
+    "adapter_id",
+    "environment",
+    "chain_id",
+    "enabled",
+    "contract_address",
+    "runtime_code_keccak256",
+    "deployment_transaction_hash",
+    "deployment_block_hash",
+    "administrator_multisig",
+    "administrator_threshold",
+    "administrator_owner_count",
+    "writer_address",
+    "signer_service_reference",
+    "trusted_verifier_reference",
+    "independent_rpc_reference",
+    "finality",
+    "max_total_fee_wei",
+    "rolling_24h_fee_budget_wei"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {"environment": {"const": "mainnet"}},
+        "required": ["environment"]
+      },
+      "then": {
+        "properties": {
+          "adapter_id": {"const": "base-mainnet-registry-v1"},
+          "chain_id": {"const": 8453}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"environment": {"const": "testnet"}},
+        "required": ["environment"]
+      },
+      "then": {
+        "properties": {
+          "adapter_id": {"const": "base-sepolia-registry-v1"},
+          "chain_id": {"const": 84532}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"environment": {"const": "local"}},
+        "required": ["environment"]
+      },
+      "then": {
+        "properties": {
+          "adapter_id": {"const": "local-evm-registry-v1"},
+          "chain_id": {
+            "not": {"enum": [1, 8453, 84532]}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"enabled": {"const": false}},
+        "required": ["enabled"]
+      },
+      "then": {
+        "properties": {
+          "contract_address": {"type": "null"},
+          "runtime_code_keccak256": {"type": "null"},
+          "deployment_transaction_hash": {"type": "null"},
+          "deployment_block_hash": {"type": "null"},
+          "administrator_multisig": {"type": "null"},
+          "writer_address": {"type": "null"},
+          "signer_service_reference": {"type": "null"},
+          "trusted_verifier_reference": {"type": "null"},
+          "independent_rpc_reference": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"enabled": {"const": true}},
+        "required": ["enabled"]
+      },
+      "then": {
+        "properties": {
+          "contract_address": {"type": "string"},
+          "runtime_code_keccak256": {"type": "string"},
+          "deployment_transaction_hash": {"type": "string"},
+          "deployment_block_hash": {"type": "string"},
+          "administrator_multisig": {"type": "string"},
+          "writer_address": {"type": "string"},
+          "signer_service_reference": {"type": "string"},
+          "trusted_verifier_reference": {"type": "string"},
+          "independent_rpc_reference": {"type": "string"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "address": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "allOf": [
+            {"type": "string", "pattern": "^0x[0-9a-f]{40}$"},
+            {"not": {"const": "0x0000000000000000000000000000000000000000"}}
+          ]
+        }
+      ]
+    },
+    "hash": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "allOf": [
+            {"type": "string", "pattern": "^0x[0-9a-f]{64}$"},
+            {"not": {"const": "0x0000000000000000000000000000000000000000000000000000000000000000"}}
+          ]
+        }
+      ]
+    },
+    "wei": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,17})$"
+    },
+    "signer_reference": {
+      "anyOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^signer:[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}
+      ]
+    },
+    "verifier_reference": {
+      "anyOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^verifier:[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}
+      ]
+    },
+    "rpc_reference": {
+      "anyOf": [
+        {"type": "null"},
+        {"type": "string", "pattern": "^rpc:[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"}
+      ]
+    }
+  }
+}
