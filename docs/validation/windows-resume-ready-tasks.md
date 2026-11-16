@@ -26,13 +26,13 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   A second physical target is still unavailable. LocalService versus actual
   denied-permission comparisons and controlled full-system overhead remain.
   See [measurement matrix](collector-budget-85.md).
-- **#87 implemented in separate [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
-  Its `ee5bd74` commit adds `--sign-evidence`, scope-bound `sequence.state`,
-  durable reservation before signing and forced-process restart/golden-vector
-  tests. Native Windows validation is recorded there; all reported CI checks
-  passed when inspected. It is open and is not included in this branch. The
-  earlier "scouted only" statement described this branch's contribution, not
-  the current repository-wide status. Do not reimplement its allocator.
+- **#87 merged separately in [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
+  It adds `--sign-evidence`, scope-bound `sequence.state`, durable reservation
+  before signing and forced-process restart/golden-vector tests. Native Windows
+  validation is recorded there. It was approved, passed all 16 CI checks and
+  merged to main as `e7d2a6d` on 16 November 2026, after this branch; issue #87
+  is closed. The earlier "scouted only" statement described this branch's
+  contribution, not the repository-wide status. Do not reimplement its allocator.
 
 No issue was closed or marked complete on GitHub. Reviewed PR/merge gates remain.
 The user subsequently requested a PR for this committed work, authorizing branch
@@ -107,12 +107,13 @@ The RFC 8032 test seed reproduces CT04 golden bytes/signatures; altered payloads
 and private-material leakage are checked. Windows native checks and contract
 conformance are recorded in that PR, rather than independently rerun here.
 
-PR #198 and #197 both modify endpoint entry points and documentation. Neither
-contains the other's implementation. Reconcile those paths before claiming a
-combined signer-to-mesh feature; run the actual newly signed envelope through
-the admitted mesh and PostgreSQL. #198's Windows run skipped PostgreSQL because
-no database was available. No merge or cross-PR integration was performed by
-this status correction.
+PR #198 and #197 both modified endpoint entry points and documentation. #198
+merged main after #197, keeping both the `--sign-evidence` and mesh flags
+(merge commit `1b46970`); `make check cross-build` and CI passed on the result.
+The mesh sender accepts the locally signed CT04 envelope that `--sign-evidence`
+emits, but no test yet runs a newly signed envelope through the admitted mesh
+and PostgreSQL. Do not claim a combined signer-to-mesh feature until that runs.
+#198's Windows run skipped PostgreSQL because no database was available.
 
 Power-loss durability, LocalService execution, old-install sequence-state
 reconciliation and backup rollback remain explicit limits. Process termination
