@@ -162,6 +162,16 @@ test('declared native dependencies and parents are added without removing manual
   assert.ok(plan([first,second,parent]).operations.every(op => !['dependency','parent'].includes(op.kind)));
 });
 
+test('a closed issue listing its follow-up as a dependency does not create a cycle', () => {
+  // Mirrors #23 -> #26 -> #87 -> #23: the closed task names its follow-up in Dependencies.
+  const done = issue(23,{state:'CLOSED',stateReason:'COMPLETED',body:'## Dependencies\n- #26\n'});
+  const followUp = issue(26), signer = issue(87);
+  followUp.blockedBy.nodes.push(signer); signer.blockedBy.nodes.push(done);
+  const result = plan([done,followUp,signer],[],project([done,followUp,signer],{23:'Done',26:'Blocked'}));
+  assert.deepEqual(result.states,{23:'Done',26:'Blocked',87:'Ready'});
+  assert.ok(result.operations.every(op => op.kind !== 'dependency'));
+});
+
 test('invalid references, conflicts and cycles stop planning before any write', () => {
   assert.throws(() => plan([issue(1,{body:'## Dependencies\n- #999\n'})]),/Unknown dependency/);
   const a = issue(1), b = issue(2);

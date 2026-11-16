@@ -204,9 +204,12 @@ export function buildPlan(repository, project) {
   for (const issue of issues.values()) {
     const declared = declaredRelationships(issue);
     triaged.set(issue.number,declared.triaged);
-    const existing = issue.blockedBy.nodes;
+    // A closed issue is Done whatever it lists, so its prerequisites cannot block a card.
+    // Ignoring them stops a closed issue's follow-up note from forming a cycle.
+    const closed = issue.state === 'CLOSED';
+    const existing = closed ? [] : issue.blockedBy.nodes;
     const merged = [...existing];
-    for (const dependency of declared.dependencies) {
+    for (const dependency of closed ? [] : declared.dependencies) {
       if (!issues.has(dependency)) throw new Error(`Unknown dependency #${dependency} on #${issue.number}`);
       if (!existing.some(node => local(node) && node.number === dependency)) {
         merged.push({...issues.get(dependency),repository:{nameWithOwner:REPOSITORY}});
