@@ -406,7 +406,10 @@ func finishWindow(kind string, repeat int, wall time.Duration, start, end Proces
 		HeapAllocEndBytes: end.HeapAlloc,
 		Sweeps:            sweeps,
 	}
-	if kind == "baseline" && wall == 0 {
+	// A zero baseline is an empty interval, so it has no CPU rate. A probe that
+	// finishes before the OS clock moves can be recorded only when the process
+	// CPU counter also stayed still. CPU without wall time cannot be a percent.
+	if wall == 0 && (kind == "baseline" || cpu == 0) {
 		window.CPUPercentOneCore = 0
 		window.CPUPercentMachine = 0
 		return window, nil

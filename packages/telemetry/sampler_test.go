@@ -205,6 +205,48 @@ func TestCanceledRunReturnsError(t *testing.T) {
 	}
 }
 
+func TestUnmovedClockRecordsZeroPercents(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1_700_000_000, 0).UTC()}
+	runner := Runner{
+		Cadence: Cadence{Interval: time.Second, Samples: 1, WorkerDeadline: time.Second},
+		Repeats: 1,
+		Token:   PlanningToken(),
+		Now:     clock.Now,
+		Sleep:   func(time.Duration) {},
+		Usage: func() (ProcessUsage, error) {
+			return ProcessUsage{CPU: time.Second, RSS: 4096, CoreCount: 2}, nil
+		},
+		Sources: []BoundSource{{Spec: specNamed("cpu"), Provenance: ProvenanceHarness, Sample: successSample}},
+	}
+	report, err := runner.Measure(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	probe := report.Windows[1]
+	if probe.WallMS != 0 || probe.CPUTimeMS != 0 || probe.CPUPercentOneCore != 0 || probe.CPUPercentMachine != 0 {
+		t.Fatalf("probe = %#v", probe)
+	}
+}
+
+func TestCPUWithoutWallTimeIsRejected(t *testing.T) {
+	calls := 0
+	runner := Runner{
+		Cadence: Cadence{Interval: time.Second, Samples: 1, WorkerDeadline: time.Second},
+		Repeats: 1,
+		Token:   PlanningToken(),
+		Now:     func() time.Time { return time.Unix(1_700_000_000, 0).UTC() },
+		Sleep:   func(time.Duration) {},
+		Usage: func() (ProcessUsage, error) {
+			calls++
+			return ProcessUsage{CPU: time.Duration(calls) * time.Millisecond, RSS: 4096, CoreCount: 2}, nil
+		},
+		Sources: []BoundSource{{Spec: specNamed("cpu"), Provenance: ProvenanceHarness, Sample: successSample}},
+	}
+	if _, err := runner.Measure(context.Background()); err == nil {
+		t.Fatal("cpu advanced while wall time stayed at zero")
+	}
+}
+
 func TestUnimplementedCollector(t *testing.T) {
 	got, err := UnimplementedCollector{}.Collect(context.Background())
 	if !errors.Is(err, ErrNotImplemented) || got.DeviceID != "" {
