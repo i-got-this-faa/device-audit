@@ -631,4 +631,7 @@ services on a GitHub-hosted `windows-2025` runner under `NT AUTHORITY\LocalServi
 and a distinct low-privilege account. Its attestation schema is
 `device-audit.service-token-attestation.v1`. That runner is a hosted VM. It
 does not satisfy the two-physical-machine gate, and the workflow does not
-change sensor, WMI or event-log ACLs or grant administrator rights.
+change sensor, WMI or event-log ACLs or grant administrator rights. The 16
+November 2026 run 43859814735 recorded both tokens and the 15s/60s measurements;
+the numbers are in [collector-budget-85.md](validation/collector-budget-85.md).
+They do not approve a production budget.

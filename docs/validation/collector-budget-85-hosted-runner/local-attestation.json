@@ -1,0 +1,143 @@
+{
+  "schema": "device-audit.service-token-attestation.v1",
+  "host_role": "github_hosted_windows_runner_not_physical_target",
+  "service": "DeviceAuditLocal",
+  "account": "NT AUTHORITY\\LOCAL SERVICE",
+  "account_sid": "S-1-5-19",
+  "elevated": true,
+  "service_sid_present": true,
+  "service_sid": "S-1-5-80-1555716268-1227767556-2535967203-2823475634-3040544233",
+  "administrators_group": false,
+  "integrity_sid": "S-1-16-16384",
+  "privileges": [
+    {
+      "name": "SeAssignPrimaryTokenPrivilege",
+      "enabled": false
+    },
+    {
+      "name": "SeIncreaseQuotaPrivilege",
+      "enabled": false
+    },
+    {
+      "name": "SeSystemtimePrivilege",
+      "enabled": false
+    },
+    {
+      "name": "SeAuditPrivilege",
+      "enabled": false
+    },
+    {
+      "name": "SeChangeNotifyPrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeImpersonatePrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeCreateGlobalPrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeIncreaseWorkingSetPrivilege",
+      "enabled": false
+    },
+    {
+      "name": "SeTimeZonePrivilege",
+      "enabled": false
+    }
+  ],
+  "groups": [
+    {
+      "name": "Mandatory Label\\System Mandatory Level",
+      "sid": "S-1-16-16384",
+      "enabled": false
+    },
+    {
+      "name": "Everyone",
+      "sid": "S-1-1-0",
+      "enabled": true
+    },
+    {
+      "name": "BUILTIN\\Users",
+      "sid": "S-1-5-32-545",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\SERVICE",
+      "sid": "S-1-5-6",
+      "enabled": true
+    },
+    {
+      "name": "CONSOLE LOGON",
+      "sid": "S-1-2-1",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\Authenticated Users",
+      "sid": "S-1-5-11",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\This Organization",
+      "sid": "S-1-5-15",
+      "enabled": true
+    },
+    {
+      "name": "NT SERVICE\\DeviceAuditLocal",
+      "sid": "S-1-5-80-1555716268-1227767556-2535967203-2823475634-3040544233",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\LogonSessionId_\u003clogon\u003e",
+      "sid": "S-1-5-5-\u003clogon\u003e",
+      "enabled": true
+    },
+    {
+      "name": "LOCAL",
+      "sid": "S-1-2-0",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-734518492-402359323-2580938124-1419864735-4212787651-2727913556-228323224-564805089",
+      "sid": "S-1-5-32-734518492-402359323-2580938124-1419864735-4212787651-2727913556-228323224-564805089",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-383293015-3350740429-1839969850-1819881064-1569454686-4198502490-78857879-1413643331",
+      "sid": "S-1-5-32-383293015-3350740429-1839969850-1819881064-1569454686-4198502490-78857879-1413643331",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-2035927579-283314533-3422103930-3587774809-765962649-3034203285-3544878962-607181067",
+      "sid": "S-1-5-32-2035927579-283314533-3422103930-3587774809-765962649-3034203285-3544878962-607181067",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-3659434007-2290108278-1125199667-3679670526-1293081662-2164323352-1777701501-2595986263",
+      "sid": "S-1-5-32-3659434007-2290108278-1125199667-3679670526-1293081662-2164323352-1777701501-2595986263",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-11742800-2107441976-3443185924-4134956905-3840447964-3749968454-3843513199-670971053",
+      "sid": "S-1-5-32-11742800-2107441976-3443185924-4134956905-3840447964-3749968454-3843513199-670971053",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-3523901360-1745872541-794127107-675934034-1867954868-1951917511-1111796624-2052600462",
+      "sid": "S-1-5-32-3523901360-1745872541-794127107-675934034-1867954868-1951917511-1111796624-2052600462",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-1488445330-856673777-1515413738-1380768593-2977925950-2228326386-886087428-2802422674",
+      "sid": "S-1-5-32-1488445330-856673777-1515413738-1380768593-2977925950-2228326386-886087428-2802422674",
+      "enabled": true
+    },
+    {
+      "name": "S-1-5-32-1962849891-688487262-3571417821-3628679630-802580238-1922556387-206211640-3335523193",
+      "sid": "S-1-5-32-1962849891-688487262-3571417821-3628679630-802580238-1922556387-206211640-3335523193",
+      "enabled": true
+    }
+  ],
+  "whoami_all": "\r\nUSER INFORMATION\r\n----------------\r\n\r\nUser Name                  SID     \r\n========================== ========\r\nnt authority\\local service S-1-5-19\r\n\r\n\r\nGROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                             Type             SID                                                                                              Attributes                                        \r\n====================================== ================ ================================================================================================ ==================================================\r\nMandatory Label\\System Mandatory Level Label            S-1-16-16384                                                                                                                                       \r\nEveryone                               Well-known group S-1-1-0                                                                                          Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Users                          Alias            S-1-5-32-545                                                                                     Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\SERVICE                   Well-known group S-1-5-6                                                                                          Mandatory group, Enabled by default, Enabled group\r\nCONSOLE LOGON                          Well-known group S-1-2-1                                                                                          Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Authenticated Users       Well-known group S-1-5-11                                                                                         Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\This Organization         Well-known group S-1-5-15                                                                                         Mandatory group, Enabled by default, Enabled group\r\nNT SERVICE\\DeviceAuditLocal            Well-known group S-1-5-80-1555716268-1227767556-2535967203-2823475634-3040544233                                  Enabled by default, Enabled group, Group owner    \r\nLOCAL                                  Well-known group S-1-2-0                                                                                          Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-734518492-402359323-2580938124-1419864735-4212787651-2727913556-228323224-564805089     Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-383293015-3350740429-1839969850-1819881064-1569454686-4198502490-78857879-1413643331    Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-2035927579-283314533-3422103930-3587774809-765962649-3034203285-3544878962-607181067    Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-3659434007-2290108278-1125199667-3679670526-1293081662-2164323352-1777701501-2595986263 Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-11742800-2107441976-3443185924-4134956905-3840447964-3749968454-3843513199-670971053    Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-3523901360-1745872541-794127107-675934034-1867954868-1951917511-1111796624-2052600462   Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-1488445330-856673777-1515413738-1380768593-2977925950-2228326386-886087428-2802422674   Mandatory group, Enabled by default, Enabled group\r\n                                       Unknown SID type S-1-5-32-1962849891-688487262-3571417821-3628679630-802580238-1922556387-206211640-3335523193    Mandatory group, Enabled by default, Enabled group\r\n\r\n\r\nPRIVILEGES INFORMATION\r\n----------------------\r\n\r\nPrivilege Name                Description                               State   \r\n============================= ========================================= ========\r\nSeAssignPrimaryTokenPrivilege Replace a process level token             Disabled\r\nSeIncreaseQuotaPrivilege      Adjust memory quotas for a process        Disabled\r\nSeSystemtimePrivilege         Change the system time                    Disabled\r\nSeAuditPrivilege              Generate security audits                  Disabled\r\nSeChangeNotifyPrivilege       Bypass traverse checking                  Enabled \r\nSeImpersonatePrivilege        Impersonate a client after authentication Enabled \r\nSeCreateGlobalPrivilege       Create global objects                     Enabled \r\nSeIncreaseWorkingSetPrivilege Increase a process working set            Disabled\r\nSeTimeZonePrivilege           Change the time zone                      Disabled\r\n\r\n"
+}
