@@ -11,6 +11,9 @@ on:
   push:
     paths:
       - tools/probes/service-budget.trigger
+      - tools/probes/Invoke-ServiceTokenBudget.ps1
+      - tools/probes/collectorservice/**
+      - .github/workflows/service-budget.yml
 permissions:
   contents: read
 jobs:

@@ -126,8 +126,11 @@ function Start-TokenMeasurement {
         service = $Name
     } | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8
     Grant-MeasurementAccess -Path $repo -Identities $Readers -Rights '(OI)(CI)RX'
-    Grant-MeasurementAccess -Path $dir -Identities ($Readers + @("NT SERVICE\$Name")) -Rights '(OI)(CI)M'
+    Grant-MeasurementAccess -Path $dir -Identities $Readers -Rights '(OI)(CI)M'
     Install-MeasurementService -Name $Name -Binary (Join-Path $repo 'bin\collectorservice.exe') -Config $config -Account $Account -Password $Password
+    # The per-service account exists only after the service and its SID type exist.
+    Grant-MeasurementAccess -Path $repo -Identities @("NT SERVICE\$Name") -Rights '(OI)(CI)RX'
+    Grant-MeasurementAccess -Path $dir -Identities @("NT SERVICE\$Name") -Rights '(OI)(CI)M'
     & cmd.exe /d /c "sc.exe qc $Name" | Set-Content -LiteralPath (Join-Path $dir 'service-config.txt') -Encoding utf8
     Start-Service -Name $Name
     Wait-MeasurementService -Name $Name -OutputDir $dir
