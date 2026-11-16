@@ -6,10 +6,16 @@ on:
         description: Sweeps per 15s and 60s cadence
         required: false
         default: "30"
+  # workflow_dispatch is registered only after this file is on the default
+  # branch. Pushing the trigger file runs the same job from a PR branch.
+  push:
+    paths:
+      - tools/probes/service-budget.trigger
 permissions:
   contents: read
 jobs:
   service-token-budget:
+    if: github.event_name == 'workflow_dispatch' || github.ref != 'refs/heads/main'
     runs-on: windows-2025
     timeout-minutes: 360
     steps:
@@ -25,6 +31,10 @@ jobs:
         run: |
           $samples = 30
           if ($env:BUDGET_SAMPLES -match '^[0-9]+$') { $samples = [int]$env:BUDGET_SAMPLES }
+          elseif (Test-Path -LiteralPath tools/probes/service-budget.trigger) {
+            $raw = (Get-Content -LiteralPath tools/probes/service-budget.trigger -Raw).Trim()
+            if ($raw -match '^[0-9]+$') { $samples = [int]$raw }
+          }
           ./tools/probes/Invoke-ServiceTokenBudget.ps1 -Samples $samples
       - name: Upload service-token measurements
         if: always()

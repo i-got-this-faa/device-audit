@@ -171,8 +171,13 @@ PowerShell probe and `collectorbudget` at 15s and 60s (30 sweeps by default).
 The artifact is `service-token-budget`.
 
 ```sh
-gh workflow run service-budget.yml --ref <branch>
+gh workflow run service-budget.yml --ref <branch> -f samples=30
 ```
+
+GitHub registers `workflow_dispatch` from the default branch. Until this file
+is there, pushing `tools/probes/service-budget.trigger` (a single integer from
+1 to 30) on a non-default branch runs the same job. A push of that file to
+`main` does not.
 
 The script refuses to run unless `GITHUB_ACTIONS=true`. A hosted VM is not a
 physical machine, and the harness provenance stays synthetic. The runner does
