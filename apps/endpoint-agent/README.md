@@ -114,8 +114,9 @@ or exhausted state fails closed; the endpoint never restarts from the receipt.
 Admitted installations from before this change lack `sequence.state` and must be
 reconciled by an operator rather than reset.
 
-This produces and signs evidence only. Transport, spooling the signed request
-for retry, acknowledgement handling and controller ingestion remain #24/#25/#26.
+This produces and signs evidence only. An already signed envelope can be
+submitted over the admitted mesh, as described below. Spooling the signed
+request for retry and signed acknowledgement handling remain separate work.
 Restoring an older state directory can reopen used local sequences; the
 controller's durable mark still rejects them as `replay`. The signature proves
 integrity and key possession, not sensor truth.
@@ -145,6 +146,10 @@ provisioning, a pinned controller public key and explicit DERP configuration.
 it against the stored admission/signing identity, and submits through the stored
 X25519 network identity. It never emits unsigned fixture telemetry or creates
 another network key. The empty committed HTTP response is not a signed receipt.
-The PostgreSQL enrollment integration test now continues through a fresh endpoint
-process and actual Tailcat application request before and after mesh restart on
-Unix hosts. Windows device/service execution remains unqualified.
+With `TEST_DATABASE_URL` set, `TestEndpointEnrollmentPostgres` continues through
+a fresh endpoint process and an actual Tailcat application request before and
+after mesh restart. The controller side of that test uses the Unix or Windows
+mesh state store of the host running the test. The repository's Windows CI job
+does not start PostgreSQL, so that combined path is a database-check result on
+a host where the database is configured. Windows device/service execution on
+the selected laptop remains unqualified.

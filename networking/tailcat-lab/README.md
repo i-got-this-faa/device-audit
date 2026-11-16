@@ -156,7 +156,8 @@ it does not prove endpoint measurements true. No blockchain payload is created.
   for five seconds and the relay-off application dial failed. The cause is not
   established. Admission-failure experiments use a fresh server, separate from
   the clean restart proof. Recovery from that failed-PSK sequence requires
-  investigation before production #25, rather than a silent fallback.
+  investigation. The application adapter does not treat that sequence as
+  recovered.
 - The lab has one configured peer and one bounded application protocol. It
   provides no production device-ID binding, durable admission database,
   organizational policy, multi-tenant authorization, or production availability

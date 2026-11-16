@@ -559,11 +559,22 @@ real telemetry freshness rules and health assessments remain separate work.
 
 The 13 November 2026 implementation promotes the NET01 Tailcat pin into the
 application module. The independent lab remains separately versioned. Endpoints
-import their existing protected, admitted X25519 key; the controller exclusively
-provisions persistent Unix node/PSK state. Startup never generates replacement
-identities. An explicit local self-hosted DERP region and a separately delivered
-server key pin replace public relay discovery defaults. PSK-bearing addresses
-use private files, and unsafe address-debug logging is rejected.
+import their existing protected, admitted X25519 key. The controller provisions
+persistent node/PSK state and startup never generates replacement identities.
+An explicit local self-hosted DERP region and a separately delivered server key
+pin replace public relay discovery defaults. PSK-bearing addresses use private
+files, and unsafe address-debug logging is rejected.
+
+On 16 November 2026 the controller store gained a Windows ACL path beside the
+Unix owner/mode path. Both use the same JSON node and PSK fields. Windows
+protection is a protected DACL for the current user or an enabled per-service
+SID, plus an exclusive lock and reparse/link rejection. It is the permission
+equivalent of mode 0700/0600, not DPAPI encryption of controller mesh state.
+LocalService without a per-service SID fails closed. A GitHub-hosted Windows
+test account can exercise that store; that account is not the selected physical
+laptop and is not a LocalService qualification. Power-loss durability remains
+unclaimed. Unix still fsyncs the state file and its directory; Windows flushes
+the state file and has no directory fsync.
 
 New connections resolve the actual tunnel peer against committed, active
 PostgreSQL admission. Each evidence request rechecks admission and scope before
@@ -604,6 +615,19 @@ as pending/unverified. The [policy](../contracts/release-policy.md) records exac
 role limits, fee ceilings, nonce reconciliation, retry and incident behavior,
 official protocol sources and follow-on runtime/release gates. No funds, chain
 accounts, contract or signer service have been provisioned by this decision.
+
+On 16 November 2026 the same decision gained machine-checked descriptor and
+observation fixtures. `contracts/policy` accepts the disabled Base Mainnet
+descriptor and rejects incomplete enabled descriptors, zero addresses, null
+`enabled`, and local descriptors that use chain IDs 1, 8453, or 84532. Parse,
+not the JSON Schema wei pattern, rejects raised fee ceilings. Reference checks
+reject listed key and device-identity words and do not prove a name contains
+no secret. Observation fixtures require one
+finality claim, preserve history, and keep outages and source disagreement
+distinct from reverts. Draft 2020-12 schema validation covers the same
+descriptor vectors. `ReleaseDeploymentObserved` stays false. No RPC query,
+transaction, deployment, measured gas quote, or signer-custody check was added.
+The legacy Anchorer interface remains unimplemented.
 
 ## Collector permission and cadence harness, TEL04 #85
 

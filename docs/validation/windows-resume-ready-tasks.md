@@ -1,5 +1,13 @@
 # Resume the ready node tasks from Windows
 
+Continuation on 16 November 2026: controller mesh persistence is no longer
+Unix-only. Windows uses a protected DACL, recorded in
+[mesh-adapters-25.md](mesh-adapters-25.md). The sections below are the 13
+November pause notes. Where they say the controller store is Unix-only, use
+the continuation record instead. PR #198 was later merged.
+
+
+
 Paused at the user's request on 13 November 2026 to commit current work before
 rebooting to native Windows. Branch: `feat/ready-node-tasks`, based on
 `origin/main` at `0a9f2069f312d820332e9cc950dd847e86f6faf5`.
@@ -86,11 +94,12 @@ python -m venv .venv
 ```
 
 This checks native tests/builds and the existing fixture demo. It does not
-qualify service tokens or mesh delivery. Mesh **controller** persistence is
-Unix-only; the Windows endpoint imports its existing DPAPI/ACL-protected
-identity. Use a separately running Unix controller and explicit self-hosted
-DERP for Windows endpoint transport qualification. Do not run the old lab's
-Unix mode-0600 state check as proof of Windows endpoint support.
+qualify service tokens or deployed mesh delivery. Mesh controller persistence
+on Windows is the ACL store exercised by `go test ./networking/mesh` in this
+script. The Windows endpoint still imports its existing DPAPI/ACL-protected
+identity. A passing native test is not LocalService, physical-laptop, NAT/WAN,
+or deployed DERP qualification. Do not run the Unix mode-0600 state check as
+proof of Windows endpoint support.
 
 For #85, the hosted-runner service measurement is already recorded. Do not
 claim two-machine completion, convert an interactive run to service evidence,

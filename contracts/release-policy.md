@@ -68,8 +68,21 @@ Chain IDs are listed in Base's [RPC reference](https://docs.base.org/base-chain/
 
 `release-policy.json` records the chosen policy and an intentionally disabled
 deployment descriptor. It is a decision/configuration template, not a running
-adapter. Implementers must reject incomplete descriptors. Do not replace absent
-addresses with the zero address, sample credentials or a testnet deployment.
+adapter. `release-policy.schema.json` checks shape: the required field set,
+Base Mainnet or Base Sepolia binding, a boolean `enabled`, and absent
+deployment fields when disabled. A local descriptor cannot use chain IDs 1,
+8453, or 84532. Other chain IDs, including other public networks, can still
+appear on the local adapter and remain `local-test` evidence.
+`contracts/policy.Parse` applies those checks and also rejects fee strings
+above the selected ceilings or above the descriptor's daily budget. The schema
+accepts any canonical wei string, so schema validation alone does not enforce
+the ceiling. Parse also rejects URL-shaped references and names containing
+private-key, API-key, secret, password, credential, Ed25519, X25519, OIDC,
+mesh, or PSK text. A name outside that list can still embed a secret, so
+enabling a descriptor requires a separate reference review. Shared fixtures
+live in `contracts/fixtures/policy/`. Do not replace absent addresses with the
+zero address, sample credentials, or a testnet deployment. A structurally
+complete fixture is still not a deployment.
 
 A release descriptor must bind policy/adapter version, environment, chain ID,
 registry address, deployed runtime-code Keccak-256, deployment transaction and
@@ -163,12 +176,49 @@ mainnet cost is claimed. Funding, provider contracts and deployment require a
 separate authorized operation. An operator may lower these ceilings; raising them
 requires a reviewed policy change.
 
+## Machine-checked descriptor and observation rules
+
+`contracts/policy.Parse` accepts only the field set above. Disabled descriptors
+must leave every deployment, role, and service reference absent. Enabled
+descriptors must carry distinct registry, writer, and administrator addresses,
+distinct `signer:`, `verifier:`, and `rpc:` references, and non-zero code and
+transaction hashes. `enabled` must be JSON `true` or `false`. Reference names
+must use those prefixes. Parse rejects URLs and the keyword list in the
+deployment section; a name outside that list can still embed a secret. Fee
+amounts may be lowered, including to zero. Parse rejects a fee above the
+selected ceilings or above that descriptor's daily budget. `EvidenceClass` returns `selected-release-network`,
+`integration-testnet`, or `local-test`. `ReleaseDeploymentObserved` is always
+false.
+
+`contracts/fixtures/policy/observations.json` records the confirmation, revert,
+and outage table for tests. Only verified canonical inclusion at or below the
+finalized head claims finality. An outage does not fabricate a receipt.
+Disagreement or an unverified deployment stops submission and stays
+`unverified`; it is not a revert. A lost canonical inclusion clears current
+finality. A digest conflict assigns no anchor state and does not retry.
+
+```sh
+go test ./contracts/policy
+```
+
+Python Draft 2020-12 validation of the same descriptors runs inside `make model-check`.
+Passing these checks does not query Base, measure gas, or prove a transaction.
+
+## Explicit limits
+
+This repository does not contain a chain adapter, signer service, funded
+account, or deployed registry. No live transaction, RPC query, contract
+deployment, measured mainnet gas quote, or multisig/signer custody check was
+performed for #47. `packages/audit.Anchorer` remains an interface without an
+implementation. Local and Sepolia fixtures cannot satisfy release-network
+evidence. Before release, attach local/testnet authorization, replay, rotation,
+reorg, outage, and fee-cap runs against the reviewed artifact, then verify the
+selected mainnet deployment separately.
+
 ## Acceptance handoff
 
 #47 supplies chain selection, role/custody design, finality/revert/outage policy,
-cost rationale and the deployment configuration strategy. Contract implementation,
-signer service, durable worker, RPC verification and measured deployment remain
-follow-on tasks. Before release, attach local/testnet authorization, replay,
-rotation, reorg, outage and fee-cap evidence, then separately verify the selected
-mainnet deployment. A local fixture or this policy file cannot establish any of
-those runtime facts. Reviewed PR/merge remains an issue-completion gate.
+cost rationale, and the deployment configuration strategy, with schema, fixture,
+and validation coverage for that recorded policy. Contract implementation,
+signer service, durable worker, RPC verification, and measured deployment remain
+follow-on work outside this decision.

@@ -7,7 +7,7 @@ on:
         required: false
         default: "30"
   # workflow_dispatch is registered only after this file is on the default
-  # branch. Pushing the trigger file runs the same job from a PR branch.
+  # branch. Pushing this file or the trigger file runs the same job from a PR branch.
   push:
     paths:
       - tools/probes/service-budget.trigger

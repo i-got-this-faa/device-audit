@@ -1,0 +1,84 @@
+{
+  "rules": [
+    {
+      "name": "not_submitted_or_outage",
+      "anchor_state": "unverified",
+      "receipt_state": "",
+      "reason": "",
+      "claims_finality": false,
+      "retry_allowed": true,
+      "preserves_history": true,
+      "action": "retain_off_chain_and_retry"
+    },
+    {
+      "name": "unknown_result_or_unfinalized_inclusion",
+      "anchor_state": "pending",
+      "receipt_state": "pending",
+      "reason": "",
+      "claims_finality": false,
+      "retry_allowed": true,
+      "preserves_history": true,
+      "action": "reconcile_before_retry"
+    },
+    {
+      "name": "verified_finalized_inclusion",
+      "anchor_state": "finalized",
+      "receipt_state": "finalized",
+      "reason": "",
+      "claims_finality": true,
+      "retry_allowed": false,
+      "preserves_history": true,
+      "action": "append_finalized_receipt"
+    },
+    {
+      "name": "failed_execution",
+      "anchor_state": "reverted",
+      "receipt_state": "reverted",
+      "reason": "transaction_failed",
+      "claims_finality": false,
+      "retry_allowed": true,
+      "preserves_history": true,
+      "action": "review_before_new_transaction"
+    },
+    {
+      "name": "lost_canonical_inclusion",
+      "anchor_state": "reverted",
+      "receipt_state": "reverted",
+      "reason": "reorganized",
+      "claims_finality": false,
+      "retry_allowed": true,
+      "preserves_history": true,
+      "action": "clear_finality_and_reconcile"
+    },
+    {
+      "name": "commitment_absent_after_invalidation",
+      "anchor_state": "reverted",
+      "receipt_state": "reverted",
+      "reason": "commitment_absent",
+      "claims_finality": false,
+      "retry_allowed": true,
+      "preserves_history": true,
+      "action": "retry_original_commitment"
+    },
+    {
+      "name": "source_disagreement_or_unverified_deployment",
+      "anchor_state": "unverified",
+      "receipt_state": "",
+      "reason": "",
+      "claims_finality": false,
+      "retry_allowed": false,
+      "preserves_history": true,
+      "action": "stop_submission_and_alert"
+    },
+    {
+      "name": "digest_conflict",
+      "anchor_state": "",
+      "receipt_state": "",
+      "reason": "",
+      "claims_finality": false,
+      "retry_allowed": false,
+      "preserves_history": true,
+      "action": "stop_and_retain_both_records"
+    }
+  ]
+}

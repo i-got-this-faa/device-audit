@@ -1,5 +1,12 @@
 # Sequential node task completion record
 
+Continuation on 16 November 2026: controller mesh state now has a Windows ACL
+store, and the current #25 evidence is in
+[mesh-adapters-25.md](mesh-adapters-25.md). The notes below are the 13 November
+record for `feat/ready-node-tasks` and are not the current limit list.
+
+
+
 Work branch: `feat/ready-node-tasks`. Base: `origin/main` at
 `0a9f2069f312d820332e9cc950dd847e86f6faf5`. The original dirty checkout
 is preserved. Implementation is by the primary agent; Luna scouting is read-only.

@@ -1,5 +1,9 @@
 # Initial scaffold validation
 
+Follow-up: [CHAIN01 descriptor checks, 16 November 2026](validation/chain-policy-47.md)
+records schema and fixture validation of the selected Base policy. It does not
+record a chain transaction or deployment.
+
 Follow-up: [Windows sensor and native-check evidence, 19 October 2026](validation/windows-2026-10-19.md)
 records real development sensor measurements, probe cost, repeated native checks
 and the remaining two-machine/service/runtime gates.
