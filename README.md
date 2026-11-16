@@ -129,14 +129,15 @@ real-device qualification or implements controller admission.
 - `infra/networking`: relay/bootstrap deployment requirements.
 - `infra/database`: PostgreSQL connection, versioned migrations and console auth tables.
 - `internal/controller/repository.go`, `bootstrap_repository.go`: signed identity/evidence persistence and atomic bootstrap admission. The unsigned fixture API remains in memory.
-- `contracts`: smart-contract commitment requirements; blockchain selection is open.
+- `contracts`: smart-contract commitment requirements and selected Base Mainnet policy; deployment remains open.
 - `apps/web-console`: Go template console/auth routes, session policy and acceptance matrix; fleet pages and browser qualification remain open.
 
-Mesh constructors return `ErrNotImplemented`; `--transport mesh` exits with an
-error. The fixture demo accepts literal loopback addresses only. Bootstrap
-admission has local TLS/PostgreSQL integration evidence; deployed identity and
-production qualification remain open. Live mesh device authentication, durable
-telemetry, a fleet console, real collectors, predictions, diagnostics, federated
+`--transport mesh` enables the [admitted Tailcat adapter](networking/mesh/README.md)
+with persisted server identity, a pinned server/relay configuration, durable
+admission lookup and a separate signed-evidence application endpoint. Bootstrap
+and administrator HTTPS remain separate. The fixture demo accepts literal
+loopback addresses only. Deployed identity and production qualification remain
+open. A live fleet console, real collectors, predictions, diagnostics, federated
 coordination, lifecycle reports and contract transactions are not implemented.
 The administrative OIDC/session path remains a local implementation with an
 unqualified real-provider integration.

@@ -24,8 +24,9 @@ the inspected Tailcat module. The isolated
 [NET01 direct lab](tailcat-lab/README.md) now pins and exercises the upstream API on one Linux host. Cross-platform runtime and production
 acceptance remain open.
 
-`mesh/` is the Go seam. Its constructors currently return `ErrNotImplemented`.
-It must never silently fall back from mesh to unauthenticated public HTTP.
+[`mesh/`](mesh/README.md) implements the pinned admitted adapter. It imports the
+protected endpoint network identity, persists controller identity and requires
+explicit self-hosted relay configuration. It never falls back to public HTTP.
 Loopback fixtures have an explicitly separate listener.
 
 No node-to-node artifact distribution is required yet: Shepherd used it for

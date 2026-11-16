@@ -1,31 +1,32 @@
-// Package mesh preserves Shepherd's transport boundary without claiming a live mesh.
+// Package mesh provides admitted Tailcat transport and a separate loopback fixture.
 package mesh
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
+
+	"tailscale.com/tailcfg"
 )
 
-var ErrNotImplemented = errors.New("Tailcat/WireGuard/DERP adapter is not implemented")
-
 type DERPConfig struct {
-	MapURL            string
+	Region            *tailcfg.DERPRegion
 	AllowPublicRelays bool // false in production
 }
 
 type ServerConfig struct {
+	Context  context.Context
 	StateDir string
 	DERP     DERPConfig
 	Allow    func(peerKey string) bool
 }
 
 type ClientConfig struct {
-	StateDir   string
-	ServerAddr string
-	DERP       DERPConfig
+	NetworkPrivateKey []byte // Imported from the protected, admitted endpoint identity.
+	ServerAddr        string
+	ServerPublicKey   string // Canonical lowercase X25519 hex, provisioned separately.
+	DERP              DERPConfig
 }
 
 type Server interface {
@@ -40,9 +41,6 @@ type Client interface {
 	HTTPClient() *http.Client
 	Close() error
 }
-
-func NewServer(ServerConfig) (Server, error) { return nil, ErrNotImplemented }
-func NewClient(ClientConfig) (Client, error) { return nil, ErrNotImplemented }
 
 // ListenLocal is only for an unauthenticated development fixture on loopback.
 func ListenLocal(address string) (net.Listener, error) {

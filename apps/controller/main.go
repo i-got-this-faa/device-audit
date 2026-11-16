@@ -69,6 +69,9 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	flags := flag.NewFlagSet("controller", flag.ContinueOnError)
 	address := flags.String("listen", "127.0.0.1:8080", "loopback development listener")
 	transport := flags.String("transport", "loopback", "loopback or mesh")
+	meshState := flags.String("mesh-state-dir", "", "private persisted controller mesh state")
+	meshInit := flags.Bool("mesh-init", false, "exclusively provision controller mesh identity and exit")
+	regionFile := flags.String("derp-region-file", "", "local explicit self-hosted DERP region JSON")
 	databaseURL := flags.String("database-url", "", "PostgreSQL URL; empty keeps development samples in memory")
 	oidcIssuer := flags.String("oidc-issuer", defaults.OIDCIssuer, "configured OIDC issuer URL")
 	oidcClientID := flags.String("oidc-client-id", defaults.OIDCClientID, "OIDC confidential client ID")
@@ -94,8 +97,22 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	if !provided["oidc-client-secret"] {
 		*oidcClientSecret = defaults.OIDCClientSecret
 	}
-	if *transport != "loopback" {
-		return fmt.Errorf("transport %q: %w", *transport, mesh.ErrNotImplemented)
+	if *meshInit {
+		if *meshState == "" {
+			return errors.New("mesh initialization requires --mesh-state-dir")
+		}
+		if err := mesh.InitializeServer(*meshState); err != nil {
+			return err
+		}
+		public, err := mesh.ServerPublicKey(*meshState)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stdout, public)
+		return nil
+	}
+	if *transport != "loopback" && *transport != "mesh" {
+		return errors.New("transport must be loopback or mesh")
 	}
 	var tlsConfig *tls.Config
 	if *tlsCertFile != "" || *tlsKeyFile != "" {
@@ -155,11 +172,13 @@ func run(ctx context.Context, args []string, defaults environment) error {
 
 	var enrollment *controller.EnrollmentService
 	var inventory *controller.InventoryService
+	var repository *controller.PostgresRepository
 	if *deploymentID != "" {
 		if db == nil || consoleAuth == nil {
 			return errors.New("bootstrap enrollment requires a durable database and configured administrator authentication")
 		}
-		repository, err := controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: *deploymentID})
+		var err error
+		repository, err = controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: *deploymentID})
 		if err != nil {
 			return fmt.Errorf("enrollment repository startup failed: %w", err)
 		}
@@ -184,11 +203,49 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		AuthStatus:     authStatus,
 		Enrollment:     enrollment,
 		Inventory:      inventory,
+		MeshStatus:     *transport,
 	})
 	if tlsConfig != nil {
 		listener = tls.NewListener(listener, tlsConfig)
 	}
 	server := &http.Server{Handler: api.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second}
+	if *transport == "mesh" {
+		if repository == nil {
+			listener.Close()
+			return errors.New("mesh requires durable bootstrap admission and administrator HTTPS")
+		}
+		data, err := os.ReadFile(*regionFile)
+		if err != nil {
+			listener.Close()
+			return errors.New("read self-hosted DERP region file")
+		}
+		region, err := mesh.DecodeRegion(data)
+		if err != nil {
+			listener.Close()
+			return err
+		}
+		node, err := mesh.NewServer(mesh.ServerConfig{Context: ctx, StateDir: *meshState, DERP: mesh.DERPConfig{Region: region}, Allow: func(peer string) bool {
+			lookupCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			binding, err := repository.NetworkPeerBinding(lookupCtx, peer)
+			return err == nil && binding.NetworkPublicKey == peer
+		}})
+		if err != nil {
+			listener.Close()
+			return err
+		}
+		defer node.Close()
+		if err := mesh.WriteAddress(*meshState, node.Addr()); err != nil {
+			listener.Close()
+			return err
+		}
+		meshListener, err := node.Listen(ctx, "tcp", ":8080")
+		if err != nil {
+			listener.Close()
+			return errors.New("listen on admitted mesh application port")
+		}
+		return serveTransports(ctx, listener, api.Handler(), meshListener, controller.MeshHTTPServer(node, repository))
+	}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {

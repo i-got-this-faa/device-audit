@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -119,5 +120,8 @@ func TestEndpointEnrollmentPostgres(t *testing.T) {
 	id, _ := contracts.SigningKeyIDV1(ed25519.PublicKey(public))
 	if id != signingKey {
 		t.Fatal("restart key mismatch")
+	}
+	if runtime.GOOS != "windows" {
+		endpointMeshRoundTrip(t, repo, path, i, accepted)
 	}
 }

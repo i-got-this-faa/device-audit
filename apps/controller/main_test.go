@@ -30,9 +30,9 @@ func TestRunRejectsUnavailableDatabaseBeforeListening(t *testing.T) {
 	}
 }
 
-func TestRunRejectsMeshTransport(t *testing.T) {
+func TestRunRejectsMeshWithoutDurableAdmission(t *testing.T) {
 	err := run(context.Background(), []string{"--transport", "mesh", "--listen", freeAddress(t)}, environment{})
-	if err == nil || !strings.Contains(err.Error(), "not implemented") {
+	if err == nil || !strings.Contains(err.Error(), "requires durable bootstrap admission") {
 		t.Fatalf("mesh transport error: %v", err)
 	}
 }

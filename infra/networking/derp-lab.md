@@ -2,7 +2,7 @@
 
 This is the Linux development lab for [NET04 #84](https://github.com/i-got-this-faa/device-audit/issues/84).
 It extends the merged [NET01 #20 transport seam](../../networking/tailcat-lab/README.md),
-not the unavailable production `networking/mesh` adapter. It starts a real
+not the application `networking/mesh` adapter. It starts a real
 self-hosted upstream DERP server and two separate Tailcat peer processes in a
 fresh private network namespace. No hosted relay or mocked transport is used.
 
@@ -112,7 +112,7 @@ These are configuration requirements, not exercised production evidence.
 - The relay has no production access policy, organization isolation, abuse
   controls, capacity benchmark, health alerting, HA, rolling upgrade, or long
   outage qualification. Do not expose this test handler publicly.
-- The production adapter still returns explicit `ErrNotImplemented`. No wire
+- Application adapter work is documented in `networking/mesh/README.md`. No wire
   contracts, controller/endpoint routes, or device-ID binding change here.
 - Network keys, bootstrap admission, device evidence Ed25519 keys, and future
   chain signer keys remain distinct. No device signatures, telemetry truth,

@@ -1,8 +1,9 @@
 # Smart-contract audit verification
 
-Smart contracts are an explicit user decision in the handoff. The chain,
-execution environment, account permissions, governance and finality rules were
-not selected. No Solidity/EVM or other platform is assumed by the scaffold.
+Smart contracts are an explicit user decision in the handoff. CHAIN01 #47 now
+selects [Base Mainnet and its release policy](release-policy.md), with a separate
+writer, threshold administrator and L1-derived finality. The disabled deployment
+descriptor in `release-policy.json` contains no deployed contract or account.
 `packages/audit.Anchorer` is the application-facing boundary.
 
 Initial contract requirements:
@@ -28,4 +29,5 @@ CT09 #79 also defines off-chain pending/finalized/reverted receipt observations
 and evidence-verification states. The legacy `packages/audit.Anchorer` interface
 is unchanged and has no implementation. A consumer must adopt the versioned
 contracts explicitly; a receipt boolean or parsed fixture cannot establish
-finality. Chain selection and real authorization/reorganization tests remain open.
+finality. Real deployment, authorization/reorganization and signer-custody tests
+remain open. The selected policy does not implement the legacy interface.

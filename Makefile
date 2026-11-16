@@ -41,7 +41,7 @@ storage-crash-check:
 	TEST_POSTGRES_RESTART=1 $(GO) test -race -count=1 -v -run '^TestRepositoryPostgresCrashRecovery$$' ./internal/controller
 demo: build
 	$(PYTHON) tools/demo.py
-# The experimental dependency graph stays outside the application module.
+# The independent lab retains its own pinned module and checks.
 tailcat-lab-check:
 	cd networking/tailcat-lab && $(GO) vet ./...
 	cd networking/tailcat-lab && $(GO) test -race -count=1 -timeout=150s ./...

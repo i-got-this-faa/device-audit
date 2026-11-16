@@ -1,0 +1,21 @@
+{
+  "policy_version": "device-audit.chain-policy.v1",
+  "adapter_id": "base-mainnet-registry-v1",
+  "environment": "mainnet",
+  "chain_id": 8453,
+  "enabled": false,
+  "contract_address": null,
+  "runtime_code_keccak256": null,
+  "deployment_transaction_hash": null,
+  "deployment_block_hash": null,
+  "administrator_multisig": null,
+  "administrator_threshold": 2,
+  "administrator_owner_count": 3,
+  "writer_address": null,
+  "signer_service_reference": null,
+  "trusted_verifier_reference": null,
+  "independent_rpc_reference": null,
+  "finality": "verified-canonical-l2-at-or-below-l1-derived-finalized-head",
+  "max_total_fee_wei": "100000000000000",
+  "rolling_24h_fee_budget_wei": "1000000000000000"
+}

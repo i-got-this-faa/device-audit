@@ -252,3 +252,19 @@ func (s *PostgresRepository) NetworkBinding(ctx context.Context, deviceID string
 	binding.NetworkPublicKey, binding.RequestSHA256 = hex.EncodeToString(network), hex.EncodeToString(digest)
 	return binding, nil
 }
+
+// NetworkPeerBinding resolves a tunnel key only through committed, active admission.
+func (s *PostgresRepository) NetworkPeerBinding(ctx context.Context, peer string) (DeviceNetworkBinding, error) {
+	public, err := contracts.NetworkPublicKeyV1(peer)
+	if err != nil {
+		return DeviceNetworkBinding{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionKeyMismatch}
+	}
+	var device string
+	err = s.db.QueryRowContext(ctx, `SELECT n.device_id FROM device_network_bindings n
+		JOIN device_enrollments d USING (deployment_id,device_id)
+		WHERE n.deployment_id=$1 AND n.network_public_key=$2 AND d.revoked_at IS NULL`, s.deploymentID, public[:]).Scan(&device)
+	if err != nil {
+		return DeviceNetworkBinding{}, repositoryReadError(err)
+	}
+	return s.NetworkBinding(ctx, device)
+}

@@ -1,11 +1,10 @@
 package mesh
 
 import (
-	"errors"
 	"testing"
 )
 
-func TestDevelopmentBindingAndUnimplementedMesh(t *testing.T) {
+func TestDevelopmentBindingAndInvalidMesh(t *testing.T) {
 	for _, address := range []string{":8080", "0.0.0.0:8080", "192.0.2.1:8080", "example.com:8080"} {
 		if listener, err := ListenLocal(address); err == nil {
 			listener.Close()
@@ -17,10 +16,10 @@ func TestDevelopmentBindingAndUnimplementedMesh(t *testing.T) {
 		t.Fatal(err)
 	}
 	listener.Close()
-	if _, err := NewServer(ServerConfig{}); !errors.Is(err, ErrNotImplemented) {
+	if _, err := NewServer(ServerConfig{}); err == nil {
 		t.Fatalf("server error: %v", err)
 	}
-	if _, err := NewClient(ClientConfig{}); !errors.Is(err, ErrNotImplemented) {
+	if _, err := NewClient(ClientConfig{}); err == nil {
 		t.Fatalf("client error: %v", err)
 	}
 }
