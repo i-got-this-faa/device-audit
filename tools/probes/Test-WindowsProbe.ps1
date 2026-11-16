@@ -405,5 +405,14 @@ try {
     if (Test-Path -LiteralPath $tempRoot) { Remove-Item -LiteralPath $tempRoot -Recurse -Force }
 }
 
+Assert-True ((Get-ProbeTokenContext -AccountSid 'S-1-5-19' -Elevated $false) -eq 'local_service_token') `
+    'LocalService SID must be labeled from the token'
+Assert-True ((Get-ProbeTokenContext -AccountSid 'S-1-5-19' -Elevated $true) -eq 'local_service_token') `
+    'Elevation must not replace a LocalService label'
+Assert-True ((Get-ProbeTokenContext -AccountSid 'S-1-5-32-544' -Elevated $true) -eq 'interactive_token_not_service_qualification') `
+    'An elevated non-service token stays unqualified'
+Assert-True ((Get-ProbeTokenContext -AccountSid 'S-1-5-21-1-2-3-1001' -Elevated $false) -eq 'low_privilege_token') `
+    'A non-admin token stays low privilege'
+
 Write-Host 'fixture-driven export regression, not Windows evidence'
 Write-Host "PASS: $checks Windows probe checks"

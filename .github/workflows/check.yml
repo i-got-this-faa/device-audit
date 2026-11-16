@@ -47,6 +47,14 @@ jobs:
       - name: Native Windows checks and probe failure tests
         shell: pwsh
         run: ./tools/check-windows.ps1
+      - name: Save synthetic collector-budget evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: collector-budget-windows-ci
+          path: artifacts/collector-budget/windows-ci.json
+          if-no-files-found: warn
+          retention-days: 14
   project-automation:
     runs-on: ubuntu-latest
     steps:

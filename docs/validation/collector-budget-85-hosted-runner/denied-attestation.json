@@ -1,0 +1,98 @@
+{
+  "schema": "device-audit.service-token-attestation.v1",
+  "host_role": "github_hosted_windows_runner_not_physical_target",
+  "service": "DeviceAuditDenied",
+  "account": "\u003chost\u003e\\deviceaudit-denied",
+  "account_sid": "S-1-5-21-\u003clocal\u003e-1003",
+  "elevated": true,
+  "service_sid_present": true,
+  "service_sid": "S-1-5-80-2847218047-604107344-1038059165-2347674844-19511672",
+  "administrators_group": false,
+  "integrity_sid": "S-1-16-12288",
+  "privileges": [
+    {
+      "name": "SeChangeNotifyPrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeImpersonatePrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeCreateGlobalPrivilege",
+      "enabled": true
+    },
+    {
+      "name": "SeIncreaseWorkingSetPrivilege",
+      "enabled": false
+    }
+  ],
+  "groups": [
+    {
+      "name": "\u003chost\u003e\\None",
+      "sid": "S-1-5-21-\u003clocal\u003e-513",
+      "enabled": true
+    },
+    {
+      "name": "Everyone",
+      "sid": "S-1-1-0",
+      "enabled": true
+    },
+    {
+      "name": "BUILTIN\\Users",
+      "sid": "S-1-5-32-545",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\SERVICE",
+      "sid": "S-1-5-6",
+      "enabled": true
+    },
+    {
+      "name": "CONSOLE LOGON",
+      "sid": "S-1-2-1",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\Authenticated Users",
+      "sid": "S-1-5-11",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\This Organization",
+      "sid": "S-1-5-15",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\Local account",
+      "sid": "S-1-5-113",
+      "enabled": true
+    },
+    {
+      "name": "NT SERVICE\\DeviceAuditDenied",
+      "sid": "S-1-5-80-2847218047-604107344-1038059165-2347674844-19511672",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\LogonSessionId_\u003clogon\u003e",
+      "sid": "S-1-5-5-\u003clogon\u003e",
+      "enabled": true
+    },
+    {
+      "name": "LOCAL",
+      "sid": "S-1-2-0",
+      "enabled": true
+    },
+    {
+      "name": "NT AUTHORITY\\NTLM Authentication",
+      "sid": "S-1-5-64-10",
+      "enabled": true
+    },
+    {
+      "name": "Mandatory Label\\High Mandatory Level",
+      "sid": "S-1-16-12288",
+      "enabled": false
+    }
+  ],
+  "whoami_all": "\r\nUSER INFORMATION\r\n----------------\r\n\r\nUser Name                        SID                                           \r\n================================ ==============================================\r\n\u003chost\u003e\\deviceaudit-denied S-1-5-21-\u003clocal\u003e-1003\r\n\r\n\r\nGROUP INFORMATION\r\n-----------------\r\n\r\nGroup Name                           Type             SID                                                          Attributes                                        \r\n==================================== ================ ============================================================ ==================================================\r\nEveryone                             Well-known group S-1-1-0                                                      Mandatory group, Enabled by default, Enabled group\r\nBUILTIN\\Users                        Alias            S-1-5-32-545                                                 Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\SERVICE                 Well-known group S-1-5-6                                                      Mandatory group, Enabled by default, Enabled group\r\nCONSOLE LOGON                        Well-known group S-1-2-1                                                      Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Authenticated Users     Well-known group S-1-5-11                                                     Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\This Organization       Well-known group S-1-5-15                                                     Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\Local account           Well-known group S-1-5-113                                                    Mandatory group, Enabled by default, Enabled group\r\nNT SERVICE\\DeviceAuditDenied         Well-known group S-1-5-80-2847218047-604107344-1038059165-2347674844-19511672 Enabled by default, Enabled group, Group owner    \r\nLOCAL                                Well-known group S-1-2-0                                                      Mandatory group, Enabled by default, Enabled group\r\nNT AUTHORITY\\NTLM Authentication     Well-known group S-1-5-64-10                                                  Mandatory group, Enabled by default, Enabled group\r\nMandatory Label\\High Mandatory Level Label            S-1-16-12288                                                                                                   \r\n\r\n\r\nPRIVILEGES INFORMATION\r\n----------------------\r\n\r\nPrivilege Name                Description                               State   \r\n============================= ========================================= ========\r\nSeChangeNotifyPrivilege       Bypass traverse checking                  Enabled \r\nSeImpersonatePrivilege        Impersonate a client after authentication Enabled \r\nSeCreateGlobalPrivilege       Create global objects                     Enabled \r\nSeIncreaseWorkingSetPrivilege Increase a process working set            Disabled\r\n\r\n"
+}

@@ -1,0 +1,3157 @@
+{
+  "schema": "device-audit.collector-budget.harness.v1",
+  "provenance": "harness_synthetic",
+  "qualification": "not_windows_service_or_physical_target",
+  "service_access_qualified": false,
+  "candidate_cadence": true,
+  "host": {
+    "role": "development_or_ci_not_physical_target",
+    "go_version": "go1.27.1",
+    "goos": "windows",
+    "goarch": "amd64",
+    "os_family": "windows",
+    "os_version": "10.0.26100",
+    "cpu_model": "AMD EPYC 7763 64-Core Processor                ",
+    "core_count": 4,
+    "total_physical_bytes": 17174360064
+  },
+  "interval_ms": 60000,
+  "samples": 30,
+  "repeats": 1,
+  "baseline_ms": 2000,
+  "worker_deadline_ms": 10000,
+  "run_token": "planned_local_service_default_unattested",
+  "access": [
+    {
+      "source": "cpu",
+      "metric": "cpu_utilization",
+      "unit": "percent",
+      "provider": "CIM:root/cimv2:Win32_PerfFormattedData_PerfOS_Processor.PercentProcessorTime(_Total)",
+      "required_capabilities": [
+        "read_perfos_processor"
+      ],
+      "nullable": false,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "memory",
+      "metric": "memory_used",
+      "unit": "percent",
+      "provider": "CIM:root/cimv2:Win32_OperatingSystem.TotalVisibleMemorySize,FreePhysicalMemory",
+      "required_capabilities": [
+        "read_os_memory"
+      ],
+      "nullable": false,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "disk",
+      "metric": "disk_used",
+      "unit": "percent",
+      "provider": "CIM:root/cimv2:Win32_LogicalDisk.Size,FreeSpace(DriveType=3)",
+      "required_capabilities": [
+        "read_fixed_volume_space"
+      ],
+      "nullable": false,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "network",
+      "metric": "network_interface_rates",
+      "unit": "bytes_per_second",
+      "provider": ".NET:NetworkInterface.GetIPStatistics:250ms counter delta",
+      "required_capabilities": [
+        "read_local_interface_counters"
+      ],
+      "nullable": false,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "battery",
+      "metric": "battery_charge",
+      "unit": "percent",
+      "provider": "CIM:root/cimv2:Win32_Battery.EstimatedChargeRemaining",
+      "required_capabilities": [
+        "read_battery_charge"
+      ],
+      "nullable": true,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "thermal",
+      "metric": "acpi_zone_temperature",
+      "unit": "celsius",
+      "provider": "CIM:root/wmi:MSAcpi_ThermalZoneTemperature.CurrentTemperature",
+      "required_capabilities": [
+        "read_acpi_thermal_zone"
+      ],
+      "nullable": true,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "gpu",
+      "metric": "gpu_engine_and_nvidia",
+      "unit": "percent",
+      "provider": "CIM:root/cimv2:Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine.UtilizationPercentage; NVIDIA:nvidia-smi:utilization.gpu,temperature.gpu",
+      "required_capabilities": [
+        "read_gpu_engine",
+        "read_existing_nvidia_smi"
+      ],
+      "nullable": true,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    },
+    {
+      "source": "events",
+      "metric": "event_log_metadata_and_error_presence",
+      "unit": "boolean",
+      "provider": "Get-WinEvent:-ListProvider/-ListLog System,Application; bounded Level 1,2 query (metadata/boolean only)",
+      "required_capabilities": [
+        "read_system_log_metadata",
+        "read_application_log_metadata",
+        "read_system_log_error_presence",
+        "read_application_log_error_presence"
+      ],
+      "nullable": false,
+      "planned_service_profile": "allowed",
+      "denied_profile": "permission_denied",
+      "extra_grant_selected": false,
+      "unrestricted_execution": false,
+      "service_access_qualified": false
+    }
+  ],
+  "windows": [
+    {
+      "kind": "baseline",
+      "repeat": 0,
+      "wall_ms": 2000.2463,
+      "cpu_ms": 0,
+      "core_count": 4,
+      "cpu_percent_one_core": 0,
+      "cpu_percent_machine": 0,
+      "rss_start_bytes": 7819264,
+      "rss_end_bytes": 8265728,
+      "rss_peak_bytes": 8265728,
+      "rss_samples_bytes": [
+        7819264,
+        8265728
+      ],
+      "heap_alloc_end_bytes": 446144
+    },
+    {
+      "kind": "probe",
+      "repeat": 0,
+      "wall_ms": 1740012.5384,
+      "cpu_ms": 0,
+      "core_count": 4,
+      "cpu_percent_one_core": 0,
+      "cpu_percent_machine": 0,
+      "rss_start_bytes": 8269824,
+      "rss_end_bytes": 8663040,
+      "rss_peak_bytes": 8663040,
+      "rss_samples_bytes": [
+        8269824,
+        8273920,
+        8273920,
+        8273920,
+        8273920,
+        8273920,
+        8273920,
+        8273920,
+        8282112,
+        8282112,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8265728,
+        8269824,
+        8282112,
+        8310784,
+        8310784,
+        8310784,
+        8310784,
+        8310784,
+        8310784,
+        8310784,
+        8323072,
+        8323072,
+        8331264,
+        8331264,
+        8331264,
+        8347648,
+        8351744,
+        8351744,
+        8351744,
+        8368128,
+        8368128,
+        8368128,
+        8368128,
+        8376320,
+        8376320,
+        8392704,
+        8392704,
+        8392704,
+        8421376,
+        8421376,
+        8421376,
+        8421376,
+        8421376,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8429568,
+        8433664,
+        8437760,
+        8441856,
+        8441856,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8458240,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8462336,
+        8478720,
+        8478720,
+        8478720,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8486912,
+        8478720,
+        8478720,
+        8478720,
+        8486912,
+        8486912,
+        8486912,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8495104,
+        8499200,
+        8499200,
+        8499200,
+        8499200,
+        8499200,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8507392,
+        8511488,
+        8511488,
+        8511488,
+        8511488,
+        8511488,
+        8511488,
+        8515584,
+        8515584,
+        8515584,
+        8515584,
+        8515584,
+        8515584,
+        8515584,
+        8519680,
+        8519680,
+        8519680,
+        8519680,
+        8519680,
+        8523776,
+        8523776,
+        8523776,
+        8523776,
+        8523776,
+        8536064,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8544256,
+        8552448,
+        8552448,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8560640,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8568832,
+        8577024,
+        8577024,
+        8577024,
+        8593408,
+        8593408,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8601600,
+        8609792,
+        8609792,
+        8609792,
+        8609792,
+        8617984,
+        8617984,
+        8617984,
+        8617984,
+        8617984,
+        8617984,
+        8617984,
+        8626176,
+        8626176,
+        8630272,
+        8638464,
+        8638464,
+        8638464,
+        8638464,
+        8638464,
+        8638464,
+        8638464,
+        8646656,
+        8654848,
+        8654848,
+        8654848,
+        8663040,
+        8663040,
+        8663040
+      ],
+      "heap_alloc_end_bytes": 865488,
+      "sweeps": [
+        {
+          "index": 0,
+          "overrun": false,
+          "wall_ms": 1.7248,
+          "cpu_ms": 0,
+          "rss_bytes": 8282112,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6248,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5717,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5283,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 1,
+          "overrun": false,
+          "wall_ms": 1.4606,
+          "cpu_ms": 0,
+          "rss_bytes": 8265728,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4006,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5358,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5242,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "overrun": false,
+          "wall_ms": 1.8074,
+          "cpu_ms": 0,
+          "rss_bytes": 8310784,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6995,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5275,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "overrun": false,
+          "wall_ms": 1.8256,
+          "cpu_ms": 0,
+          "rss_bytes": 8351744,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7295,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5469,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "overrun": false,
+          "wall_ms": 1.8099,
+          "cpu_ms": 0,
+          "rss_bytes": 8392704,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5597,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4498,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.8004,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 5,
+          "overrun": false,
+          "wall_ms": 1.8243,
+          "cpu_ms": 0,
+          "rss_bytes": 8429568,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5351,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7382,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.551,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 6,
+          "overrun": false,
+          "wall_ms": 1.2907,
+          "cpu_ms": 0,
+          "rss_bytes": 8429568,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6232,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6675,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 7,
+          "overrun": false,
+          "wall_ms": 1.2779,
+          "cpu_ms": 0,
+          "rss_bytes": 8458240,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.711,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5669,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 8,
+          "overrun": false,
+          "wall_ms": 1.568,
+          "cpu_ms": 0,
+          "rss_bytes": 8458240,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7012,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5411,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3257,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 9,
+          "overrun": false,
+          "wall_ms": 1.5651,
+          "cpu_ms": 0,
+          "rss_bytes": 8462336,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3592,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5872,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 10,
+          "overrun": false,
+          "wall_ms": 1.935,
+          "cpu_ms": 0,
+          "rss_bytes": 8486912,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3022,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5507,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3961,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.686,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 11,
+          "overrun": false,
+          "wall_ms": 0.9978,
+          "cpu_ms": 0,
+          "rss_bytes": 8486912,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4598,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 12,
+          "overrun": false,
+          "wall_ms": 2.32,
+          "cpu_ms": 0,
+          "rss_bytes": 8495104,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3057,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3418,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6706,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5585,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4434,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 13,
+          "overrun": false,
+          "wall_ms": 1.8228,
+          "cpu_ms": 0,
+          "rss_bytes": 8495104,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6125,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5498,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 14,
+          "overrun": false,
+          "wall_ms": 1.8072,
+          "cpu_ms": 0,
+          "rss_bytes": 8507392,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5732,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7012,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 15,
+          "overrun": false,
+          "wall_ms": 1.7976,
+          "cpu_ms": 0,
+          "rss_bytes": 8507392,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7353,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5366,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5257,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 16,
+          "overrun": false,
+          "wall_ms": 1.7807,
+          "cpu_ms": 0,
+          "rss_bytes": 8515584,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6969,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3275,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7563,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 17,
+          "overrun": false,
+          "wall_ms": 1.2536,
+          "cpu_ms": 0,
+          "rss_bytes": 8519680,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7216,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.532,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 18,
+          "overrun": false,
+          "wall_ms": 1.6598,
+          "cpu_ms": 0,
+          "rss_bytes": 8544256,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7217,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5415,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3966,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 19,
+          "overrun": false,
+          "wall_ms": 2.38,
+          "cpu_ms": 0,
+          "rss_bytes": 8552448,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.742,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3622,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7305,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5453,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 20,
+          "overrun": false,
+          "wall_ms": 1.7821,
+          "cpu_ms": 0,
+          "rss_bytes": 8560640,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6905,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3478,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7438,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 21,
+          "overrun": false,
+          "wall_ms": 1.8044,
+          "cpu_ms": 0,
+          "rss_bytes": 8560640,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7607,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5442,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 22,
+          "overrun": false,
+          "wall_ms": 1.0702,
+          "cpu_ms": 0,
+          "rss_bytes": 8560640,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6275,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4427,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 23,
+          "overrun": false,
+          "wall_ms": 1.6235,
+          "cpu_ms": 0,
+          "rss_bytes": 8568832,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4488,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6483,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 24,
+          "overrun": false,
+          "wall_ms": 1.0086,
+          "cpu_ms": 0,
+          "rss_bytes": 8568832,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6133,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3953,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 25,
+          "overrun": false,
+          "wall_ms": 1.806,
+          "cpu_ms": 0,
+          "rss_bytes": 8593408,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6587,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6228,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5245,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 26,
+          "overrun": false,
+          "wall_ms": 1.8252,
+          "cpu_ms": 0,
+          "rss_bytes": 8601600,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6498,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6221,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5533,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 27,
+          "overrun": false,
+          "wall_ms": 2.0772,
+          "cpu_ms": 0,
+          "rss_bytes": 8617984,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.6988,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5261,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5241,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3282,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 28,
+          "overrun": false,
+          "wall_ms": 1.6767,
+          "cpu_ms": 0,
+          "rss_bytes": 8638464,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7192,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.542,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.4155,
+              "invoked": true
+            }
+          ]
+        },
+        {
+          "index": 29,
+          "overrun": false,
+          "wall_ms": 1.8391,
+          "cpu_ms": 0,
+          "rss_bytes": 8663040,
+          "sources": [
+            {
+              "source": "cpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "memory",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "disk",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.7041,
+              "invoked": true
+            },
+            {
+              "source": "network",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.3178,
+              "invoked": true
+            },
+            {
+              "source": "battery",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "thermal",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "gpu",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0,
+              "invoked": true
+            },
+            {
+              "source": "events",
+              "metric": "synthetic_work",
+              "unit": "iteration",
+              "provenance": "harness_synthetic",
+              "outcome": "success",
+              "value": 200000,
+              "query_ms": 0.5169,
+              "invoked": true
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "sweeps": 30,
+    "overruns": 0,
+    "succeeded": 240,
+    "permission_denied": 0,
+    "timed_out": 0,
+    "collection_errors": 0,
+    "max_query_ms": 0.8004,
+    "rss_peak_bytes": 8663040,
+    "rss_steady_bytes": 8663040,
+    "baseline_cpu_percent_one_core_mean": 0,
+    "probe_cpu_percent_one_core_mean": 0,
+    "probe_cpu_percent_one_core_max": 0,
+    "probe_cpu_percent_machine_mean": 0,
+    "cpu_delta_one_core_mean": 0
+  },
+  "recommendation": {
+    "status": "not_approved",
+    "applies_to": "harness_synthetic",
+    "candidate_cadence_ms": [
+      15000,
+      60000
+    ],
+    "observed_max_query_ms": 0.8004,
+    "recommended_worker_deadline_ms": 10000,
+    "observed_rss_peak_bytes": 8663040,
+    "production_budget_approved": false,
+    "reason": "Synthetic sampler cost on this host. Provider-host CPU, LocalService and denied tokens, and both physical Windows machines are not in this run. No production cadence or memory budget is approved."
+  }
+}

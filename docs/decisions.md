@@ -628,3 +628,34 @@ distinct from reverts. Draft 2020-12 schema validation covers the same
 descriptor vectors. `ReleaseDeploymentObserved` stays false. No RPC query,
 transaction, deployment, measured gas quote, or signer-custody check was added.
 The legacy Anchorer interface remains unimplemented.
+
+## Collector permission and cadence harness, TEL04 #85
+
+On 16 November 2026 the telemetry package gained a planning permission catalog,
+a 15-second and 60-second cadence scheduler, and an in-process sampler. The
+catalog is the minimum read set for the selected sources. It rejects
+administrator, LocalSystem, SeDebug, a broad event-log group, WMI ACL changes
+and Security-log access. Planning and denied profiles are unattested capability
+sets. Native token attestation returns an error, including on Windows, until a
+measured LocalService token and a separately provisioned denied token exist.
+
+The sampler preserves nulls on denial, timeout and collection failure, continues
+to later sources, and does not insert catch-up sweeps. Its report schema is
+`device-audit.collector-budget.harness.v1`. It is not telemetry v1 or v2 and it
+carries no device identifier. Process CPU and RSS describe the sampler process
+only. The 16 November Linux measurements and the exact remaining physical
+Windows steps are in [collector-budget-85.md](validation/collector-budget-85.md).
+Those measurements do not approve a production cadence, memory budget or
+service-permission claim. The production collector interface still returns
+`ErrNotImplemented`.
+
+`AttestNativeToken` still returns an error. A separate manual workflow,
+`service-budget.yml`, can install the probe and synthetic harness as Windows
+services on a GitHub-hosted `windows-2025` runner under `NT AUTHORITY\LocalService`
+and a distinct low-privilege account. Its attestation schema is
+`device-audit.service-token-attestation.v1`. That runner is a hosted VM. It
+does not satisfy the two-physical-machine gate, and the workflow does not
+change sensor, WMI or event-log ACLs or grant administrator rights. The 16
+November 2026 run 43859814735 recorded both tokens and the 15s/60s measurements;
+the numbers are in [collector-budget-85.md](validation/collector-budget-85.md).
+They do not approve a production budget.

@@ -18,7 +18,17 @@ if (-not (Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($fullOutput)) -Pat
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = [Security.Principal.WindowsPrincipal]::new($identity)
 $elevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$accountSid = $identity.User.Value
+$serviceSidPresent = $false
+foreach ($group in @($identity.Groups)) {
+    if ($group.Value.StartsWith('S-1-5-80-')) { $serviceSidPresent = $true }
+}
+$accountName = $identity.Name
 $identity.Dispose()
+$hostName = [Environment]::GetEnvironmentVariable('COMPUTERNAME')
+if (-not [string]::IsNullOrEmpty($hostName)) { $accountName = $accountName.Replace($hostName, '<host>') }
+$context = Get-ProbeTokenContext -AccountSid $accountSid -Elevated $elevated
+$accountSid = [regex]::Replace($accountSid, 'S-1-5-21-\d+-\d+-\d+-', 'S-1-5-21-<local>-')
 $report = [ordered]@{
     schema_version = 'device-audit.windows-probe.v1'
     purpose = 'development_source_availability_and_probe_cost_only'
@@ -28,7 +38,10 @@ $report = [ordered]@{
         version = [Environment]::OSVersion.Version.ToString()
         architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
         elevated = $elevated; powershell = $PSVersionTable.PSVersion.ToString()
-        context = 'interactive_token_not_service_qualification'
+        context = $context
+        account_sid = $accountSid
+        account_name = $accountName
+        service_sid_present = $serviceSidPresent
     }
     samples = $Samples; interval_seconds = $IntervalSeconds; timeout_seconds = $TimeoutSeconds
     sweeps = @()

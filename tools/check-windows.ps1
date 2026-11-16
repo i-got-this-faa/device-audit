@@ -40,7 +40,17 @@ try {
     $env:GOARCH = 'arm64'
     Invoke-Checked go @('build', '-o', 'bin/endpoint-agent-darwin', './apps/endpoint-agent')
     & "$PSScriptRoot/probes/Test-WindowsProbe.ps1"
-    Write-Host 'PASS: Windows vet/race/format/model checks, native fixture demo, cross-builds and probe checks'
+    # The Darwin cross-build above changes GOOS. Restore the native Windows
+    # toolchain before timing the synthetic sampler. This is not a physical
+    # target or LocalService measurement.
+    $env:CGO_ENABLED = '1'
+    $env:GOOS = 'windows'
+    $env:GOARCH = 'amd64'
+    $null = New-Item -ItemType Directory -Force -Path artifacts/collector-budget
+    Invoke-Checked go @('run', './tools/probes/collectorbudget',
+        '-output', 'artifacts/collector-budget/windows-ci.json',
+        '-interval', '15s', '-samples', '2', '-repeats', '1', '-baseline', '1s', '-iterations', '200000')
+    Write-Host 'PASS: Windows vet/race/format/model checks, native fixture demo, cross-builds, probe checks and synthetic collector budget'
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], 'Process') }
     Pop-Location

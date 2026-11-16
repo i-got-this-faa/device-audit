@@ -31,9 +31,12 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   [release policy](../../contracts/release-policy.md).
 - **#85 partially measured; qualification on hold.** Existing Windows probe code
   and earlier single-laptop measurements are merged through PRs #169/#181.
-  A second physical target is still unavailable. LocalService versus actual
-  denied-permission comparisons and controlled full-system overhead remain.
-  See [measurement matrix](collector-budget-85.md).
+  A second physical target is still unavailable. On 16 November 2026 a
+  GitHub-hosted `windows-2025` VM recorded LocalService and a separate
+  low-privilege service token, including 30-sweep 15s and 60s probe and
+  harness runs. That VM is not a physical machine. Full-system overhead and
+  the two-physical-machine gate remain. See
+  [measurement matrix](collector-budget-85.md).
 - **#87 implemented in separate [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
   Its `ee5bd74` commit adds `--sign-evidence`, scope-bound `sequence.state`,
   durable reservation before signing and forced-process restart/golden-vector
@@ -98,11 +101,10 @@ identity. A passing native test is not LocalService, physical-laptop, NAT/WAN,
 or deployed DERP qualification. Do not run the Unix mode-0600 state check as
 proof of Windows endpoint support.
 
-For #85, begin with the existing physical laptop/token/source matrix. Do not
+For #85, the hosted-runner service measurement is already recorded. Do not
 claim two-machine completion, convert an interactive run to service evidence,
 modify live source permissions to obtain success, or infer production cost from
-the PowerShell prototype. Service-token setup and second-target access remain
-explicit prerequisites.
+the PowerShell prototype. Two physical targets remain an explicit prerequisite.
 
 ## #87 review and integration
 
