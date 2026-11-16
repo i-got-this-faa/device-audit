@@ -124,6 +124,10 @@ func Parse(data []byte) (Descriptor, error) {
 	if !integerPattern.Match(bytes.TrimSpace(fields["chain_id"])) {
 		return Descriptor{}, fmt.Errorf("chain_id must be a canonical integer")
 	}
+	enabled := bytes.TrimSpace(fields["enabled"])
+	if !bytes.Equal(enabled, []byte("true")) && !bytes.Equal(enabled, []byte("false")) {
+		return Descriptor{}, fmt.Errorf("enabled must be a JSON boolean")
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	var descriptor Descriptor
@@ -187,7 +191,7 @@ func (d Descriptor) validateNetwork() error {
 			return fmt.Errorf("local descriptor must use the local adapter")
 		}
 		if d.ChainID == 0 || d.ChainID == EthereumMainnetChainID || d.ChainID == MainnetChainID || d.ChainID == SepoliaChainID {
-			return fmt.Errorf("local chain id cannot impersonate a public chain")
+			return fmt.Errorf("local chain id cannot use 1, 8453, or 84532")
 		}
 	default:
 		return fmt.Errorf("unknown environment")

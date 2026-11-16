@@ -123,6 +123,7 @@ func TestDescriptorEncodingRejections(t *testing.T) {
 	}
 	duplicate := strings.Replace(string(committed), `"policy_version"`, `"policy_version":"device-audit.chain-policy.v1","policy_version"`, 1)
 	fractional := strings.Replace(string(committed), `"chain_id": 8453`, `"chain_id": 8453.0`, 1)
+	nullEnabled := strings.Replace(string(committed), `"enabled": false`, `"enabled": null`, 1)
 	trailing := string(committed) + "\n{}"
 	for _, test := range []struct {
 		name string
@@ -130,6 +131,7 @@ func TestDescriptorEncodingRejections(t *testing.T) {
 	}{
 		{"duplicate field", duplicate},
 		{"fractional chain id", fractional},
+		{"null enabled", nullEnabled},
 		{"trailing value", trailing},
 		{"array", "[]"},
 	} {

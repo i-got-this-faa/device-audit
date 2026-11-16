@@ -11,9 +11,10 @@ or contract bytecode was added.
   with a 2-of-3 administrator, the selected fee ceilings, and no deployment fields.
 - `contracts/fixtures/policy/v1-vectors.json` separates that release network from
   disabled Base Sepolia and local EVM descriptors. Incomplete enabled descriptors,
-  zero addresses, public chain IDs labeled local or testnet, raised fee ceilings,
-  device identifiers, hostnames, raw logs, and credential or device-key references
-  are rejected.
+  zero addresses, null `enabled`, local chain IDs 1, 8453, and 84532, device
+  identifiers, hostnames, and raw logs are rejected. Parse rejects raised fee
+  ceilings; the JSON Schema wei pattern does not. Reference checks reject listed
+  key and device-identity words and do not prove a reference contains no secret.
 - `contracts/fixtures/policy/observations.json` matches the confirmation, revert,
   and outage rules. One rule claims finality. Outage and source disagreement do
   not fabricate a revert. A lost canonical inclusion clears current finality.

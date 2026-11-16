@@ -68,12 +68,21 @@ Chain IDs are listed in Base's [RPC reference](https://docs.base.org/base-chain/
 
 `release-policy.json` records the chosen policy and an intentionally disabled
 deployment descriptor. It is a decision/configuration template, not a running
-adapter. `release-policy.schema.json` and `contracts/policy` reject incomplete
-descriptors, public-chain ids presented as local or testnet evidence, zero
-addresses, fee-ceiling raises, device identifiers, and credential-shaped
-references. Shared fixtures live in `contracts/fixtures/policy/`. Do not replace
-absent addresses with the zero address, sample credentials or a testnet
-deployment. A structurally complete fixture is still not a deployment.
+adapter. `release-policy.schema.json` checks shape: the required field set,
+Base Mainnet or Base Sepolia binding, a boolean `enabled`, and absent
+deployment fields when disabled. A local descriptor cannot use chain IDs 1,
+8453, or 84532. Other chain IDs, including other public networks, can still
+appear on the local adapter and remain `local-test` evidence.
+`contracts/policy.Parse` applies those checks and also rejects fee strings
+above the selected ceilings or above the descriptor's daily budget. The schema
+accepts any canonical wei string, so schema validation alone does not enforce
+the ceiling. Parse also rejects URL-shaped references and names containing
+private-key, API-key, secret, password, credential, Ed25519, X25519, OIDC,
+mesh, or PSK text. A name outside that list can still embed a secret, so
+enabling a descriptor requires a separate reference review. Shared fixtures
+live in `contracts/fixtures/policy/`. Do not replace absent addresses with the
+zero address, sample credentials, or a testnet deployment. A structurally
+complete fixture is still not a deployment.
 
 A release descriptor must bind policy/adapter version, environment, chain ID,
 registry address, deployed runtime-code Keccak-256, deployment transaction and
@@ -173,10 +182,11 @@ requires a reviewed policy change.
 must leave every deployment, role, and service reference absent. Enabled
 descriptors must carry distinct registry, writer, and administrator addresses,
 distinct `signer:`, `verifier:`, and `rpc:` references, and non-zero code and
-transaction hashes. References are configuration names, not URLs, private keys,
-device Ed25519/X25519 identities, mesh PSKs, or OIDC material. Fee amounts may
-be lowered, including to zero, and cannot exceed the selected ceilings or each
-other. `EvidenceClass` returns `selected-release-network`,
+transaction hashes. `enabled` must be JSON `true` or `false`. Reference names
+must use those prefixes. Parse rejects URLs and the keyword list in the
+deployment section; a name outside that list can still embed a secret. Fee
+amounts may be lowered, including to zero. Parse rejects a fee above the
+selected ceilings or above that descriptor's daily budget. `EvidenceClass` returns `selected-release-network`,
 `integration-testnet`, or `local-test`. `ReleaseDeploymentObserved` is always
 false.
 
