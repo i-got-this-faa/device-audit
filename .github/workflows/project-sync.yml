@@ -1,5 +1,8 @@
 name: Reconcile project 7
 
+# This workflow reconciles project state for issues, schedules and pull
+# requests. It is not a path-filtered test job. The push trigger is already
+# limited to the sync script and this file.
 on:
   issues:
     types: [opened, edited, closed, reopened, labeled, unlabeled, assigned, unassigned, milestoned, demilestoned, transferred]

@@ -233,6 +233,7 @@ type DeviceNetworkBinding struct {
 	DeploymentID     string
 	DeviceID         string
 	SigningKeyID     string
+	SigningPublicKey ed25519.PublicKey
 	NetworkPublicKey string
 	RequestSHA256    string
 	EnrolledAt       time.Time
@@ -242,13 +243,14 @@ type DeviceNetworkBinding struct {
 // The caller must still authorize the actual peer and enforce device revocation.
 func (s *PostgresRepository) NetworkBinding(ctx context.Context, deviceID string) (DeviceNetworkBinding, error) {
 	var binding DeviceNetworkBinding
-	var network, digest []byte
-	err := s.db.QueryRowContext(ctx, `SELECT n.deployment_id,n.device_id,d.signing_key_id,n.network_public_key,n.request_sha256,d.enrolled_at FROM device_network_bindings n
+	var signing, network, digest []byte
+	err := s.db.QueryRowContext(ctx, `SELECT n.deployment_id,n.device_id,d.signing_key_id,d.public_key,n.network_public_key,n.request_sha256,d.enrolled_at FROM device_network_bindings n
 		JOIN device_enrollments d USING (deployment_id,device_id)
-		WHERE n.deployment_id=$1 AND n.device_id=$2 AND d.revoked_at IS NULL`, s.deploymentID, deviceID).Scan(&binding.DeploymentID, &binding.DeviceID, &binding.SigningKeyID, &network, &digest, &binding.EnrolledAt)
+		WHERE n.deployment_id=$1 AND n.device_id=$2 AND d.revoked_at IS NULL`, s.deploymentID, deviceID).Scan(&binding.DeploymentID, &binding.DeviceID, &binding.SigningKeyID, &signing, &network, &digest, &binding.EnrolledAt)
 	if err != nil {
 		return DeviceNetworkBinding{}, repositoryReadError(err)
 	}
+	binding.SigningPublicKey = ed25519.PublicKey(signing)
 	binding.NetworkPublicKey, binding.RequestSHA256 = hex.EncodeToString(network), hex.EncodeToString(digest)
 	return binding, nil
 }

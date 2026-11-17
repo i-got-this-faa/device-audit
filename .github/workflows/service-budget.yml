@@ -7,18 +7,35 @@ on:
         required: false
         default: "30"
   # workflow_dispatch is registered only after this file is on the default
-  # branch. Pushing this file or the trigger file runs the same job from a PR branch.
+  # branch. The heavy job is gated by the changes output so a push that does
+  # not touch it still reports a completed check.
   push:
-    paths:
-      - tools/probes/service-budget.trigger
-      - tools/probes/Invoke-ServiceTokenBudget.ps1
-      - tools/probes/collectorservice/**
-      - .github/workflows/service-budget.yml
 permissions:
   contents: read
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      service_token_budget: ${{ steps.filter.outputs.service_token_budget }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          CI_WORKFLOW: service-budget
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_REF: ${{ github.ref }}
+          CI_SHA: ${{ github.sha }}
+          CI_BEFORE: ${{ github.event.before }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: python3 -u tools/ci/path_filters.py
   service-token-budget:
-    if: github.event_name == 'workflow_dispatch' || github.ref != 'refs/heads/main'
+    needs: changes
+    if: needs.changes.result == 'success' && (github.event_name == 'workflow_dispatch' || (github.ref != 'refs/heads/main' && needs.changes.outputs.service_token_budget == 'true'))
     runs-on: windows-2025
     timeout-minutes: 360
     steps:

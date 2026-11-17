@@ -244,7 +244,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			listener.Close()
 			return errors.New("listen on admitted mesh application port")
 		}
-		return serveTransports(ctx, listener, api.Handler(), meshListener, controller.MeshHTTPServer(node, repository))
+		return serveTransports(ctx, listener, api.Handler(), meshListener, controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repository}))
 	}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()

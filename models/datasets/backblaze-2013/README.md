@@ -82,7 +82,8 @@ There are no usable per-component CPU, GPU, memory, battery or network fault
 labels, fault-type labels, or Windows service/diagnostic outcome labels in
 this corpus. Those failure-prediction claims are blocked. Endpoint prediction
 also remains blocked by the absent matching collector, historical/datacenter
-domain shift, #86's evaluation thresholds and #33/#103's fitting/evaluation.
+domain shift and #33/#103's fitting/evaluation against #86's
+[predeclared thresholds](../../evaluation/README.md).
 No existing healthy/risk value or production capability changes here.
 
 ## Deterministic device and temporal separation
