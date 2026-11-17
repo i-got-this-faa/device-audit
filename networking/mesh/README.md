@@ -61,18 +61,29 @@ lookup outages cannot establish a new application session. The server
 limits concurrent admission lookups to four, leaving capacity for evidence and
 administrator operations in the configured ten-connection database pool. A
 saturated admission hook denies immediately; clients may retry later. The handler
-rechecks that binding on each evidence request, checks device/deployment/signing
-scope, and disconnects denied peers. No request header supplies peer identity.
-Repository signature, expiry, sequence and revocation checks remain independent
-and run inside the evidence transaction. This is not a device-revocation API or
-a key-rotation implementation.
+rechecks that binding on each evidence request and disconnects denied peers. No
+request header supplies peer identity. Before it calls the repository, the
+handler verifies the envelope version, deployment, device and signing key ID
+against the binding, the Ed25519 signature against the admitted signing public
+key, and the declared expiry and future-skew policy. The repository repeats its
+own signature, expiry, sequence and revocation checks inside the evidence
+transaction. This is not a device-revocation API or a key-rotation implementation.
+
+Every rejected request writes one structured `evidence rejected` log record with
+`event=evidence_rejected` and the contract `reason`. The record names the tunnel
+key (`peer`) as the attributable principal. It adds the bound `device_id` and
+`deployment_id` after admission, the envelope's `claimed_device_id` when it
+matches the opaque ID grammar, and `request_sha256` when the signed fields are
+well formed. It never contains the payload or the signature. Storage failures
+log at error level and security rejections at warning level.
 
 Only `POST /v1/evidence` is exposed on mesh TCP port 8080. The request is the
 existing strict `device-audit.evidence.v1` contract, bounded to 400 KiB, without
 queries. HTTP 204 means the repository returned after commit; it has no response
-body and is **not** a CT04 signed acknowledgement. Storage/uncertain commit
-failures are 503; envelope conflicts are 409; malformed input is 400 and peer
-scope denial is 403. Lost replies remain uncertain. Preserve the signed envelope;
+body and is **not** a CT04 signed acknowledgement. Storage and uncertain commit
+failures are 503. Malformed input and queries are 400 (`invalid_payload`). Peer,
+deployment and signing-key scope denials are 403. Signature, timestamp, replay
+and other envelope rejections are 409. Lost replies remain uncertain. Preserve the signed envelope;
 never fabricate a receipt or allocate a new sequence for an automatic retry.
 Signed acknowledgement/reconciliation policy remains #89.
 
@@ -89,9 +100,13 @@ proves a direct UDP path plus peer-bound HTTP, restarts both processes with the
 same server state and endpoint network key, and rejects an unknown key before
 and after restart. It also checks corrupt/missing state and duplicate provisioning.
 Controller HTTP tests exercise scope denial, tampering, unavailable storage and
-administrator separation. With `TEST_DATABASE_URL`, durable admission tests use
-the actual TLS enrollment handlers and an independent PostgreSQL repository,
-then deny a revoked binding. Run `make check` and `make cross-build` too.
+administrator separation, and prove that rejected envelopes never reach the
+repository. With `TEST_DATABASE_URL`, durable admission tests use the actual TLS
+enrollment handlers and an independent PostgreSQL repository, then deny a revoked
+binding. `TestEvidenceVerificationRejectsBeforeIngestion` sends forged, altered,
+wrong-key, misbound-peer, unknown-peer, expired, future, wrong-version and
+wrong-deployment evidence through two enrolled devices. It checks the status, the
+security event and that no sample or sequence mark changed. Run `make check` and `make cross-build` too.
 
 `go test -race -count=1 ./networking/mesh` also reloads the persisted public key,
 rejects a second owner, a changed address and corrupt state. On Windows that
