@@ -50,6 +50,21 @@ class ClassifyTests(unittest.TestCase):
             {"console_browser", "windows_check", "check", "database"},
         )
 
+    def test_relay_package_runs_module_tests_and_relay_proof(self):
+        self.assertEqual(
+            self.selected("check", "networking/relay/relay.go"),
+            {"windows_check", "check", "relay_fallback"},
+        )
+        self.assertEqual(
+            self.selected("check", "networking/mesh/relaycheck.go"),
+            {"windows_check", "check", "relay_fallback", "database"},
+        )
+        self.assertEqual(
+            self.selected("check", "infra/networking/run-relay-fallback.sh"),
+            {"windows_check", "check", "relay_fallback"},
+        )
+        self.assertEqual(self.selected("check", "apps/relay/main.go"), {"windows_check", "check"})
+
     def test_tailcat_go_is_only_the_lab_job(self):
         self.assertEqual(
             self.selected("check", "networking/tailcat-lab/direct_test.go"),
@@ -59,7 +74,7 @@ class ClassifyTests(unittest.TestCase):
     def test_makefile_runs_make_targets_only(self):
         self.assertEqual(
             self.selected("check", "Makefile"),
-            {"console_browser", "check", "tailcat_lab", "database"},
+            {"console_browser", "check", "tailcat_lab", "relay_fallback", "database"},
         )
         self.assertEqual(self.selected("service-budget", "Makefile"), set())
 

@@ -15,6 +15,7 @@ jobs:
       project_automation: ${{ steps.filter.outputs.project_automation }}
       check: ${{ steps.filter.outputs.check }}
       tailcat_lab: ${{ steps.filter.outputs.tailcat_lab }}
+      relay_fallback: ${{ steps.filter.outputs.relay_fallback }}
       database: ${{ steps.filter.outputs.database }}
       dataset_reproduction: ${{ steps.filter.outputs.dataset_reproduction }}
     steps:
@@ -151,6 +152,8 @@ jobs:
       - name: Verify pinned Tailcat and direct UDP restart proof
         run: make tailcat-lab-check
   relay-fallback:
+    needs: changes
+    if: needs.changes.result == 'success' && needs.changes.outputs.relay_fallback == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
