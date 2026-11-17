@@ -44,6 +44,124 @@ different evidence boundaries: transport admission, device signatures and
 chain commitments remain separate. A verified commitment establishes integrity
 of the committed evidence; it does not prove the endpoint's measurements true.
 
+## Measured release capability matrix, CAP01 #58
+
+Status on 18 November 2026. **No capability below is qualified for release.**
+The [release scope](roadmap/release-scope.md#evidence-and-release-gates) states
+that no OS/hardware target is qualified until the service-token, packaging,
+resource/failure and release-approval gates pass; this matrix is one of those
+inputs, not the approval. The owner has ruled out the second physical target
+for this matrix, so two-machine items are recorded as not run rather than
+pending.
+
+Each row has exactly one evidence class. A class says *where* a result was
+measured, not that the capability is supported:
+
+| Class | Meaning | Not evidence of |
+| --- | --- | --- |
+| **Target hardware** | Real OS calls on the selected HP Victus 15-fb0xxx, Windows 11 Home SL 25H2 build 26200, as the interactive standard user | Other hardware or builds, LocalService, a second machine |
+| **Hosted CI OS** | Real OS calls on a GitHub-hosted `windows-2025` VM (build 26100) or Ubuntu runner | The 26200 target, a physical machine, a service token unless stated |
+| **Local lab** | Real binaries on a Linux development host, loopback or network namespaces | NAT/WAN, Windows endpoints, deployed infrastructure |
+| **Fixture** | Fixtures, fakes, synthetic harnesses, in-memory stores | Any device or production behavior |
+| **Contract** | Schemas, golden vectors and interfaces without a running implementation | Runtime behavior |
+| **Cross-build** | Compiles for the target | Runtime behavior |
+| **Unsupported** | No evidence, excluded, or blocked | — |
+
+The JSON reports from the Victus carry `host.role =
+development_or_ci_not_physical_target` because the process cannot attest its
+machine; the dated validation records make the attribution. Reproduction
+commands per class are in [validation.md](validation.md#reproducing-the-capability-matrix-cap01-58).
+
+### Platform
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| Windows 11 Home SL 25H2 x64 on HP Victus 15-fb0xxx | RQ-10, RQ-11 | Target hardware | [release-scope](roadmap/release-scope.md#endpoint-platform-matrix) (baseline 26200.9711); [14 Oct](validation/windows-2026-10-14.md), [19 Oct](validation/windows-2026-10-19.md); 17 Nov runs below report `10.0.26200` | Release qualification; regression evidence for later cumulative builds |
+| Second physical Windows target | RQ-10 | Unsupported | Owner decision; recorded unavailable in release scope | — |
+| GitHub-hosted Windows VM | — | Hosted CI OS | [sensors-92](validation/sensors-92.md#hosted-windows-ci-run) run 44079287075, `windows-2025`, 10.0.26100 | Build 26200 target; physical hardware |
+| Windows amd64/386 and macOS arm64 builds | — | Cross-build | `make cross-build`, `tools/check-windows.ps1` | Any runtime on those builds |
+| Linux, macOS, Android, iOS, ChromeOS, BSD endpoints; other Windows editions and builds | RQ-11 | Unsupported | Excluded in [release-scope](roadmap/release-scope.md#endpoint-platform-matrix) | — |
+
+### Telemetry and error evidence
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| CPU utilization | RQ-01 | Target hardware | [telemetry-91](validation/telemetry-91.md#hp-victus-run-17-november-2026), 17 Nov, Go 1.27.4 | LocalService; observed counter reset (tests only); multi-processor-group hosts (null by design) |
+| Memory in use | RQ-01 | Target hardware | telemetry-91, 17 Nov | LocalService |
+| Fixed-volume space used | RQ-01 | Target hardware | telemetry-91, 17 Nov (90.518 % vs `Get-Volume` 90.516 %) | Disk health, SMART or I/O; observed volume denial (tests only) |
+| Disk health / SMART | RQ-01, RQ-04 | Unsupported | No collector ([Backblaze mapping](../models/datasets/backblaze-2013/README.md)) | — |
+| Network receive/send rate | RQ-01 | Target hardware | telemetry-91, 17 Nov; down interface reported `interface_down` | Not on the telemetry v2 wire; interface removal and counter reset (tests only) |
+| Network latency | RQ-01 | Unsupported | No collector | — |
+| Battery charge | RQ-01 | Target hardware | telemetry-91 and [sensors-92](validation/sensors-92.md), 17 Nov | Battery health/life; LocalService |
+| ACPI thermal zone (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov (65.85–67.85 °C); the CIM class was `permission_denied` on [19 Oct](validation/windows-2026-10-19.md) | Observed PDH denial (tests only); LocalService |
+| GPU engine utilization (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov, three adapters | LocalService |
+| NVIDIA utilization and temperature (`nvidia-smi`) | RQ-01 | Target hardware | telemetry-91, 17 Nov | Child-process cost in the budget; LocalService |
+| Missing-reason isolation per source | RQ-01 | Fixture | [sensors-92](validation/sensors-92.md#tests), [telemetry-91](validation/telemetry-91.md#tests); real APIs also run in `windows-check` | An observed sensor denial on the target |
+| Endpoint telemetry v2 payload (`--collect-telemetry`) | RQ-01 | Target hardware | telemetry-91, 17 Nov | Delivery; network rates and providers on the wire |
+| System/Application error records with persistent read positions (`--collect-errors`) | RQ-01 | Target hardware | [error-evidence-93](validation/error-evidence-93.md#hp-victus-run-17-november-2026), 17 Nov: IDs match `Get-WinEvent`, repeat poll returns none, Security log `permission_denied` observed | LocalService read of System/Application; observed rollover, clear or oversized message (tests only); delivery |
+| Scheduled sampling with declared CPU/RSS budget (`--sample`) | RQ-01, RQ-10 | Target hardware | [sampling-94](validation/sampling-94.md#hp-victus-runs-17-november-2026), 17 Nov: four 10-minute runs, three within 2 % / 64 MiB, run 1 exceeded RSS (unattributed) | Root cause of run 1; child-process cost; LocalService; error collection on the scheduler |
+| Source access under LocalService and a denied account | RQ-01, RQ-10 | Hosted CI OS | [collector-budget-85](validation/collector-budget-85.md) run 43859814735, `windows-2025`, PowerShell probe and harness only | The Go collectors (#91–#94) under a service token; the target |
+| Collector cost harness and cadence candidates | RQ-10 | Fixture | collector-budget-85, 16 Nov, Linux and hosted Windows | `production_budget_approved` is always false |
+| Loopback fixture telemetry demo (`--fixture`) | — | Fixture | `tools/demo.py` in `check` and `windows-check`; requires `--fixture` and prints `provenance=fixture` | Any device measurement |
+
+### Contracts and diagnostics
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| Telemetry, prediction, lifecycle, envelope, bootstrap, inventory, federated, diagnostic and audit wire contracts | RQ-01–RQ-09 | Contract | [validation.md](validation.md#shared-contract-conformance-ct05-80) and `make contract-check` in `check` | Live collectors, authorization, training, chain behavior |
+| Read-only typed diagnostic assignments and results | RQ-05 | Contract | [diagnostics-v1](../packages/contracts/diagnostics-v1.md) | Scheduler, executor, cancellation, result storage |
+
+### Models
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| Backblaze 2013 dataset, labels and partitions | RQ-04 | Local lab | [verification](../models/datasets/backblaze-2013/verification.md); `dataset-reproduction` job | Laptop or NVMe representativeness; validation split has 4 events |
+| Predeclared evaluation and resource thresholds | RQ-04 | Contract | [model-thresholds-86](validation/model-thresholds-86.md), 17 Nov | Any computed metric, trained model or measured cost |
+| Trained model, inference and health prediction | RQ-04 | Unsupported | [models/README](../models/README.md); demo health is `unknown` | — |
+| Federated aggregation | RQ-06 | Fixture | Weighted-average primitive in `models` | Two-endpoint training, validated updates, promotion |
+
+### Networking, identity and evidence
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| Tailcat direct UDP | RQ-03 | Local lab | [2026-10-16](../networking/tailcat-lab/evidence/2026-10-16.md), same host; `tailcat-lab` job | Two machines, LAN/WAN/NAT, Windows |
+| Self-hosted DERP with UDP blocked | RQ-03 | Local lab | [2026-10-21-derp](../networking/tailcat-lab/evidence/2026-10-21-derp.md), network namespace | Public deployment; Windows |
+| Admitted mesh adapter | RQ-03, RQ-02 | Local lab | [mesh-adapters-25](validation/mesh-adapters-25.md), 16 Nov, Linux, PostgreSQL 16.15 | NAT/WAN; deployed DERP; the target; LocalService |
+| Scoped relay and UDP-blocked fallback | RQ-03 | Local lab | [relay-fallback-88](validation/relay-fallback-88.md), 17 Nov; `relay-fallback` job | Public relay host, DNS, CA; NAT/WAN; the target |
+| Deployed relay, NAT/WAN, two machines | RQ-03 | Unsupported | [networking/README](../networking/README.md) | — |
+| Bootstrap enrollment over TLS | RQ-02 | Local lab | [enrollment README](../infra/enrollment/README.md), PostgreSQL 17 | Real IdP and proxy; rotation, revocation, rate limits |
+| Endpoint identity storage, Windows DPAPI and DACL | RQ-02 | Hosted CI OS | [endpoint-keys-23](validation/endpoint-keys-23.md), CI account | LocalService on the target; power loss |
+| Signed evidence and crash-safe sequence | RQ-02 | Local lab | [evidence-sequence-87](validation/evidence-sequence-87.md), 13 Nov, an unidentified Windows 11 host | Attribution to the target; power loss; spool |
+| Controller verification before ingestion | RQ-02 | Local lab | [evidence-verification-24](validation/evidence-verification-24.md), 17 Nov, Linux, PostgreSQL 17.11 | Rejections over a real tunnel; durable audit table |
+| Replay rejection and signed acknowledgements | RQ-02 | Local lab | [replay-acknowledgements-89](validation/replay-acknowledgements-89.md), Linux, PostgreSQL 17.11 | Acknowledgement-key rotation; Windows controller; deployed database |
+| Durable signed spool, retry and revocation authority | RQ-02 | Unsupported | [database README](../infra/database/README.md) | — |
+| Identity rotation and revocation | RQ-02 | Unsupported | Open in #130 | — |
+
+### Controller, storage and console
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| PostgreSQL binding and migrations | RQ-02 | Local lab | [validation.md](validation.md#postgresql-binding-and-migrations-db01-19), PostgreSQL 17.11; `database` job | Backup/restore, TLS, least-privilege roles, retention |
+| Inventory revisions | RQ-08, RQ-09 | Local lab | [validation.md](validation.md#inventory-revisions-api03-97-27-october-2026) | Physical component identity |
+| Administrator OIDC sessions | RQ-09 | Fixture | [validation.md](validation.md#administrative-authentication-sec06-82), fake TLS issuer | A real identity provider |
+| Console shell and device views | RQ-09 | Fixture | [validation.md](validation.md#console-shell-web01-29-27-october-2026), [console-fixtures-99](validation/console-fixtures-99.md), Chromium 155 | Production fleet reads; Edge/Firefox; exports |
+| Independent controller fake | RQ-02 | Fixture | [validation.md](validation.md#independent-controller-fake-tst01-17) | — |
+
+### Chain, lifecycle and service
+
+| Capability | RQ | Class | Evidence (date, environment) | Not shown |
+| --- | --- | --- | --- | --- |
+| Base chain release policy and descriptor | RQ-07 | Contract | [chain-policy-47](validation/chain-policy-47.md), [release-policy](../contracts/release-policy.md) | Any RPC call, compiled contract, deployment or transaction |
+| Audit manifests and opaque commitments | RQ-07 | Contract | [audit-v1](../packages/contracts/audit-v1.md) | Accounts, resolver, retention |
+| Smart contract and anchoring runtime | RQ-07 | Unsupported | `packages/audit` has no anchorer | — |
+| Lifecycle recommendations, sustainability, longevity, fleet trends | RQ-08 | Contract | [lifecycle v2](#provisional-lifecycle-wire-contract-ct08-78) | Evaluator, calibrated model, aggregator |
+| External asset integration; independent network observer | RQ-11 | Unsupported | Blocked in [release-scope](roadmap/release-scope.md#conditional-scope-decisions) | — |
+| Endpoint Windows service, packaging, uninstall and release | RQ-10 | Unsupported | No service registration or package (#26, #57, #137, #68) | — |
+
+Open dependencies of this matrix (#138, #51, #130, #137) and later evidence must
+update the affected rows. A row moves class only when a dated record with its
+environment exists.
+
 ## Capability and acceptance boundaries
 
 The [source map](source/patent-map.md#claim-to-requirement-map-src05--72)
@@ -52,7 +170,7 @@ Source claim numbers below identify text, not a completion or coverage claim.
 
 | Planned capability / requirement | Printed claim(s) | Current evidence and acceptance still needed |
 | --- | --- | --- |
-| Real telemetry and structured errors / RQ-01 | 1, 8 | The runtime uses fixtures; v2 defines a proposed nullable subset. TEL01 #21/TEL04 #85 must distinguish disk utilization from disk health/I/O, battery charge from health/life, and latency from throughput before CT03 #32 freezes features. Unavailable sensors remain missing with reasons. |
+| Real telemetry and structured errors / RQ-01 | 1, 8 | Windows collectors (TEL05 #91–TEL08 #94) were measured on the target as the interactive user; see the [matrix](#telemetry-and-error-evidence). LocalService runs and delivery remain open. TEL01 #21/TEL04 #85 must distinguish disk utilization from disk health/I/O, battery charge from health/life, and latency from throughput before CT03 #32 freezes features. Unavailable sensors remain missing with reasons. |
 | Preprocessing, faults, predictions and health / RQ-04 | 1, 2, 8, 9 | Versioned wire contracts and model interfaces exist. ML09 #105/ML10 #106 must implement controller normalization/filtering and historical type/count/recurrence comparisons; ML06 #103 must supply held-out evaluation. Health thresholds and warning/degraded terminology remain explicit versioned choices. |
 | Health-specific local analysis / RQ-05 | 1, 8 | Typed runner/task boundaries are scaffolds. DIA02 #37/DIA05 #109 must demonstrate authenticated health-specific assignments; the source's general agent replacement is an unmatched broader mechanism. No shell or remediation executor is selected. |
 | Local learning and central aggregation / RQ-06 | 1, 4, 8 | Training interfaces and weighted averaging do not demonstrate federation. FED02 #42/FED03 #43/FED10 #115 require compatible training on two endpoints, validated updates and evaluated promotion. FED12 #117 must document data flows and privacy limits. |

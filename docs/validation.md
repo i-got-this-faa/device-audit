@@ -1,5 +1,9 @@
 # Initial scaffold validation
 
+Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#measured-release-capability-matrix-cap01-58)
+classifies every claimed capability by where its evidence was measured. How to
+reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
+
 Follow-up: [TEL08 bounded configurable sampling, 17 November 2026](validation/sampling-94.md)
 records the per-source scheduler, its isolation tests, the explicit fixture
 switch and four 10-minute HP Victus runs against the declared CPU/RSS budget;
@@ -15,7 +19,7 @@ and a real HP Victus run, including an observed Security-log denial.
 
 Follow-up: [TEL06 battery, thermal and GPU collectors, 17 November 2026](validation/sensors-92.md)
 records the nullable collector, its failure-path tests and hosted Windows CI
-availability. Neither physical Windows target was measured.
+availability. The HP Victus was measured later, in the TEL05 run above.
 
 Follow-up: [NET05 scoped relay and fallback, 17 November 2026](validation/relay-fallback-88.md)
 records loopback direct, UDP-blocked relay and invalid-relay runs of the deployable
@@ -383,3 +387,45 @@ sessions or physical endpoint. Edge, Firefox, previous stable browsers, native
 200% zoom and assistive-technology checks were not run. The workflow now runs
 `browser-check` and uploads screenshots, but no remote CI result is claimed.
 Reviewed PRs, shared-owner review and merge remain outstanding for issue closure.
+
+## Reproducing the capability matrix, CAP01 #58
+
+Each class in the [matrix](requirements.md#measured-release-capability-matrix-cap01-58)
+is reproduced differently. A result from one class never stands in for another.
+
+**Target hardware.** On the HP Victus, as the interactive standard user, with
+Go 1.27.4 or later. These produce the 17 November records:
+
+```powershell
+go build -o bin/endpoint-agent.exe ./apps/endpoint-agent
+New-Item -ItemType Directory -Force artifacts/sensors, artifacts/sampling
+go run ./tools/probes/sensoravailability -output artifacts/sensors/victus.json -samples 3 -interval 15s
+bin/endpoint-agent.exe --collect-telemetry --device-id <id>
+bin/endpoint-agent.exe --collect-errors --state-dir <private state dir>   # twice
+bin/endpoint-agent.exe --sample --device-id <id> --sampling-duration 10m --sampling-report artifacts/sampling/run.json
+```
+
+Compare `--collect-errors` record IDs with
+`Get-WinEvent -FilterHashtable @{LogName='System'; Level=1,2; StartTime=(Get-Date).AddHours(-24)}`
+and the disk reading with `Get-Volume`. The reports carry no hostname or device
+identifier; the dated record attributes the machine.
+
+**Hosted CI OS.** `windows-check` in `.github/workflows/check.yml` runs
+`tools/check-windows.ps1` on `windows-2025`, which includes `go test -race ./...`
+with the real Windows collector, event-log and DPAPI tests, and uploads
+`sensor-availability-windows-ci`. `service-budget.yml` runs the PowerShell
+probe and harness under LocalService and a denied account. Both are build 26100
+VMs, not the 26200 target.
+
+**Local lab.** On Linux: `make database-check` (needs `TEST_DATABASE_URL`),
+`make tailcat-lab-check`, `make derp-lab-proof`, `make relay-fallback-proof`.
+`make derp-lab-proof` and `make storage-crash-check` are not run in CI.
+
+**Fixture and contract.** `make check` (vet, race tests, model tests,
+`controllerfake --scenario all`), `make contract-check` and `make demo`. The demo
+needs `--fixture`; without it the agent refuses, and with it the agent prints
+`provenance=fixture` and the stored record has `source = fixture` and
+`health = unknown`.
+
+**Cross-build.** `make cross-build` compiles Windows amd64 and macOS arm64
+endpoints. A successful build is never listed as a runtime result.
