@@ -111,6 +111,21 @@ jobs:
           cache: false
       - name: Verify pinned Tailcat and direct UDP restart proof
         run: make tailcat-lab-check
+  relay-fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install namespace tools
+        run: sudo apt-get update && sudo apt-get install -y nftables iproute2 util-linux
+      - name: Allow unprivileged user namespaces on this ephemeral runner
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Application mesh through the scoped relay with all UDP dropped
+        run: make relay-fallback-proof
   database:
     runs-on: ubuntu-latest
     timeout-minutes: 15

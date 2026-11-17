@@ -42,8 +42,11 @@ patent implementation needs it, without importing the entire fleet manager.
 - Unknown peers are rejected. Admitted peers are checked against PostgreSQL
   device admission, and a revoked binding is denied on the next request.
 - Explicit self-hosted DERP configuration is required, and public relay defaults
-  are rejected. The separate NET04 lab measures blocked-UDP relay behavior. A
-  deployed DERP path for this adapter is not qualified.
+  are rejected. The separate NET04 lab measures blocked-UDP relay behavior.
+  NET05 #88 adds the deployable `apps/relay` and a relay preflight. It also runs
+  this adapter through that relay with all UDP dropped on one host, as recorded
+  in [relay-fallback-88.md](../docs/validation/relay-fallback-88.md). A
+  deployed public relay is not qualified.
 - Windows ACL checks cover the controller state directory when the mesh package
   tests run on Windows. The selected physical laptop, LocalService token and
   installed service remain unqualified.

@@ -224,6 +224,16 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			listener.Close()
 			return err
 		}
+		// Tailcat discovery needs the relay. A failed check is reported, not
+		// hidden; HTTPS enrollment and administration keep running.
+		if err := mesh.CheckServerRelay(ctx, *meshState, mesh.DERPConfig{Region: region}); err != nil && !errors.Is(err, mesh.ErrRelayUnavailable) {
+			listener.Close()
+			return err
+		} else if err != nil {
+			slog.Error("self-hosted DERP relay check failed; mesh sessions cannot start until it recovers", "error", err)
+		} else {
+			slog.Info("self-hosted DERP relay check passed", "region_id", int(region.RegionID))
+		}
 		node, err := mesh.NewServer(mesh.ServerConfig{Context: ctx, StateDir: *meshState, DERP: mesh.DERPConfig{Region: region}, Allow: func(peer string) bool {
 			lookupCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 			defer cancel()
