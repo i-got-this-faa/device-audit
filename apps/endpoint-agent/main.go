@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
+	"github.com/i-got-this-faa/device-audit/packages/telemetry"
 )
 
 func main() {
@@ -28,15 +29,46 @@ func main() {
 	signEvidence := flag.Bool("sign-evidence", false, "sign a telemetry v2 payload from stdin with the admitted identity")
 	meshServerKey := flag.String("mesh-server-key", "", "trusted controller X25519 public key hex")
 	regionFile := flag.String("derp-region-file", "", "explicit self-hosted DERP region JSON")
+	collectTelemetry := flag.Bool("collect-telemetry", false, "print one endpoint telemetry v2 payload for an explicit --device-id")
+	collectErrors := flag.Bool("collect-errors", false, "print new System/Application error records and save read positions in --state-dir")
 	flag.Parse()
 	modes := 0
-	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence} {
+	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence, *collectErrors} {
 		if selected {
 			modes++
 		}
 	}
+	if *collectTelemetry {
+		deviceSet := false
+		flag.Visit(func(f *flag.Flag) { deviceSet = deviceSet || f.Name == "device-id" })
+		if modes > 0 || !deviceSet {
+			fail(fmt.Errorf("--collect-telemetry runs alone and requires an explicit --device-id"))
+		}
+		payload, err := collectEndpointTelemetry(context.Background(), *deviceID)
+		if err != nil {
+			fail(fmt.Errorf("endpoint telemetry collection failed: %s", err))
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(payload); err != nil {
+			fail(fmt.Errorf("write endpoint telemetry"))
+		}
+		return
+	}
 	if modes > 0 && (*stateDir == "" || modes != 1) {
-		fail(fmt.Errorf("choose one of enrollment, identity status or evidence signing and supply --state-dir"))
+		fail(fmt.Errorf("choose one of enrollment, identity status, evidence signing or error collection and supply --state-dir"))
+	}
+	if *collectErrors {
+		store, err := openIdentityStore(*stateDir, false)
+		if err != nil {
+			fail(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		err = store.collectErrorEvidence(ctx, telemetry.NewErrorCollector(), os.Stdout)
+		cancel()
+		store.close()
+		if err != nil {
+			fail(fmt.Errorf("endpoint error collection failed: %s", err))
+		}
+		return
 	}
 	if *signEvidence {
 		payload, err := readEvidencePayload(os.Stdin)

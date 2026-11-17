@@ -695,6 +695,51 @@ macOS sources return `sensor_unavailable` (`platform_not_selected`); #14
 selects no non-Windows endpoint. Evidence and the remaining two-physical-target
 gate are in [sensors-92.md](validation/sensors-92.md).
 
+## CPU, memory, disk and network collectors, TEL05 #91
+
+On 17 November 2026 `SensorCollector` gained `cpu`, `memory`, `disk` and
+`network` sources instead of a second collector, so they share the #92
+per-source deadline, panic isolation, v2 missing reasons, observation time and
+`endpoint_sensor` provenance. On Windows they call `GetSystemTimes`,
+`GlobalMemoryStatusEx`, `GetDiskFreeSpaceExW` for each fixed volume and
+`GetIfTable2Ex` for hardware, non-filter interfaces. CPU and network rates come
+from two counter reads 250 ms apart inside one source read. A counter that moved
+backwards is `collection_error` / `counter_reset`; a down, removed or absent
+interface is `sensor_unavailable`; a denied volume is `permission_denied` for
+that volume only. No rate is negative and no unavailable value becomes zero.
+
+`MetricsV2` now fills `cpu_utilization`, `memory_percent` and
+`disk_used_percent` (the fullest fixed volume) without a contract change. v2 has
+no network-rate field, so rates stay in the collector sample and availability
+report until a separate contract PR. `EndpointTelemetryV2` and
+`endpoint-agent --collect-telemetry --device-id` produce a validated
+`source = endpoint` payload that `--sign-evidence` accepts for the admitted
+device. This replaces the `ErrNotImplemented` collector boundary noted in the
+#85 and #92 entries; `UnimplementedCollector` had no caller and was removed.
+The HP Victus run, the open second-target and service-token gates are in
+[telemetry-91.md](validation/telemetry-91.md).
+
+## Structured Windows error evidence, TEL07 #93
+
+On 17 November 2026 `packages/telemetry` gained `ErrorCollector` for Critical
+and Error events (levels 1 and 2) of the System and Application logs only. It
+calls `wevtapi.dll` directly. Each record keeps log, record ID, provider, event
+ID, level, creation time and a message bounded to 2,048 bytes with an explicit
+status (`complete`, `truncated`, `malformed`, `oversized`, `unavailable`). At
+most 256 records per log per poll are returned. Computer name, user SID, event
+data and XML are not copied. Records are off-chain.
+
+A read position is the last examined record ID plus its creation time. Each poll
+classifies the saved record as `continued`, `rollover` (overwritten) or `reset`
+(cleared or replaced) and queries `EventRecordID` above the position, so a
+repeated poll cannot return a collected record. The endpoint agent saves the
+positions in its private state directory with a checksum, and only after the
+batch is written; damaged state fails closed. Delivery is at least once: a crash
+between output and save can repeat records, which consumers deduplicate on log
+and record ID. Permission denial, an absent log and timeouts are per-log
+outcomes that keep the saved position. Evidence, including an observed Security
+log denial on the Victus, is in [error-evidence-93.md](validation/error-evidence-93.md).
+
 ## Predeclared evaluation and resource thresholds, ML05 #86
 
 On 17 November 2026, before any model was fitted, `models/evaluation/ml05-policy.json`

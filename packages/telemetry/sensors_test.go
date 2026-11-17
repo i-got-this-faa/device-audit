@@ -445,7 +445,7 @@ func TestPlatformSensorCollectorReturnsSample(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(sample.Sources) != 4 {
+	if len(sample.Sources) != len(SensorSourceSpecs()) {
 		t.Fatalf("sources = %d", len(sample.Sources))
 	}
 	for _, src := range sample.Sources {

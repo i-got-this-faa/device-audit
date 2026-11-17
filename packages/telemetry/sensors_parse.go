@@ -27,10 +27,11 @@ const (
 	maxVendorOutput = 64 << 10
 )
 
-// SensorSourceSpecs returns the battery, thermal and GPU sources without their
-// read functions. Platform files attach the readers.
+// SensorSourceSpecs returns the CPU, memory, disk, network, battery, thermal
+// and GPU sources without their read functions. Platform files attach the
+// readers.
 func SensorSourceSpecs() []SensorSource {
-	return []SensorSource{
+	return append(resourceSourceSpecs(), []SensorSource{
 		{Name: SensorBattery, Required: []Capability{CapBatteryCharge},
 			Metrics: []MetricSpec{{MetricBatteryCharge, UnitPercent, ProviderBatteryPowerStatus}}},
 		{Name: SensorThermal, Required: []Capability{CapACPIThermal},
@@ -42,7 +43,7 @@ func SensorSourceSpecs() []SensorSource {
 				{MetricNvidiaUtilization, UnitPercent, ProviderNvidiaUtilization},
 				{MetricNvidiaTemperature, UnitCelsius, ProviderNvidiaTemperature},
 			}},
-	}
+	}...)
 }
 
 // PowerStatus mirrors SYSTEM_POWER_STATUS.

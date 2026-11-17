@@ -1,0 +1,803 @@
+{
+  "schema": "device-audit.sensor-availability.v1",
+  "provenance": "endpoint_sensor",
+  "qualification": "not_service_token_or_physical_target_attested",
+  "host": {
+    "role": "development_or_ci_not_physical_target",
+    "go_version": "go1.27.4",
+    "goos": "windows",
+    "goarch": "amd64",
+    "os_family": "windows",
+    "os_version": "10.0.26200",
+    "cpu_model": "AMD Ryzen 5 5600H with Radeon Graphics         ",
+    "core_count": 12,
+    "total_physical_bytes": 16473231360
+  },
+  "interval_ms": 15000,
+  "deadline_ms": 5000,
+  "samples": [
+    {
+      "collected_at": "2026-11-17T14:46:23.2290057Z",
+      "sources": [
+        {
+          "source": "cpu",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:23.4795514Z",
+          "query_ms": 250.5457,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "cpu",
+              "metric": "cpu_utilization",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemTimes (250 ms delta, busy = kernel + user - idle)",
+              "instance": "total",
+              "value": 45.3125
+            }
+          ]
+        },
+        {
+          "source": "memory",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:23.4795514Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "memory",
+              "metric": "memory_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GlobalMemoryStatusEx (TotalPhys - AvailPhys) / TotalPhys",
+              "instance": "physical",
+              "value": 82.43926515216502
+            }
+          ]
+        },
+        {
+          "source": "disk",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:23.4795514Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "disk",
+              "metric": "volume_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetDiskFreeSpaceExW (DRIVE_FIXED, TotalNumberOfFreeBytes)",
+              "instance": "volume-0",
+              "value": 90.99635640290762
+            }
+          ]
+        },
+        {
+          "source": "network",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:23.7337107Z",
+          "query_ms": 254.1593,
+          "outcome": "partial",
+          "readings": [
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 38775.5588768404
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 15303.526568512098
+            }
+          ]
+        },
+        {
+          "source": "battery",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:23.7340292Z",
+          "query_ms": 0.3185,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "battery",
+              "metric": "battery_charge",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+              "instance": "system",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "source": "thermal",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:24.0342377Z",
+          "query_ms": 300.2085,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "thermal",
+              "metric": "acpi_zone_temperature",
+              "unit": "celsius",
+              "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+              "instance": "zone-0",
+              "value": 70.85000000000002
+            }
+          ]
+        },
+        {
+          "source": "gpu_engine",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:24.2889506Z",
+          "query_ms": 254.7129,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-0",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-1",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-2",
+              "value": 32.32305046209587
+            }
+          ]
+        },
+        {
+          "source": "gpu_vendor",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:24.3563671Z",
+          "query_ms": 67.4165,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_utilization",
+              "unit": "percent",
+              "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+              "instance": "nvidia-0",
+              "value": 36
+            },
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_temperature",
+              "unit": "celsius",
+              "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+              "instance": "nvidia-0",
+              "value": 57
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "collected_at": "2026-11-17T14:46:38.2292028Z",
+      "sources": [
+        {
+          "source": "cpu",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.4798649Z",
+          "query_ms": 250.6621,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "cpu",
+              "metric": "cpu_utilization",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemTimes (250 ms delta, busy = kernel + user - idle)",
+              "instance": "total",
+              "value": 43.75
+            }
+          ]
+        },
+        {
+          "source": "memory",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.4798649Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "memory",
+              "metric": "memory_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GlobalMemoryStatusEx (TotalPhys - AvailPhys) / TotalPhys",
+              "instance": "physical",
+              "value": 82.41474867502862
+            }
+          ]
+        },
+        {
+          "source": "disk",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.4803718Z",
+          "query_ms": 0.5069,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "disk",
+              "metric": "volume_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetDiskFreeSpaceExW (DRIVE_FIXED, TotalNumberOfFreeBytes)",
+              "instance": "volume-0",
+              "value": 90.99637339155228
+            }
+          ]
+        },
+        {
+          "source": "network",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.7330541Z",
+          "query_ms": 252.6823,
+          "outcome": "partial",
+          "readings": [
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 357381.89469864155
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 46839.42326746659
+            }
+          ]
+        },
+        {
+          "source": "battery",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.7330541Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "battery",
+              "metric": "battery_charge",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+              "instance": "system",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "source": "thermal",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.7361319Z",
+          "query_ms": 3.0778,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "thermal",
+              "metric": "acpi_zone_temperature",
+              "unit": "celsius",
+              "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+              "instance": "zone-0",
+              "value": 69.85000000000002
+            }
+          ]
+        },
+        {
+          "source": "gpu_engine",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:38.9897513Z",
+          "query_ms": 253.6194,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-0",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-1",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-2",
+              "value": 24.982770187911335
+            }
+          ]
+        },
+        {
+          "source": "gpu_vendor",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:39.0599478Z",
+          "query_ms": 70.1965,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_utilization",
+              "unit": "percent",
+              "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+              "instance": "nvidia-0",
+              "value": 32
+            },
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_temperature",
+              "unit": "celsius",
+              "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+              "instance": "nvidia-0",
+              "value": 55
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "collected_at": "2026-11-17T14:46:53.2297123Z",
+      "sources": [
+        {
+          "source": "cpu",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.4801621Z",
+          "query_ms": 250.4498,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "cpu",
+              "metric": "cpu_utilization",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemTimes (250 ms delta, busy = kernel + user - idle)",
+              "instance": "total",
+              "value": 52.083333333333336
+            }
+          ]
+        },
+        {
+          "source": "memory",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.4801621Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "memory",
+              "metric": "memory_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GlobalMemoryStatusEx (TotalPhys - AvailPhys) / TotalPhys",
+              "instance": "physical",
+              "value": 78.73091177176303
+            }
+          ]
+        },
+        {
+          "source": "disk",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.4801621Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "disk",
+              "metric": "volume_used",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetDiskFreeSpaceExW (DRIVE_FIXED, TotalNumberOfFreeBytes)",
+              "instance": "volume-0",
+              "value": 90.99635895120433
+            }
+          ]
+        },
+        {
+          "source": "network",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.7328612Z",
+          "query_ms": 252.6991,
+          "outcome": "partial",
+          "readings": [
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-0",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "interface_down"
+            },
+            {
+              "source": "network",
+              "metric": "network_received_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 55587.21502008068
+            },
+            {
+              "source": "network",
+              "metric": "network_sent_rate",
+              "unit": "bytes_per_second",
+              "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+              "instance": "interface-1",
+              "value": 572.6540966441278
+            }
+          ]
+        },
+        {
+          "source": "battery",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.7328612Z",
+          "query_ms": 0,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "battery",
+              "metric": "battery_charge",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+              "instance": "system",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "source": "thermal",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.7351954Z",
+          "query_ms": 2.3342,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "thermal",
+              "metric": "acpi_zone_temperature",
+              "unit": "celsius",
+              "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+              "instance": "zone-0",
+              "value": 69.85000000000002
+            }
+          ]
+        },
+        {
+          "source": "gpu_engine",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:53.988515Z",
+          "query_ms": 253.3196,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-0",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-1",
+              "value": 0
+            },
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-2",
+              "value": 24.808303725437327
+            }
+          ]
+        },
+        {
+          "source": "gpu_vendor",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T14:46:54.0571655Z",
+          "query_ms": 68.6505,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_utilization",
+              "unit": "percent",
+              "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+              "instance": "nvidia-0",
+              "value": 32
+            },
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_temperature",
+              "unit": "celsius",
+              "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+              "instance": "nvidia-0",
+              "value": 57
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metrics_v2": [
+    {
+      "cpu_utilization": {
+        "value": 45.3125,
+        "unit": "percent"
+      },
+      "gpu_utilization": {
+        "value": 36,
+        "unit": "percent"
+      },
+      "memory_percent": {
+        "value": 82.43926515216502,
+        "unit": "percent"
+      },
+      "disk_used_percent": {
+        "value": 90.99635640290762,
+        "unit": "percent"
+      },
+      "battery_percent": {
+        "value": 100,
+        "unit": "percent"
+      },
+      "temperature_c": {
+        "value": 70.85000000000002,
+        "unit": "celsius"
+      }
+    },
+    {
+      "cpu_utilization": {
+        "value": 43.75,
+        "unit": "percent"
+      },
+      "gpu_utilization": {
+        "value": 32,
+        "unit": "percent"
+      },
+      "memory_percent": {
+        "value": 82.41474867502862,
+        "unit": "percent"
+      },
+      "disk_used_percent": {
+        "value": 90.99637339155228,
+        "unit": "percent"
+      },
+      "battery_percent": {
+        "value": 100,
+        "unit": "percent"
+      },
+      "temperature_c": {
+        "value": 69.85000000000002,
+        "unit": "celsius"
+      }
+    },
+    {
+      "cpu_utilization": {
+        "value": 52.083333333333336,
+        "unit": "percent"
+      },
+      "gpu_utilization": {
+        "value": 32,
+        "unit": "percent"
+      },
+      "memory_percent": {
+        "value": 78.73091177176303,
+        "unit": "percent"
+      },
+      "disk_used_percent": {
+        "value": 90.99635895120433,
+        "unit": "percent"
+      },
+      "battery_percent": {
+        "value": 100,
+        "unit": "percent"
+      },
+      "temperature_c": {
+        "value": 69.85000000000002,
+        "unit": "celsius"
+      }
+    }
+  ],
+  "availability": [
+    {
+      "source": "battery",
+      "metric": "battery_charge",
+      "unit": "percent",
+      "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+      "known": 3,
+      "null": 0,
+      "min_value": 100,
+      "max_value": 100,
+      "max_query_ms": 0.3185
+    },
+    {
+      "source": "cpu",
+      "metric": "cpu_utilization",
+      "unit": "percent",
+      "provider": "Win32:kernel32:GetSystemTimes (250 ms delta, busy = kernel + user - idle)",
+      "known": 3,
+      "null": 0,
+      "min_value": 43.75,
+      "max_value": 52.083333333333336,
+      "max_query_ms": 250.6621
+    },
+    {
+      "source": "disk",
+      "metric": "volume_used",
+      "unit": "percent",
+      "provider": "Win32:kernel32:GetDiskFreeSpaceExW (DRIVE_FIXED, TotalNumberOfFreeBytes)",
+      "known": 3,
+      "null": 0,
+      "min_value": 90.99635640290762,
+      "max_value": 90.99637339155228,
+      "max_query_ms": 0.5069
+    },
+    {
+      "source": "gpu_engine",
+      "metric": "gpu_adapter_utilization",
+      "unit": "percent",
+      "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+      "known": 9,
+      "null": 0,
+      "min_value": 0,
+      "max_value": 32.32305046209587,
+      "max_query_ms": 254.7129
+    },
+    {
+      "source": "gpu_vendor",
+      "metric": "nvidia_gpu_temperature",
+      "unit": "celsius",
+      "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+      "known": 3,
+      "null": 0,
+      "min_value": 55,
+      "max_value": 57,
+      "max_query_ms": 70.1965
+    },
+    {
+      "source": "gpu_vendor",
+      "metric": "nvidia_gpu_utilization",
+      "unit": "percent",
+      "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+      "known": 3,
+      "null": 0,
+      "min_value": 32,
+      "max_value": 36,
+      "max_query_ms": 70.1965
+    },
+    {
+      "source": "memory",
+      "metric": "memory_used",
+      "unit": "percent",
+      "provider": "Win32:kernel32:GlobalMemoryStatusEx (TotalPhys - AvailPhys) / TotalPhys",
+      "known": 3,
+      "null": 0,
+      "min_value": 78.73091177176303,
+      "max_value": 82.43926515216502,
+      "max_query_ms": 0
+    },
+    {
+      "source": "network",
+      "metric": "network_received_rate",
+      "unit": "bytes_per_second",
+      "provider": "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)",
+      "known": 3,
+      "null": 3,
+      "reasons": {
+        "sensor_unavailable": 3
+      },
+      "details": {
+        "interface_down": 3
+      },
+      "min_value": 38775.5588768404,
+      "max_value": 357381.89469864155,
+      "max_query_ms": 254.1593
+    },
+    {
+      "source": "network",
+      "metric": "network_sent_rate",
+      "unit": "bytes_per_second",
+      "provider": "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)",
+      "known": 3,
+      "null": 3,
+      "reasons": {
+        "sensor_unavailable": 3
+      },
+      "details": {
+        "interface_down": 3
+      },
+      "min_value": 572.6540966441278,
+      "max_value": 46839.42326746659,
+      "max_query_ms": 254.1593
+    },
+    {
+      "source": "thermal",
+      "metric": "acpi_zone_temperature",
+      "unit": "celsius",
+      "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+      "known": 3,
+      "null": 0,
+      "min_value": 69.85000000000002,
+      "max_value": 70.85000000000002,
+      "max_query_ms": 300.2085
+    }
+  ]
+}

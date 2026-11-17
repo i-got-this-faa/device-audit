@@ -247,13 +247,6 @@ func TestCPUWithoutWallTimeIsRejected(t *testing.T) {
 	}
 }
 
-func TestUnimplementedCollector(t *testing.T) {
-	got, err := UnimplementedCollector{}.Collect(context.Background())
-	if !errors.Is(err, ErrNotImplemented) || got.DeviceID != "" {
-		t.Fatalf("got=%#v err=%v", got, err)
-	}
-}
-
 func TestRealProvenanceIsRejected(t *testing.T) {
 	runner := Runner{
 		Cadence: Cadence{Interval: time.Millisecond, Samples: 1, WorkerDeadline: time.Second},

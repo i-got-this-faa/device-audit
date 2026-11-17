@@ -121,6 +121,37 @@ Restoring an older state directory can reopen used local sequences; the
 controller's durable mark still rejects them as `replay`. The signature proves
 integrity and key possession, not sensor truth.
 
+## Endpoint telemetry, TEL05 #91
+
+```sh
+endpoint-agent --collect-telemetry --device-id <admitted device ID> > telemetry-v2.json
+endpoint-agent --sign-evidence --state-dir /private/parent/endpoint-identity < telemetry-v2.json
+```
+
+`--collect-telemetry` reads every collector source once and prints one
+validated `device-audit.telemetry.v2` payload with `source = endpoint`. It
+needs no state directory and never reads a hardware identifier; `--device-id`
+must be given explicitly. Signing rejects a payload whose `device_id` differs
+from the admission receipt. Per-source providers, observation times and network
+rates are not on the v2 wire. On non-Windows hosts no source is selected, so the
+command fails rather than emitting nulls only. See
+[telemetry-91.md](../../docs/validation/telemetry-91.md).
+
+## Error evidence, TEL07 #93
+
+```sh
+endpoint-agent --collect-errors --state-dir /private/parent/endpoint-identity
+```
+
+Prints one `device-audit.error-evidence.v1` batch of new Critical and Error
+records from the System and Application logs, then saves each log's read
+position to `error-positions.state` in the state directory. The directory must
+already exist with the private ACL; this mode does not create it or need an
+admission receipt. Positions are saved only after the batch is written, so a
+failed write repeats records on the next poll instead of losing them. Damaged
+position state fails closed. See
+[error-evidence-93.md](../../docs/validation/error-evidence-93.md).
+
 ## Verification
 
 ```sh

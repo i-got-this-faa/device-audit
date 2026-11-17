@@ -1,34 +1,38 @@
-// Package telemetry defines read-only collection boundaries, the TEL04 #85
-// permission, cadence and sampling-overhead harness, and the TEL06 #92 nullable
-// battery, thermal and GPU collector (sensors.go).
+// Package telemetry defines read-only collection boundaries: the TEL04 #85
+// permission, cadence and sampling-overhead harness; the TEL05 #91 CPU, memory,
+// disk and network sources and TEL06 #92 nullable battery, thermal and GPU
+// sources of SensorCollector; and the TEL07 #93 bounded error-evidence reader.
 //
-// The harness measures this process. It does not read Windows sensors, impersonate
-// a service token, or approve a production collector budget. Fixture and synthetic
-// results are not endpoint telemetry.
+// The harness measures this process. It does not impersonate a service token or
+// approve a production collector budget. Fixture and synthetic results are not
+// endpoint telemetry.
 package telemetry
 
 import (
-	"context"
 	"errors"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
-// ErrNotImplemented is returned by collectors that have no production source.
-var ErrNotImplemented = errors.New("telemetry: production collector is not implemented")
-
-// Collector is the read-only collection boundary. Implementations must preserve
-// null metrics and explicit units; a missing source is an error or a null
-// reason, never a fabricated zero.
-type Collector interface {
-	Collect(context.Context) (contracts.Telemetry, error)
-}
-
-// UnimplementedCollector keeps the production boundary explicit until a
-// platform collector exists. It returns no device identifier and no metrics.
-type UnimplementedCollector struct{}
-
-// Collect rejects use of the production boundary.
-func (UnimplementedCollector) Collect(context.Context) (contracts.Telemetry, error) {
-	return contracts.Telemetry{}, ErrNotImplemented
+// EndpointTelemetryV2 builds the telemetry v2 payload for one collector sample.
+// The caller supplies the admitted device ID; the collector never reads a
+// hardware identifier. Inventory and log references are empty until their
+// collectors exist. The payload is validated before it is returned.
+func EndpointTelemetryV2(sample SensorSample, deviceID string) (contracts.TelemetryV2, error) {
+	if sample.CollectedAt.IsZero() {
+		return contracts.TelemetryV2{}, errors.New("telemetry: sample has no collection time")
+	}
+	payload := contracts.TelemetryV2{
+		SchemaVersion: contracts.TelemetryV2Version,
+		DeviceID:      deviceID,
+		CollectedAt:   sample.CollectedAt.UTC(),
+		Source:        "endpoint",
+		Metrics:       sample.MetricsV2(),
+		Inventory:     contracts.InventoryV2{Components: []contracts.ComponentV2{}},
+		LogReferences: []contracts.LogReferenceV2{},
+	}
+	if err := payload.Validate(); err != nil {
+		return contracts.TelemetryV2{}, err
+	}
+	return payload, nil
 }

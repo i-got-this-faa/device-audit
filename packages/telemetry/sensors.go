@@ -11,7 +11,8 @@ import (
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
-// TEL06 #92: nullable battery, thermal and GPU collectors.
+// TEL06 #92: nullable battery, thermal and GPU collectors. TEL05 #91 adds CPU,
+// memory, disk and network sources to the same collector (resources.go).
 //
 // A sensor source returns readings with provider, unit and source-local
 // instance labels. A failed source becomes null readings with one of the v2
@@ -124,16 +125,16 @@ type SensorSample struct {
 	Sources     []SourceResult `json:"sources"`
 }
 
-// SensorCollector reads battery, thermal and GPU sources. Each source has its
-// own deadline. A panic, error or timeout in one source is recorded on that
-// source only.
+// SensorCollector reads the CPU, memory, disk, network, battery, thermal and
+// GPU sources. Each source has its own deadline. A panic, error or timeout in
+// one source is recorded on that source only.
 type SensorCollector struct {
 	Sources  []SensorSource
 	Deadline time.Duration
 	Now      func() time.Time
 }
 
-// NewSensorCollector returns the platform's battery, thermal and GPU sources.
+// NewSensorCollector returns every platform source.
 func NewSensorCollector() SensorCollector {
 	return SensorCollector{Sources: PlatformSensorSources(), Deadline: DefaultSensorDeadline}
 }
@@ -328,8 +329,9 @@ func validMissingReason(reason string) bool {
 	return false
 }
 
-// inRange rejects NaN/Inf, percents outside 0-100 and temperatures below
-// absolute zero or above 200 Celsius, which no supported sensor reports.
+// inRange rejects NaN/Inf, percents outside 0-100, negative rates and
+// temperatures below absolute zero or above 200 Celsius, which no supported
+// sensor reports.
 func inRange(unit string, v float64) bool {
 	if math.IsNaN(v) || math.IsInf(v, 0) {
 		return false
@@ -337,6 +339,8 @@ func inRange(unit string, v float64) bool {
 	switch unit {
 	case UnitPercent:
 		return v >= 0 && v <= 100
+	case UnitBytesPerSecond:
+		return v >= 0
 	case UnitCelsius:
 		return v > -273.15 && v <= 200
 	}
@@ -360,16 +364,22 @@ func sourceOutcome(readings []SensorReading) string {
 	}
 }
 
-// MetricsV2 maps a sample into the v2 battery, temperature and GPU fields.
+// MetricsV2 maps a sample into the v2 fields it can fill.
 //
-// battery_percent is the system battery charge. temperature_c is the highest
-// ACPI thermal-zone reading; the NVIDIA GPU temperature is a different sensor
-// and never fills a missing ACPI value. gpu_utilization is the highest adapter
-// or vendor utilization reading. Each is a provisional aggregation, not a
-// qualified health input. A field is omitted when its source was not
-// configured. When nothing is known, the null keeps the most specific reason.
+// cpu_utilization and memory_percent are the machine totals. disk_used_percent
+// is the fullest fixed volume. battery_percent is the system battery charge.
+// temperature_c is the highest ACPI thermal-zone reading; the NVIDIA GPU
+// temperature is a different sensor and never fills a missing ACPI value.
+// gpu_utilization is the highest adapter or vendor utilization reading.
+// Network rates have no v2 field and stay in the collector output. Each is a
+// provisional aggregation, not a qualified health input. A field is omitted
+// when its source was not configured. When nothing is known, the null keeps
+// the most specific reason.
 func (s SensorSample) MetricsV2() contracts.MetricsV2 {
 	var m contracts.MetricsV2
+	m.CPUUtilization = s.aggregate(UnitPercent, map[string]bool{MetricCPUUtilization: true})
+	m.MemoryPercent = s.aggregate(UnitPercent, map[string]bool{MetricMemoryUsed: true})
+	m.DiskUsedPercent = s.aggregate(UnitPercent, map[string]bool{MetricVolumeUsed: true})
 	m.BatteryPercent = s.aggregate(UnitPercent, map[string]bool{MetricBatteryCharge: true})
 	m.TemperatureC = s.aggregate(UnitCelsius, map[string]bool{MetricACPIZoneTemperature: true})
 	m.GPUUtilization = s.aggregate(UnitPercent, map[string]bool{MetricGPUAdapterUtilization: true, MetricNvidiaUtilization: true})

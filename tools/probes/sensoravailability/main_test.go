@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/i-got-this-faa/device-audit/packages/telemetry"
 )
 
 func TestCommandWritesReportWithoutOverwriting(t *testing.T) {
@@ -32,9 +34,13 @@ func TestCommandWritesReportWithoutOverwriting(t *testing.T) {
 	if n := len(report["samples"].([]any)); n != 2 {
 		t.Fatalf("samples = %d", n)
 	}
+	want := 0
+	for _, src := range telemetry.SensorSourceSpecs() {
+		want += len(src.Metrics)
+	}
 	availability := report["availability"].([]any)
-	if len(availability) != 5 {
-		t.Fatalf("availability = %d metrics", len(availability))
+	if len(availability) != want {
+		t.Fatalf("availability = %d metrics, want %d", len(availability), want)
 	}
 	for _, field := range []string{"device_id", "hostname", "serial", "pid_", "luid"} {
 		if strings.Contains(string(data), field) {

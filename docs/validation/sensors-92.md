@@ -153,13 +153,16 @@ advance during the call. This run does not exercise an observed
 
   The 19 October probe on that laptop read battery charge and NVIDIA values but
   got `permission_denied` on the CIM ACPI thermal class. The PDH thermal counter
-  used here is a different interface, and its result on that laptop is unknown.
+  used here is a different interface. Follow-up: the #91 interactive run on the
+  Victus on 17 November read battery, thermal, GPU engine and NVIDIA values; see
+  [telemetry-91.md](telemetry-91.md#hp-victus-run-17-november-2026). The
+  second target and the service-token runs remain open.
 - **A real permission denial.** The `permission_denied` path is covered by the
   PDH status and `nvidia-smi` exit-code tests, not by an observed OS denial.
 - **Service-token runs.** `service-budget.yml` does not yet run
   `sensoravailability` under its LocalService and denied accounts.
-- **Wiring.** The endpoint agent does not call this collector. `Collector`
-  still returns `ErrNotImplemented` until #91 adds CPU, memory, disk and network.
+- **Wiring.** Done in #91: `endpoint-agent --collect-telemetry` calls this
+  collector and prints a v2 payload. Scheduling and delivery remain open.
 - **Provider metadata on the wire.** This needs a separate v2 contract PR.
 - **Cost.** The PDH and `nvidia-smi` cost of this collector under the #85
   budget harness has not been measured.

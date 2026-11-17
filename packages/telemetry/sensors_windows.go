@@ -31,12 +31,20 @@ var (
 	procPdhCloseQuery            = pdhDLL.NewProc("PdhCloseQuery")
 )
 
-// PlatformSensorSources returns the Windows battery, thermal, GPU engine and
-// installed NVIDIA tool sources.
+// PlatformSensorSources returns the Windows CPU, memory, disk, network,
+// battery, thermal, GPU engine and installed NVIDIA tool sources.
 func PlatformSensorSources() []SensorSource {
 	sources := SensorSourceSpecs()
 	for i := range sources {
 		switch sources[i].Name {
+		case SensorCPU:
+			sources[i].Read = readCPUWindows
+		case SensorMemory:
+			sources[i].Read = readMemoryWindows
+		case SensorDisk:
+			sources[i].Read = readDiskWindows
+		case SensorNetwork:
+			sources[i].Read = readNetworkWindows
 		case SensorBattery:
 			sources[i].Read = readBatteryWindows
 		case SensorThermal:

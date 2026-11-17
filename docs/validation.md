@@ -1,5 +1,13 @@
 # Initial scaffold validation
 
+Follow-up: [TEL05 CPU, memory, disk and network collectors, 17 November 2026](validation/telemetry-91.md)
+records the collectors, the endpoint v2 payload and a real HP Victus run. The
+second physical target and service tokens were not measured.
+
+Follow-up: [TEL07 structured Windows error evidence, 17 November 2026](validation/error-evidence-93.md)
+records bounded System/Application error records, persistent read positions
+and a real HP Victus run, including an observed Security-log denial.
+
 Follow-up: [TEL06 battery, thermal and GPU collectors, 17 November 2026](validation/sensors-92.md)
 records the nullable collector, its failure-path tests and hosted Windows CI
 availability. Neither physical Windows target was measured.
