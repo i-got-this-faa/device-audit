@@ -153,6 +153,13 @@ func TestEnvelopeV1GoldenVectors(t *testing.T) {
 			if err != nil || reason != vector.FreshnessRejection {
 				t.Fatalf("freshness=%s (%v), want %s", reason, err, vector.FreshnessRejection)
 			}
+			wantTimestamp := vector.FreshnessRejection
+			if wantTimestamp == EnvelopeRejectionReplay {
+				wantTimestamp = ""
+			}
+			if reason, err := header.TimestampRejection(now); err != nil || reason != wantTimestamp {
+				t.Fatalf("timestamp=%s (%v), want %s", reason, err, wantTimestamp)
+			}
 		})
 	}
 }
