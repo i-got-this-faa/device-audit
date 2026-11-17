@@ -26,10 +26,17 @@ def main():
                 time.sleep(0.05)
         else:
             raise RuntimeError("controller did not become ready")
-        output = subprocess.check_output(
-            ["bin/endpoint-agent", "--controller", base], text=True, timeout=15
+        # Without --fixture the agent refuses to send synthetic telemetry.
+        refused = subprocess.run(
+            ["bin/endpoint-agent", "--controller", base], capture_output=True, text=True, timeout=15
         )
-        accepted = json.loads(output)
+        assert refused.returncode != 0 and "--fixture" in refused.stderr
+        fixture = subprocess.run(
+            ["bin/endpoint-agent", "--fixture", "--controller", base],
+            capture_output=True, text=True, timeout=15, check=True,
+        )
+        assert "provenance=fixture" in fixture.stderr
+        accepted = json.loads(fixture.stdout)
         with opener.open(base + "/v1/devices/demo-device", timeout=5) as response:
             stored = json.load(response)
         assert stored["evidence_digest"] == accepted["evidence_digest"]

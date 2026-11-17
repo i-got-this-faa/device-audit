@@ -19,7 +19,7 @@ import (
 
 func main() {
 	controllerURL := flag.String("controller", "http://127.0.0.1:8080", "loopback development controller")
-	deviceID := flag.String("device-id", "demo-device", "fixture device ID")
+	deviceID := flag.String("device-id", "demo-device", "device ID; collection modes require it explicitly, --fixture defaults to demo-device")
 	transport := flag.String("transport", "loopback", "loopback or mesh")
 	enrollMode := flag.Bool("enroll", false, "enroll using bootstrap-token.v1 JSON on stdin")
 	identityStatus := flag.Bool("identity-status", false, "verify stored admission and print public receipt")
@@ -32,6 +32,11 @@ func main() {
 	regionFile := flag.String("derp-region-file", "", "explicit self-hosted DERP region JSON")
 	collectTelemetry := flag.Bool("collect-telemetry", false, "print one endpoint telemetry v2 payload for an explicit --device-id")
 	collectErrors := flag.Bool("collect-errors", false, "print new System/Application error records and save read positions in --state-dir")
+	sample := flag.Bool("sample", false, "run the configured sampling schedule and print one telemetry v2 payload per snapshot")
+	samplingConfig := flag.String("sampling-config", "", "sampling configuration JSON; the built-in default when empty")
+	samplingDuration := flag.Duration("sampling-duration", 5*time.Minute, "how long --sample runs, from 1s to 24h")
+	samplingReport := flag.String("sampling-report", "", "new file for the sampling budget report")
+	fixture := flag.Bool("fixture", false, "send synthetic fixture telemetry to a loopback development controller")
 	flag.Parse()
 	modes := 0
 	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence, *collectErrors} {
@@ -39,10 +44,33 @@ func main() {
 			modes++
 		}
 	}
+	deviceSet := false
+	flag.Visit(func(f *flag.Flag) { deviceSet = deviceSet || f.Name == "device-id" })
+	if *sample {
+		if modes > 0 || *collectTelemetry || *fixture || !deviceSet {
+			fail(fmt.Errorf("--sample runs alone and requires an explicit --device-id"))
+		}
+		cfg, err := loadSamplingConfig(*samplingConfig)
+		if err != nil {
+			fail(fmt.Errorf("invalid sampling config: %s", err))
+		}
+		report, err := runSampling(context.Background(), telemetry.NewScheduler(cfg), *deviceID, *samplingDuration, os.Stdout, os.Stderr)
+		if err != nil {
+			fail(fmt.Errorf("endpoint sampling failed: %s", err))
+		}
+		if *samplingReport != "" {
+			if err := writeSamplingReport(*samplingReport, report); err != nil {
+				fail(err)
+			}
+		}
+		fmt.Fprintln(os.Stderr, budgetSummary(report))
+		if !report.Budget.Within() {
+			fail(errBudgetExceeded)
+		}
+		return
+	}
 	if *collectTelemetry {
-		deviceSet := false
-		flag.Visit(func(f *flag.Flag) { deviceSet = deviceSet || f.Name == "device-id" })
-		if modes > 0 || !deviceSet {
+		if modes > 0 || *fixture || !deviceSet {
 			fail(fmt.Errorf("--collect-telemetry runs alone and requires an explicit --device-id"))
 		}
 		payload, err := collectEndpointTelemetry(context.Background(), *deviceID)
@@ -142,6 +170,12 @@ func main() {
 	if *transport != "loopback" {
 		fail(fmt.Errorf("transport must be loopback or mesh"))
 	}
+	// Synthetic telemetry is never the default: it needs an explicit switch
+	// and announces its provenance, so it cannot pass for a device reading.
+	if !*fixture || modes > 0 || *collectTelemetry {
+		fail(fmt.Errorf("choose a mode such as --sample or --collect-telemetry; synthetic loopback telemetry requires --fixture alone"))
+	}
+	fmt.Fprintln(os.Stderr, "provenance=fixture: sending synthetic telemetry, not a device measurement")
 	u, err := url.Parse(*controllerURL)
 	if err != nil {
 		fail(err)

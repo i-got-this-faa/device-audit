@@ -1,7 +1,8 @@
 // Package telemetry defines read-only collection boundaries: the TEL04 #85
 // permission, cadence and sampling-overhead harness; the TEL05 #91 CPU, memory,
 // disk and network sources and TEL06 #92 nullable battery, thermal and GPU
-// sources of SensorCollector; and the TEL07 #93 bounded error-evidence reader.
+// sources of SensorCollector; the TEL07 #93 bounded error-evidence reader; and
+// the TEL08 #94 per-source sampling Scheduler with its declared budget.
 //
 // The harness measures this process. It does not impersonate a service token or
 // approve a production collector budget. Fixture and synthetic results are not

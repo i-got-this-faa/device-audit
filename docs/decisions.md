@@ -760,6 +760,32 @@ Permission denial, an absent log and timeouts are per-log
 outcomes that keep the saved position. Evidence, including an observed Security
 log denial on the Victus, is in [error-evidence-93.md](validation/error-evidence-93.md).
 
+## Bounded configurable sampling, TEL08 #94
+
+On 17 November 2026 `packages/telemetry` gained a `Scheduler` driven by a strict
+`device-audit.sampling-config.v1` document. Each listed source has its own
+start-to-start interval (5–300 s) and deadline (at most 30 s and at most its
+interval); unlisted sources are not sampled. Every source runs on its own
+goroutine without catch-up. A provider still blocked from its previous read is
+not started again, so a hung provider holds one goroutine and records
+`collection_error` / `provider_busy` instead of delaying other sources. Emitted
+snapshots use each source's latest result; a missing or stale result is a null
+(`not_yet_sampled`, `stale_result`), never a reused value. Missing reasons from
+providers pass through unchanged.
+
+The configuration declares a sampling budget: process CPU as percent of one
+core over the run and peak RSS. The built-in default samples every source at the
+15-second TEL04 candidate, the NVIDIA tool at 60 seconds, emits every 60 seconds
+and declares 2 % of one core and 64 MiB. The run report compares measured cost
+with that declaration; `endpoint-agent --sample` exits non-zero when it is
+exceeded. Process CPU excludes child processes such as `nvidia-smi`. The
+declaration is the configured ceiling for this measurement, not an approved
+production budget.
+
+Synthetic telemetry is no longer the agent's default. The loopback fixture
+needs `--fixture` and prints `provenance=fixture`; with no mode the agent
+exits with an error. Measurements are in [sampling-94.md](validation/sampling-94.md).
+
 ## Predeclared evaluation and resource thresholds, ML05 #86
 
 On 17 November 2026, before any model was fitted, `models/evaluation/ml05-policy.json`

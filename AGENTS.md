@@ -7,9 +7,9 @@ in `docs/source/patent-map.md`. That mapping does not establish that the
 scaffold implements the claims, patent conformance, or legal coverage.
 
 - `apps/controller` and `internal/controller`: Go controller and ingestion.
-- `apps/endpoint-agent`: Go endpoint process. The default mode still sends
-  fixture telemetry; `--collect-telemetry` and `--collect-errors` read the
-  Windows collectors in `packages/telemetry`.
+- `apps/endpoint-agent`: Go endpoint process. `--sample`, `--collect-telemetry`
+  and `--collect-errors` read the Windows collectors in `packages/telemetry`.
+  Synthetic loopback telemetry requires `--fixture`; there is no default mode.
 - `packages/contracts`: versioned telemetry, prediction, workflow, and audit types.
 - `packages/health`, `packages/federated`, `packages/lifecycle`, `packages/audit`:
   application boundaries. Missing implementations must return explicit errors.
