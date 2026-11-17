@@ -55,7 +55,7 @@ func TestRepositoryWriterProcess(t *testing.T) {
 		signRepositoryEnrollment(t, &enrollment)
 		err = repo.Enroll(context.Background(), enrollment)
 	} else {
-		err = repo.AcceptEvidence(context.Background(), evidence)
+		err = evidenceErr(repo.AcceptEvidence(context.Background(), evidence))
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -277,11 +277,11 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	repo := fixtureRepository(t, db)
 	enrollment := enrollRepositoryFixture(t, repo)
 	_, evidence := repositoryEnvelopes(t)
-	if err := repo.AcceptEvidence(ctx, evidence); err != nil {
+	if err := evidenceErr(repo.AcceptEvidence(ctx, evidence)); err != nil {
 		t.Fatal(err)
 	}
 	run("pg_ctl", "-D", data, "-m", "immediate", "-w", "stop")
-	if err := repo.AcceptEvidence(ctx, evidence); !errors.Is(err, ErrRepositoryUnavailable) {
+	if err := evidenceErr(repo.AcceptEvidence(ctx, evidence)); !errors.Is(err, ErrRepositoryUnavailable) {
 		t.Fatalf("database outage did not fail closed: %v", err)
 	}
 	run("pg_ctl", "-D", data, "-l", log, "-o", options, "-w", "start")
@@ -301,7 +301,7 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	if err != nil || stored.Envelope.Signature != evidence.Signature {
 		t.Fatalf("evidence provenance lost after PostgreSQL crash: %v", err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
 	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionChallengeReused)
 	contents, err := os.ReadFile(log)
 	if err != nil || !strings.Contains(string(contents), "database system was interrupted") {

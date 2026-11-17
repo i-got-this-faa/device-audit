@@ -149,7 +149,9 @@ measured release-machine drift or finalized collection cadence.
 from the controller clock, echoes the request version, key ID and sequence,
 and binds `request_sha256`. It has no independent acknowledgement sequence.
 Correlation prevents a valid old acknowledgement from accepting another
-request. Retention and authenticated receipt lookup remain open.
+request. `AcknowledgementV1.VerifyForEvidence` applies the pinned-key and
+correlation check for evidence. Retention and authenticated receipt lookup
+remain open.
 
 - `accepted`: `rejection_reason` is explicitly null and `last_sequence` equals
   `request_sequence`. This means durable commit, not buffering, queueing,

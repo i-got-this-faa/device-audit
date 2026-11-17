@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -16,59 +19,88 @@ import (
 
 // The application tunnel imports the enrolled identity; it never enrolls or
 // creates keys. Mesh address secrets use the same protected directory ACLs.
-func sendMeshEvidence(ctx context.Context, stateDir, serverKey, regionFile string, input io.Reader) error {
+// It returns the verified controller acknowledgement; a rejected one is also an error.
+func sendMeshEvidence(ctx context.Context, stateDir, serverKey string, controllerKey ed25519.PublicKey, regionFile string, input io.Reader) (contracts.AcknowledgementV1, error) {
 	s, err := openIdentityStore(stateDir, false)
 	if err != nil {
-		return err
+		return contracts.AcknowledgementV1{}, err
 	}
 	defer s.close()
 	receipt, err := s.status()
 	if err != nil {
-		return err
+		return contracts.AcknowledgementV1{}, err
 	}
 	i, err := s.load(false)
 	if err != nil {
-		return err
+		return contracts.AcknowledgementV1{}, err
 	}
 	address, err := s.read("mesh-address")
 	if err != nil {
-		return errors.New("private mesh address unavailable")
+		return contracts.AcknowledgementV1{}, errors.New("private mesh address unavailable")
 	}
 	regionJSON, err := os.ReadFile(regionFile)
 	if err != nil {
-		return errors.New("read self-hosted DERP region")
+		return contracts.AcknowledgementV1{}, errors.New("read self-hosted DERP region")
 	}
 	region, err := mesh.DecodeRegion(regionJSON)
 	if err != nil {
-		return err
+		return contracts.AcknowledgementV1{}, err
 	}
 	var envelope contracts.EvidenceEnvelopeV1
 	data, err := io.ReadAll(io.LimitReader(input, (400<<10)+1))
 	if err != nil || len(data) > 400<<10 || json.Unmarshal(data, &envelope) != nil || envelope.VerifySignature(i.signing.Public().(ed25519.PublicKey)) != nil {
-		return errors.New("valid locally signed CT04 evidence required on stdin")
+		return contracts.AcknowledgementV1{}, errors.New("valid locally signed CT04 evidence required on stdin")
 	}
 	if envelope.DeploymentID != receipt.DeploymentID || envelope.DeviceID != receipt.DeviceID || envelope.SigningKeyID != receipt.SigningKeyID {
-		return errors.New("evidence does not match stored admission")
+		return contracts.AcknowledgementV1{}, errors.New("evidence does not match stored admission")
 	}
 	private := i.network.Bytes()
 	defer clear(private)
 	client, err := mesh.NewClient(mesh.ClientConfig{NetworkPrivateKey: private, ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}})
 	if err != nil {
-		return err
+		return contracts.AcknowledgementV1{}, err
 	}
 	defer client.Close()
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+mesh.ApplicationHost+"/v1/evidence", bytes.NewReader(data))
 	if err != nil {
-		return errors.New("create mesh evidence request")
+		return contracts.AcknowledgementV1{}, errors.New("create mesh evidence request")
 	}
 	r.Header.Set("Content-Type", "application/json")
 	response, err := client.HTTPClient().Do(r)
 	if err != nil {
-		return errors.New("mesh evidence delivery failed; commit outcome may be uncertain")
+		return contracts.AcknowledgementV1{}, errors.New("mesh evidence delivery failed; commit outcome may be uncertain")
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusNoContent {
-		return errors.New("mesh evidence was not acknowledged; retain the original signed envelope")
+	body, err := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+	if err != nil {
+		return contracts.AcknowledgementV1{}, errors.New("mesh evidence response was interrupted; commit outcome may be uncertain")
 	}
-	return nil
+	var ack contracts.AcknowledgementV1
+	if json.Unmarshal(body, &ack) != nil || ack.VerifyForEvidence(controllerKey, envelope) != nil {
+		return contracts.AcknowledgementV1{}, fmt.Errorf("mesh evidence was not acknowledged (HTTP %d); retain the original signed envelope", response.StatusCode)
+	}
+	if ack.Status != "accepted" {
+		// A replay can follow a lost accepted response; it does not prove this payload was stored.
+		return ack, fmt.Errorf("controller rejected evidence: %s; retain the original signed envelope", *ack.RejectionReason)
+	}
+	return ack, nil
+}
+
+// loadControllerAckKey reads the pinned PKIX PEM public key that verifies
+// controller acknowledgements. It is distinct from the mesh server key.
+func loadControllerAckKey(path string) (ed25519.PublicKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.New("mesh requires a readable --controller-ack-key-file")
+	}
+	block, _ := pem.Decode(data)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, errors.New("--controller-ack-key-file must be a PEM public key")
+	}
+	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
+	key, ok := parsed.(ed25519.PublicKey)
+	if err != nil || !ok {
+		return nil, errors.New("--controller-ack-key-file must hold an Ed25519 public key")
+	}
+	return key, nil
 }

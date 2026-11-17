@@ -180,6 +180,9 @@ func requireRepositoryRejection(t *testing.T, err error, reason string) *Reposit
 	return rejection
 }
 
+// evidenceErr keeps outcome-only assertions short; receipt time is checked separately.
+func evidenceErr(_ time.Time, err error) error { return err }
+
 func requireRepositoryState(t *testing.T, db *sql.DB, sequence uint64, samples int) {
 	t.Helper()
 	var mark uint64
@@ -202,8 +205,9 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	enrollment := enrollRepositoryFixture(t, repo)
 	_, evidence := repositoryEnvelopes(t)
 	ctx := context.Background()
-	if err := repo.AcceptEvidence(ctx, evidence); err != nil {
-		t.Fatal(err)
+	receivedAt, err := repo.AcceptEvidence(ctx, evidence)
+	if err != nil || !receivedAt.Equal(repositoryFixtureTime(t)) {
+		t.Fatalf("accepted receipt time=%v err=%v", receivedAt, err)
 	}
 	db.Close()
 	reopened, err := database.Open(ctx, databaseURL)
@@ -236,7 +240,7 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	if telemetry.Metrics.GPUUtilization.Value != nil || telemetry.Metrics.GPUUtilization.Unit != "percent" || telemetry.Metrics.GPUUtilization.MissingReason != "sensor_unavailable" {
 		t.Fatalf("nullable metric lost: %+v", telemetry.Metrics.GPUUtilization)
 	}
-	rejection := requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	rejection := requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
 	if rejection.LastSequence == nil || *rejection.LastSequence != contracts.FirstEvidenceSequenceV1 {
 		t.Fatalf("replay lacks committed mark: %+v", rejection)
 	}
@@ -244,19 +248,19 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	if _, err := reopened.Exec(`DELETE FROM device_evidence`); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
 	const sequenceGap = 100
 	for _, sequence := range []uint64{sequenceGap, contracts.MaxEnvelopeSequence} {
 		evidence.Sequence = sequence
 		signRepositoryEvidence(t, &evidence)
-		if err := repo.AcceptEvidence(ctx, evidence); err != nil {
+		if err := evidenceErr(repo.AcceptEvidence(ctx, evidence)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	requireRepositoryState(t, reopened, contracts.MaxEnvelopeSequence, 2)
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionReplay)
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
 	evidence.Sequence++
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionInvalidPayload)
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionInvalidPayload)
 }
 
 func TestRepositoryExactPayloadWhitespace(t *testing.T) {
@@ -273,7 +277,7 @@ func TestRepositoryExactPayloadWhitespace(t *testing.T) {
 	digest := sha256.Sum256(changed)
 	evidence.PayloadBase64, evidence.PayloadSHA256 = base64.StdEncoding.EncodeToString(changed), hex.EncodeToString(digest[:])
 	signRepositoryEvidence(t, &evidence)
-	if err := repo.AcceptEvidence(context.Background(), evidence); err != nil {
+	if err := evidenceErr(repo.AcceptEvidence(context.Background(), evidence)); err != nil {
 		t.Fatal(err)
 	}
 	stored, err := repo.Evidence(context.Background(), evidence.DeviceID, evidence.Sequence)
@@ -362,14 +366,14 @@ func TestRepositoryRejectsUntrustedOrStaleInput(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			changed := evidence
 			tc.change(&changed)
-			requireRepositoryRejection(t, repo.AcceptEvidence(ctx, changed), tc.reason)
+			requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, changed)), tc.reason)
 			requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 		})
 	}
 	if _, err := db.Exec(`UPDATE device_enrollments SET revoked_at=now()`); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, repo.AcceptEvidence(ctx, evidence), contracts.EnvelopeRejectionRevokedKey)
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionRevokedKey)
 	requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 	if _, err := NewPostgresRepository(ctx, db, RepositoryConfig{DeploymentID: "deployment:other"}); err == nil {
 		t.Fatal("database accepted another configured deployment")
@@ -378,7 +382,7 @@ func TestRepositoryRejectsUntrustedOrStaleInput(t *testing.T) {
 	if _, err := repo.Device(ctx, evidence.DeviceID); !errors.Is(err, ErrRepositoryUnavailable) {
 		t.Fatalf("unavailable read=%v", err)
 	}
-	if err := repo.AcceptEvidence(ctx, evidence); !errors.Is(err, ErrRepositoryUnavailable) {
+	if err := evidenceErr(repo.AcceptEvidence(ctx, evidence)); !errors.Is(err, ErrRepositoryUnavailable) {
 		t.Fatalf("unavailable write=%v", err)
 	}
 }
@@ -398,14 +402,14 @@ func TestRepositoryEvidenceRollbackAtBothWriteBoundaries(t *testing.T) {
 				BEGIN RAISE EXCEPTION 'injected evidence write failure'; END $$;` + trigger); err != nil {
 				t.Fatal(err)
 			}
-			if err := repo.AcceptEvidence(context.Background(), evidence); !errors.Is(err, ErrRepositoryUnavailable) {
+			if err := evidenceErr(repo.AcceptEvidence(context.Background(), evidence)); !errors.Is(err, ErrRepositoryUnavailable) {
 				t.Fatalf("injected transaction failure=%v", err)
 			}
 			requireRepositoryState(t, db, contracts.EnrollmentSequenceV1, 0)
 			if _, err := db.Exec(`DROP TRIGGER fail_write ON device_enrollments`); err != nil {
 				t.Fatal(err)
 			}
-			if err := repo.AcceptEvidence(context.Background(), evidence); err != nil {
+			if err := evidenceErr(repo.AcceptEvidence(context.Background(), evidence)); err != nil {
 				t.Fatalf("rolled back sequence became unusable: %v", err)
 			}
 			requireRepositoryState(t, db, evidence.Sequence, 1)
@@ -431,7 +435,7 @@ func TestRepositoryConcurrentIndependentWriters(t *testing.T) {
 		writer := fixtureRepository(t, independent)
 		wg.Go(func() {
 			<-start
-			results <- writer.AcceptEvidence(context.Background(), evidence)
+			results <- evidenceErr(writer.AcceptEvidence(context.Background(), evidence))
 		})
 	}
 	close(start)
@@ -459,7 +463,7 @@ func TestRepositoryConcurrentIndependentWriters(t *testing.T) {
 		signRepositoryEvidence(t, &next)
 		wg.Go(func() {
 			<-start
-			results <- repo.AcceptEvidence(context.Background(), next)
+			results <- evidenceErr(repo.AcceptEvidence(context.Background(), next))
 		})
 	}
 	close(start)
@@ -562,7 +566,7 @@ func TestRepositoryWaitingWriterCancellationAndExpiry(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), repositoryTestTimeout)
 			defer cancel()
 			result := make(chan error, 1)
-			go func() { result <- repo.AcceptEvidence(ctx, evidence) }()
+			go func() { result <- evidenceErr(repo.AcceptEvidence(ctx, evidence)) }()
 			waitRepositoryCondition(t, func(ctx context.Context) (bool, error) {
 				var waiting bool
 				err := db.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM pg_stat_activity

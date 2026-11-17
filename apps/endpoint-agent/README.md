@@ -116,7 +116,7 @@ reconciled by an operator rather than reset.
 
 This produces and signs evidence only. An already signed envelope can be
 submitted over the admitted mesh, as described below. Spooling the signed
-request for retry and signed acknowledgement handling remain separate work.
+request for retry remains separate work.
 Restoring an older state directory can reopen used local sequences; the
 controller's durable mark still rejects them as `replay`. The signature proves
 integrity and key possession, not sensor truth.
@@ -145,10 +145,16 @@ provisioning, a pinned controller public key and explicit DERP configuration.
 `--transport mesh` reads an existing CT04 signed envelope from stdin, verifies
 it against the stored admission/signing identity, and submits through the stored
 X25519 network identity. It never emits unsigned fixture telemetry or creates
-another network key. The empty committed HTTP response is not a signed receipt.
+another network key. `--controller-ack-key-file` pins the controller's Ed25519
+acknowledgement public key (PKIX PEM). The agent accepts a reply only after it
+checks that signature and every request correlation field. It prints the
+verified acknowledgement JSON. A signed rejection, such as `replay` after a lost
+reply, exits non-zero. Keep the envelope: replay does not prove that this
+payload was stored.
 With `TEST_DATABASE_URL` set, `TestEndpointEnrollmentPostgres` continues through
 a fresh endpoint process and an actual Tailcat application request before and
-after mesh restart. The controller side of that test uses the Unix or Windows
+after mesh restart. After the restart it resends the first sequence and checks
+the signed `replay` acknowledgement. The controller side of that test uses the Unix or Windows
 mesh state store of the host running the test. The repository's Windows CI job
 does not start PostgreSQL, so that combined path is a database-check result on
 a host where the database is configured. Windows device/service execution on

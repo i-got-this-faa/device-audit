@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
+	"encoding/pem"
 	"errors"
 	"flag"
 	"fmt"
@@ -20,6 +23,7 @@ import (
 	"github.com/i-got-this-faa/device-audit/internal/controller"
 	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/networking/mesh"
+	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
 type environment struct {
@@ -72,6 +76,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	meshState := flags.String("mesh-state-dir", "", "private persisted controller mesh state")
 	meshInit := flags.Bool("mesh-init", false, "exclusively provision controller mesh identity and exit")
 	regionFile := flags.String("derp-region-file", "", "local explicit self-hosted DERP region JSON")
+	ackKeyFile := flags.String("ack-key-file", "", "PKCS#8 PEM Ed25519 key that signs mesh evidence acknowledgements")
 	databaseURL := flags.String("database-url", "", "PostgreSQL URL; empty keeps development samples in memory")
 	oidcIssuer := flags.String("oidc-issuer", defaults.OIDCIssuer, "configured OIDC issuer URL")
 	oidcClientID := flags.String("oidc-client-id", defaults.OIDCClientID, "OIDC confidential client ID")
@@ -214,6 +219,11 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			listener.Close()
 			return errors.New("mesh requires durable bootstrap admission and administrator HTTPS")
 		}
+		ackKey, err := loadAcknowledgementKey(*ackKeyFile)
+		if err != nil {
+			listener.Close()
+			return err
+		}
 		data, err := os.ReadFile(*regionFile)
 		if err != nil {
 			listener.Close()
@@ -244,7 +254,13 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			listener.Close()
 			return errors.New("listen on admitted mesh application port")
 		}
-		return serveTransports(ctx, listener, api.Handler(), meshListener, controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repository}))
+		meshServer, err := controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repository, AcknowledgementKey: ackKey})
+		if err != nil {
+			listener.Close()
+			meshListener.Close()
+			return err
+		}
+		return serveTransports(ctx, listener, api.Handler(), meshListener, meshServer)
 	}
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -259,6 +275,27 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		return fmt.Errorf("server failed: %w", err)
 	}
 	return nil
+}
+
+// loadAcknowledgementKey reads the controller's CT04 signing key. Endpoints pin
+// its public half; it must not be the mesh, TLS, device or chain key.
+func loadAcknowledgementKey(path string) (ed25519.PrivateKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.New("mesh requires a readable --ack-key-file")
+	}
+	block, _ := pem.Decode(data)
+	if block == nil || block.Type != "PRIVATE KEY" {
+		return nil, errors.New("--ack-key-file must be a PKCS#8 PEM private key")
+	}
+	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	key, ok := parsed.(ed25519.PrivateKey)
+	if err != nil || !ok {
+		return nil, errors.New("--ack-key-file must hold an Ed25519 private key")
+	}
+	keyID, _ := contracts.SigningKeyIDV1(key.Public().(ed25519.PublicKey))
+	slog.Info("evidence acknowledgement key loaded", "controller_key_id", keyID)
+	return key, nil
 }
 
 type authFlags struct {

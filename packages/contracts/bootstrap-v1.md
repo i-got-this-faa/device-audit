@@ -74,6 +74,6 @@ fields, case aliases and trailing JSON.
 
 Contracts and synthetic fixtures do not qualify a deployed IdP, TLS proxy,
 endpoint keystore, production mesh, device sensor truth or patent coverage.
-Production transport (#25), evidence authorization (#24), signed evidence
-acknowledgements (#89), device revocation (#90) and rotation/recovery remain
-separate. All records remain off-chain.
+Production transport (#25), evidence authorization (#24) and signed evidence
+acknowledgements (#89) are implemented separately. Device revocation (#90) and
+rotation/recovery remain open. All records remain off-chain.

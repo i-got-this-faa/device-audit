@@ -30,14 +30,24 @@ func TestEndpointMeshProcess(t *testing.T) {
 	if path == "" {
 		t.Skip("subprocess entry")
 	}
-	var cfg struct{ Pin, Region string }
+	var cfg struct{ Pin, Region, AckKey, Out string }
 	d := json.NewDecoder(os.Stdin)
 	var envelope json.RawMessage
 	if d.Decode(&cfg) != nil || d.Decode(&envelope) != nil {
 		t.Fatal("private config failed")
 	}
-	if err := sendMeshEvidence(context.Background(), path, cfg.Pin, cfg.Region, bytes.NewReader(envelope)); err != nil {
+	controllerKey, err := hex.DecodeString(cfg.AckKey)
+	if err != nil {
+		t.Fatal("decode pinned acknowledgement key")
+	}
+	// A rejected acknowledgement is verified and recorded; only an unverified answer fails.
+	ack, err := sendMeshEvidence(context.Background(), path, cfg.Pin, controllerKey, cfg.Region, bytes.NewReader(envelope))
+	if ack.Signature == "" {
 		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(ack)
+	if os.WriteFile(cfg.Out, encoded, 0o600) != nil {
+		t.Fatal("write acknowledgement")
 	}
 }
 
@@ -83,7 +93,14 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, pa
 	telemetry.CollectedAt = time.Now().UTC().Truncate(time.Second)
 	payload, _ := json.Marshal(telemetry)
 	digest := sha256.Sum256(payload)
+	_, ackKey, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ackPublic := ackKey.Public().(ed25519.PublicKey)
 	envelope := contracts.EvidenceEnvelopeV1{EnvelopeHeaderV1: contracts.EnvelopeHeaderV1{SchemaVersion: contracts.EvidenceEnvelopeV1Version, DeploymentID: receipt.DeploymentID, DeviceID: receipt.DeviceID, SigningKeyID: receipt.SigningKeyID, Sequence: 2, IssuedAt: telemetry.CollectedAt.Format(time.RFC3339), ExpiresAt: telemetry.CollectedAt.Add(time.Hour).Format(time.RFC3339)}, PayloadSchemaVersion: contracts.TelemetryV2Version, PayloadBase64: base64.StdEncoding.EncodeToString(payload), PayloadSHA256: hex.EncodeToString(digest[:])}
+	// Phase 0 sends sequence 2. After a server and client restart, phase 1
+	// replays sequence 2 and then sends sequence 3.
 	for phase := 0; phase < 2; phase++ {
 		node, err := mesh.NewServer(mesh.ServerConfig{Context: ctx, StateDir: dir, DERP: mesh.DERPConfig{Region: region}, Allow: func(peer string) bool { _, err := repo.NetworkPeerBinding(ctx, peer); return err == nil }})
 		if err != nil {
@@ -94,7 +111,11 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, pa
 			node.Close()
 			t.Fatal(err)
 		}
-		server := controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repo})
+		server, err := controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repo, AcknowledgementKey: ackKey})
+		if err != nil {
+			node.Close()
+			t.Fatal(err)
+		}
 		go server.Serve(ln)
 		if phase == 0 {
 			s, err := openIdentityStore(path, false)
@@ -107,31 +128,57 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, pa
 				t.Fatal(err)
 			}
 		}
-		envelope.Sequence = uint64(phase + 2)
-		canonical, err := envelope.SigningBytes()
-		if err != nil {
-			t.Fatal(err)
+		sequences := map[int][]uint64{0: {2}, 1: {2, 3}}[phase]
+		for _, sequence := range sequences {
+			envelope.Sequence = sequence
+			canonical, err := envelope.SigningBytes()
+			if err != nil {
+				t.Fatal(err)
+			}
+			envelope.Signature = hex.EncodeToString(ed25519.Sign(i.signing, canonical))
+			ack := runEndpointMeshProcess(t, path, pin, regionPath, ackPublic, envelope)
+			if err := ack.VerifyForEvidence(ackPublic, envelope); err != nil {
+				t.Fatalf("acknowledgement does not answer sequence %d: %v", sequence, err)
+			}
+			replayed := phase == 1 && sequence == 2
+			switch {
+			case replayed && (ack.Status != "rejected" || *ack.RejectionReason != contracts.EnvelopeRejectionReplay || *ack.LastSequence != 2):
+				t.Fatalf("replay across restart answered %s", ack.Status)
+			case !replayed && (ack.Status != "accepted" || *ack.LastSequence != sequence):
+				t.Fatalf("sequence %d answered %s", sequence, ack.Status)
+			}
 		}
-		envelope.Signature = hex.EncodeToString(ed25519.Sign(i.signing, canonical))
-		encoded, _ := json.Marshal(envelope)
-		var input bytes.Buffer
-		_ = json.NewEncoder(&input).Encode(struct{ Pin, Region string }{pin, regionPath})
-		input.Write(encoded)
-		command := exec.Command(os.Args[0], "-test.run=^TestEndpointMeshProcess$", "-test.timeout=25s")
-		command.Env = []string{"DEVICE_AUDIT_TEST_MESH_DIR=" + path, "PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir()}
-		command.Stdin = &input
-		command.Stdout = io.Discard
-		command.Stderr = io.Discard
-		err = command.Run()
 		server.Close()
 		node.Close()
-		if err != nil {
-			t.Fatal("fresh endpoint failed mesh evidence submission; private output suppressed")
-		}
 		stored, err := repo.Evidence(ctx, receipt.DeviceID, envelope.Sequence)
 		if err != nil || !bytes.Equal(stored.PayloadBytes, payload) || stored.Envelope.VerifySignature(i.signing.Public().(ed25519.PublicKey)) != nil {
 			t.Fatal("committed mesh evidence differs")
 		}
 	}
-	t.Log("TLS enrollment -> protected endpoint state -> fresh process -> admitted Tailcat -> PostgreSQL evidence passed before and after server/client restart")
+	t.Log("TLS enrollment -> protected endpoint state -> fresh process -> admitted Tailcat -> PostgreSQL evidence -> verified signed acknowledgement passed before and after server/client restart, including a signed replay rejection")
+}
+
+// runEndpointMeshProcess submits one envelope from a fresh endpoint process and
+// returns the acknowledgement that process verified against the pinned key.
+func runEndpointMeshProcess(t *testing.T, path, pin, regionPath string, ackKey ed25519.PublicKey, envelope contracts.EvidenceEnvelopeV1) contracts.AcknowledgementV1 {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "ack.json")
+	encoded, _ := json.Marshal(envelope)
+	var input bytes.Buffer
+	_ = json.NewEncoder(&input).Encode(struct{ Pin, Region, AckKey, Out string }{pin, regionPath, hex.EncodeToString(ackKey), out})
+	input.Write(encoded)
+	command := exec.Command(os.Args[0], "-test.run=^TestEndpointMeshProcess$", "-test.timeout=25s")
+	command.Env = []string{"DEVICE_AUDIT_TEST_MESH_DIR=" + path, "PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir()}
+	command.Stdin = &input
+	command.Stdout = io.Discard
+	command.Stderr = io.Discard
+	if err := command.Run(); err != nil {
+		t.Fatal("fresh endpoint failed mesh evidence submission; private output suppressed")
+	}
+	data, err := os.ReadFile(out)
+	var ack contracts.AcknowledgementV1
+	if err != nil || json.Unmarshal(data, &ack) != nil {
+		t.Fatal("endpoint recorded no acknowledgement")
+	}
+	return ack
 }

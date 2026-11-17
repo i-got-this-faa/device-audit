@@ -16,8 +16,8 @@ migration.
 The [#18 TLS admission service](../../infra/enrollment/README.md) calls the
 bootstrap repository operations. The existing `/v1/telemetry` fixture keeps its
 memory store and normalized digest. Repository success means its transaction
-committed; it does not issue a signed acknowledgement, authenticate a live mesh
-peer or establish sensor truth.
+committed; it does not sign an acknowledgement, authenticate a live mesh peer
+or establish sensor truth. The mesh handler signs acknowledgements (#89).
 
 ## Transactions and callers
 
@@ -46,6 +46,7 @@ peer or establish sensor truth.
    evidence v1 envelope using the stored key, and checks the server clock and
    high-water mark. Evidence and the new mark commit together. The clock is read
    after locking, so waiting cannot bypass expiry. No Go mutex serializes writers.
+   It returns the stored receive time only after COMMIT succeeds.
 4. `Device` and `Evidence` read deployment-scoped stored records for later
    authorized consumers. They are not an authenticated receipt lookup service.
 

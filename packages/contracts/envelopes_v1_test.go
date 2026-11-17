@@ -350,3 +350,41 @@ func TestEnvelopeV1DecodeReplacesReusedValue(t *testing.T) {
 		t.Fatalf("stale acknowledgement data: %+v", value)
 	}
 }
+
+func TestAcknowledgementV1VerifyForEvidence(t *testing.T) {
+	byName := map[string]envelopeVector{}
+	for _, vector := range loadEnvelopeVectors(t) {
+		byName[vector.Name] = vector
+	}
+	var request EvidenceEnvelopeV1
+	var accepted, replay, foreign AcknowledgementV1
+	for target, name := range map[any]string{
+		&request: "valid offline evidence with nullable metric", &accepted: "accepted durable evidence acknowledgement",
+		&replay: "explicit rejection replay", &foreign: "accepted enrollment acknowledgement",
+	} {
+		if err := json.Unmarshal(byName[name].Envelope, target); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+	controllerKey, err := hex.DecodeString(byName["accepted durable evidence acknowledgement"].VerificationKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ack := range []AcknowledgementV1{accepted, replay} {
+		if err := ack.VerifyForEvidence(controllerKey, request); err != nil {
+			t.Fatalf("%s acknowledgement did not verify: %v", ack.Status, err)
+		}
+	}
+	other := request
+	other.Sequence++
+	if accepted.VerifyForEvidence(controllerKey, other) == nil {
+		t.Fatal("acknowledgement answered a different sequence")
+	}
+	if foreign.VerifyForEvidence(controllerKey, request) == nil {
+		t.Fatal("enrollment acknowledgement answered evidence")
+	}
+	wrongKey := ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize)).Public().(ed25519.PublicKey)
+	if accepted.VerifyForEvidence(wrongKey, request) == nil {
+		t.Fatal("acknowledgement verified under an unpinned key")
+	}
+}

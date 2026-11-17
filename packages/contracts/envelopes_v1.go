@@ -391,6 +391,28 @@ func (a AcknowledgementV1) VerifySignature(publicKey ed25519.PublicKey) error {
 	return verifyEnvelopeSignature(publicKey, a.ControllerKeyID, a.Signature, message)
 }
 
+// VerifyForEvidence checks the pinned controller signature and every request
+// correlation field, so an old or foreign acknowledgement cannot answer request.
+// It does not interpret the status; a rejected acknowledgement still verifies.
+func (a AcknowledgementV1) VerifyForEvidence(controllerKey ed25519.PublicKey, request EvidenceEnvelopeV1) error {
+	if err := a.VerifySignature(controllerKey); err != nil {
+		return err
+	}
+	signing, err := request.SigningBytes()
+	if err != nil {
+		return err
+	}
+	digest, err := EnvelopeRequestSHA256V1(signing, request.Signature)
+	if err != nil {
+		return err
+	}
+	if a.DeploymentID != request.DeploymentID || a.DeviceID != request.DeviceID || a.RequestSchemaVersion != request.SchemaVersion ||
+		a.RequestKeyID != request.SigningKeyID || a.RequestSequence != request.Sequence || a.RequestSHA256 != digest {
+		return fmt.Errorf("acknowledgement does not correlate with the request")
+	}
+	return nil
+}
+
 // EnvelopeRequestSHA256V1 correlates canonical request fields and a well-formed
 // signature, even when semantic or cryptographic checks fail. It grants no trust.
 func EnvelopeRequestSHA256V1(signingBytes []byte, signature string) (string, error) {

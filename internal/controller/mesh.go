@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,20 +18,23 @@ import (
 
 type MeshRepository interface {
 	NetworkPeerBinding(context.Context, string) (DeviceNetworkBinding, error)
-	AcceptEvidence(context.Context, contracts.EvidenceEnvelopeV1) error
+	AcceptEvidence(context.Context, contracts.EvidenceEnvelopeV1) (time.Time, error)
 }
 
 // MeshConfig wires the device-only server. Nil Logger and Now use the process defaults.
 type MeshConfig struct {
 	Node       mesh.Server
 	Repository MeshRepository
-	Logger     *slog.Logger
-	Now        func() time.Time
+	// AcknowledgementKey signs CT04 receipts. It is a controller application
+	// key, separate from the mesh key, device keys and any chain signer.
+	AcknowledgementKey ed25519.PrivateKey
+	Logger             *slog.Logger
+	Now                func() time.Time
 }
 
 type meshPeerContextKey struct{}
 
-// evidenceAttempt holds what is known about one request when it is rejected.
+// evidenceAttempt holds what is known about one request when it is answered.
 // binding is set only after the tunnel peer is authorized; envelope only after decode.
 type evidenceAttempt struct {
 	peer     string
@@ -37,27 +42,54 @@ type evidenceAttempt struct {
 	envelope *contracts.EvidenceEnvelopeV1
 }
 
+// evidenceOutcome is the answer to one request. An empty reason means the
+// repository committed the sample at receivedAt. lastSequence is the durable
+// mark read under the device lock, or nil when unknown or not disclosable.
+type evidenceOutcome struct {
+	reason       string
+	lastSequence *uint64
+	receivedAt   time.Time
+}
+
 // MeshHTTPServer exposes only device APIs. Administrator and bootstrap handlers
 // belong to the separate HTTPS server and cannot be reached through this mux.
-func MeshHTTPServer(cfg MeshConfig) *http.Server {
+func MeshHTTPServer(cfg MeshConfig) (*http.Server, error) {
+	if len(cfg.AcknowledgementKey) != ed25519.PrivateKeySize {
+		return nil, errors.New("mesh evidence requires an Ed25519 acknowledgement signing key")
+	}
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
 	if cfg.Now == nil {
 		cfg.Now = time.Now
 	}
+	controllerKeyID, err := contracts.SigningKeyIDV1(cfg.AcknowledgementKey.Public().(ed25519.PublicKey))
+	if err != nil {
+		return nil, err
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/evidence", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		peer, _ := r.Context().Value(meshPeerContextKey{}).(string)
-		attempt, reason := admitEvidence(w, r, cfg, peer)
-		if reason == "" {
-			// Transport response only. CT04 signed acknowledgements remain #89.
-			w.WriteHeader(http.StatusNoContent)
+		attempt, outcome := admitEvidence(w, r, cfg, peer)
+		status := http.StatusOK
+		if outcome.reason != "" {
+			logEvidenceRejection(r.Context(), cfg.Logger, attempt, outcome.reason)
+			status = evidenceRejectionStatus(outcome.reason)
+		}
+		ack, ok := signEvidenceAcknowledgement(cfg.AcknowledgementKey, controllerKeyID, attempt, outcome)
+		if !ok {
+			if outcome.reason == "" {
+				// Committed but unanswerable. A retry receives a signed replay.
+				cfg.Logger.LogAttrs(r.Context(), slog.LevelError, "evidence acknowledgement failed", slog.String("peer", peer))
+				status = http.StatusInternalServerError
+			}
+			http.Error(w, "evidence was not acknowledged; retain the signed envelope", status)
 			return
 		}
-		logEvidenceRejection(r.Context(), cfg.Logger, attempt, reason)
-		http.Error(w, "evidence was not acknowledged", evidenceRejectionStatus(reason))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(ack)
 	})
 	return &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second,
 		ConnContext: func(ctx context.Context, conn net.Conn) context.Context {
@@ -66,45 +98,86 @@ func MeshHTTPServer(cfg MeshConfig) *http.Server {
 				peer = ""
 			}
 			return context.WithValue(ctx, meshPeerContextKey{}, peer)
-		}}
+		}}, nil
 }
 
 // admitEvidence returns an empty reason only after durable ingestion committed.
 // Every security check runs before the repository is asked to persist anything.
-func admitEvidence(w http.ResponseWriter, r *http.Request, cfg MeshConfig, peer string) (evidenceAttempt, string) {
+func admitEvidence(w http.ResponseWriter, r *http.Request, cfg MeshConfig, peer string) (evidenceAttempt, evidenceOutcome) {
 	attempt := evidenceAttempt{peer: peer}
+	reject := func(reason string) (evidenceAttempt, evidenceOutcome) {
+		return attempt, evidenceOutcome{reason: reason, receivedAt: cfg.Now()}
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 	binding, err := cfg.Repository.NetworkPeerBinding(ctx, peer)
 	if err != nil || binding.NetworkPublicKey != peer {
 		// Unavailable admission state is denied like revocation; the tunnel is dropped either way.
 		_ = cfg.Node.DisconnectClient(peer)
-		return attempt, contracts.EnvelopeRejectionUnauthorizedPeer
+		return reject(contracts.EnvelopeRejectionUnauthorizedPeer)
 	}
 	attempt.binding = &binding
 	if r.URL.RawQuery != "" {
-		return attempt, contracts.EnvelopeRejectionInvalidPayload
+		return reject(contracts.EnvelopeRejectionInvalidPayload)
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 400<<10)
 	defer r.Body.Close()
 	var envelope contracts.EvidenceEnvelopeV1
 	d := json.NewDecoder(r.Body)
 	if d.Decode(&envelope) != nil || d.Decode(new(json.RawMessage)) != io.EOF {
-		return attempt, contracts.EnvelopeRejectionInvalidPayload
+		return reject(contracts.EnvelopeRejectionInvalidPayload)
 	}
 	attempt.envelope = &envelope
 	if reason := verifyEvidence(binding, envelope, cfg.Now()); reason != "" {
-		return attempt, reason
+		return reject(reason)
 	}
-	if err := cfg.Repository.AcceptEvidence(ctx, envelope); err != nil {
+	receivedAt, err := cfg.Repository.AcceptEvidence(ctx, envelope)
+	if err != nil {
 		// Storage and uncertain COMMIT failures never become success responses.
 		var rejection *RepositoryRejection
 		if errors.As(err, &rejection) {
-			return attempt, rejection.Reason
+			return attempt, evidenceOutcome{reason: rejection.Reason, lastSequence: rejection.LastSequence, receivedAt: cfg.Now()}
 		}
-		return attempt, contracts.EnvelopeRejectionStorageUnavailable
+		return reject(contracts.EnvelopeRejectionStorageUnavailable)
 	}
-	return attempt, ""
+	return attempt, evidenceOutcome{lastSequence: &envelope.Sequence, receivedAt: receivedAt}
+}
+
+// signEvidenceAcknowledgement signs a CT04 receipt only for a correlatable
+// request that names the admitted peer's own deployment and device. It never
+// signs storage_unavailable: a failed COMMIT may still have committed, so the
+// controller cannot truthfully state that the request was rejected.
+func signEvidenceAcknowledgement(key ed25519.PrivateKey, keyID string, attempt evidenceAttempt, outcome evidenceOutcome) (contracts.AcknowledgementV1, bool) {
+	if attempt.binding == nil || attempt.envelope == nil || outcome.reason == contracts.EnvelopeRejectionStorageUnavailable {
+		return contracts.AcknowledgementV1{}, false
+	}
+	e := *attempt.envelope
+	if e.DeploymentID != attempt.binding.DeploymentID || e.DeviceID != attempt.binding.DeviceID {
+		return contracts.AcknowledgementV1{}, false
+	}
+	signing, err := e.SigningBytes()
+	if err != nil {
+		return contracts.AcknowledgementV1{}, false
+	}
+	digest, err := contracts.EnvelopeRequestSHA256V1(signing, e.Signature)
+	if err != nil {
+		return contracts.AcknowledgementV1{}, false
+	}
+	ack := contracts.AcknowledgementV1{
+		SchemaVersion: contracts.AcknowledgementV1Version, DeploymentID: e.DeploymentID, DeviceID: e.DeviceID,
+		ControllerKeyID: keyID, RequestSchemaVersion: e.SchemaVersion, RequestKeyID: e.SigningKeyID,
+		RequestSequence: e.Sequence, RequestSHA256: digest, ReceivedAt: outcome.receivedAt.UTC().Format(time.RFC3339),
+		Status: "accepted", LastSequence: outcome.lastSequence,
+	}
+	if outcome.reason != "" {
+		ack.Status, ack.RejectionReason = "rejected", &outcome.reason
+	}
+	message, err := ack.SigningBytes()
+	if err != nil {
+		return contracts.AcknowledgementV1{}, false
+	}
+	ack.Signature = hex.EncodeToString(ed25519.Sign(key, message))
+	return ack, true
 }
 
 // verifyEvidence authenticates an envelope against the admitted peer's binding.
