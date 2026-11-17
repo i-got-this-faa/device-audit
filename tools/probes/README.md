@@ -158,6 +158,29 @@ cadence evidence. The 16 November 2026 Linux numbers and the physical Windows
 steps that remain are in
 [collector-budget-85.md](../../docs/validation/collector-budget-85.md).
 
+## Battery, thermal and GPU availability (#92)
+
+`sensoravailability` runs the Go collector in `packages/telemetry` and records
+which battery, thermal and GPU readings this host returns. It is read-only. It
+does not elevate, change ACLs, install drivers or vendor tools, or attest the
+process token, so every report says
+`qualification = not_service_token_or_physical_target_attested`.
+
+```powershell
+New-Item -ItemType Directory -Force artifacts/sensors
+go run ./tools/probes/sensoravailability -output artifacts/sensors/target-a.json -samples 3 -interval 15s
+```
+
+The output parent must exist and an existing file is never overwritten. Samples
+are bounded at 30, the interval at 300 seconds and the per-source deadline at
+30 seconds (default 5). The Windows providers are `GetSystemPowerStatus`, the
+PDH `Thermal Zone Information` and `GPU Engine` counters, and the existing
+`%SystemRoot%\System32\nvidia-smi.exe` with fixed arguments. These differ from
+the PowerShell probe's CIM classes. On other platforms every reading is null
+with `sensor_unavailable` / `platform_not_selected`. The report carries no
+hostname, serial, PID, adapter LUID or thermal-zone name. See
+[sensors-92.md](../../docs/validation/sensors-92.md).
+
 ## Hosted Windows runner service tokens
 
 `.github/workflows/service-budget.yml` is manual (`workflow_dispatch`) and runs

@@ -50,7 +50,12 @@ try {
     Invoke-Checked go @('run', './tools/probes/collectorbudget',
         '-output', 'artifacts/collector-budget/windows-ci.json',
         '-interval', '15s', '-samples', '2', '-repeats', '1', '-baseline', '1s', '-iterations', '200000')
-    Write-Host 'PASS: Windows vet/race/format/model checks, native fixture demo, cross-builds, probe checks and synthetic collector budget'
+    # Battery, thermal and GPU availability through the Go collector (#92).
+    # A hosted VM under the CI account; not a physical target or LocalService token.
+    $null = New-Item -ItemType Directory -Force -Path artifacts/sensors
+    Invoke-Checked go @('run', './tools/probes/sensoravailability',
+        '-output', 'artifacts/sensors/windows-ci.json', '-samples', '2', '-interval', '2s')
+    Write-Host 'PASS: Windows vet/race/format/model checks, native fixture demo, cross-builds, probe checks, synthetic collector budget and sensor availability'
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], 'Process') }
     Pop-Location

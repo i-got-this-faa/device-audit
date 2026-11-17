@@ -55,6 +55,14 @@ jobs:
           path: artifacts/collector-budget/windows-ci.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Save sensor availability evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: sensor-availability-windows-ci
+          path: artifacts/sensors/windows-ci.json
+          if-no-files-found: warn
+          retention-days: 14
   project-automation:
     runs-on: ubuntu-latest
     steps:
