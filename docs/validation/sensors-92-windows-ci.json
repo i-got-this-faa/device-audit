@@ -1,0 +1,313 @@
+{
+  "schema": "device-audit.sensor-availability.v1",
+  "provenance": "endpoint_sensor",
+  "qualification": "not_service_token_or_physical_target_attested",
+  "host": {
+    "role": "development_or_ci_not_physical_target",
+    "go_version": "go1.27.1",
+    "goos": "windows",
+    "goarch": "amd64",
+    "os_family": "windows",
+    "os_version": "10.0.26100",
+    "cpu_model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+    "core_count": 4,
+    "total_physical_bytes": 17174360064
+  },
+  "interval_ms": 2000,
+  "deadline_ms": 5000,
+  "samples": [
+    {
+      "collected_at": "2026-11-17T12:08:06.777079Z",
+      "sources": [
+        {
+          "source": "battery",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:06.777079Z",
+          "query_ms": 0,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "battery",
+              "metric": "battery_charge",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "no_system_battery"
+            }
+          ]
+        },
+        {
+          "source": "thermal",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:07.0693371Z",
+          "query_ms": 292.2594,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "thermal",
+              "metric": "acpi_zone_temperature",
+              "unit": "celsius",
+              "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "pdh_no_instances"
+            }
+          ]
+        },
+        {
+          "source": "gpu_engine",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:07.3203227Z",
+          "query_ms": 250.9867,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-0",
+              "value": 14.804792641439787
+            }
+          ]
+        },
+        {
+          "source": "gpu_vendor",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:07.3203227Z",
+          "query_ms": 0,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_utilization",
+              "unit": "percent",
+              "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "vendor_tool_absent"
+            },
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_temperature",
+              "unit": "celsius",
+              "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "vendor_tool_absent"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "collected_at": "2026-11-17T12:08:08.7772822Z",
+      "sources": [
+        {
+          "source": "battery",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:08.7772822Z",
+          "query_ms": 0,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "battery",
+              "metric": "battery_charge",
+              "unit": "percent",
+              "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "no_system_battery"
+            }
+          ]
+        },
+        {
+          "source": "thermal",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:08.7772822Z",
+          "query_ms": 0,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "thermal",
+              "metric": "acpi_zone_temperature",
+              "unit": "celsius",
+              "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "sensor_unavailable",
+              "detail": "pdh_no_instances"
+            }
+          ]
+        },
+        {
+          "source": "gpu_engine",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:09.0281395Z",
+          "query_ms": 250.3423,
+          "outcome": "success",
+          "readings": [
+            {
+              "source": "gpu_engine",
+              "metric": "gpu_adapter_utilization",
+              "unit": "percent",
+              "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+              "instance": "adapter-0",
+              "value": 6.036526178292808
+            }
+          ]
+        },
+        {
+          "source": "gpu_vendor",
+          "provenance": "endpoint_sensor",
+          "observed_at": "2026-11-17T12:08:09.0281395Z",
+          "query_ms": 0,
+          "outcome": "null",
+          "readings": [
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_utilization",
+              "unit": "percent",
+              "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "vendor_tool_absent"
+            },
+            {
+              "source": "gpu_vendor",
+              "metric": "nvidia_gpu_temperature",
+              "unit": "celsius",
+              "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+              "instance": "source",
+              "value": null,
+              "missing_reason": "not_applicable",
+              "detail": "vendor_tool_absent"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metrics_v2": [
+    {
+      "gpu_utilization": {
+        "value": 14.804792641439787,
+        "unit": "percent"
+      },
+      "battery_percent": {
+        "value": null,
+        "unit": "percent",
+        "missing_reason": "not_applicable"
+      },
+      "temperature_c": {
+        "value": null,
+        "unit": "celsius",
+        "missing_reason": "sensor_unavailable"
+      }
+    },
+    {
+      "gpu_utilization": {
+        "value": 6.036526178292808,
+        "unit": "percent"
+      },
+      "battery_percent": {
+        "value": null,
+        "unit": "percent",
+        "missing_reason": "not_applicable"
+      },
+      "temperature_c": {
+        "value": null,
+        "unit": "celsius",
+        "missing_reason": "sensor_unavailable"
+      }
+    }
+  ],
+  "availability": [
+    {
+      "source": "battery",
+      "metric": "battery_charge",
+      "unit": "percent",
+      "provider": "Win32:kernel32:GetSystemPowerStatus.BatteryLifePercent",
+      "known": 0,
+      "null": 2,
+      "reasons": {
+        "not_applicable": 2
+      },
+      "details": {
+        "no_system_battery": 2
+      },
+      "min_value": null,
+      "max_value": null,
+      "max_query_ms": 0
+    },
+    {
+      "source": "gpu_engine",
+      "metric": "gpu_adapter_utilization",
+      "unit": "percent",
+      "provider": "PDH:\\GPU Engine(*)\\Utilization Percentage (max engine per adapter)",
+      "known": 2,
+      "null": 0,
+      "min_value": 6.036526178292808,
+      "max_value": 14.804792641439787,
+      "max_query_ms": 250.9867
+    },
+    {
+      "source": "gpu_vendor",
+      "metric": "nvidia_gpu_temperature",
+      "unit": "celsius",
+      "provider": "NVIDIA:nvidia-smi:temperature.gpu",
+      "known": 0,
+      "null": 2,
+      "reasons": {
+        "not_applicable": 2
+      },
+      "details": {
+        "vendor_tool_absent": 2
+      },
+      "min_value": null,
+      "max_value": null,
+      "max_query_ms": 0
+    },
+    {
+      "source": "gpu_vendor",
+      "metric": "nvidia_gpu_utilization",
+      "unit": "percent",
+      "provider": "NVIDIA:nvidia-smi:utilization.gpu",
+      "known": 0,
+      "null": 2,
+      "reasons": {
+        "not_applicable": 2
+      },
+      "details": {
+        "vendor_tool_absent": 2
+      },
+      "min_value": null,
+      "max_value": null,
+      "max_query_ms": 0
+    },
+    {
+      "source": "thermal",
+      "metric": "acpi_zone_temperature",
+      "unit": "celsius",
+      "provider": "PDH:\\Thermal Zone Information(*)\\Temperature (kelvin)",
+      "known": 0,
+      "null": 2,
+      "reasons": {
+        "sensor_unavailable": 2
+      },
+      "details": {
+        "pdh_no_instances": 2
+      },
+      "min_value": null,
+      "max_value": null,
+      "max_query_ms": 292.2594
+    }
+  ]
+}

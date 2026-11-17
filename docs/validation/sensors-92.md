@@ -2,6 +2,8 @@
 
 Status on 17 November 2026: **the collector, its failure-path tests and a hosted
 Windows CI availability run are recorded. Physical-target availability is not.**
+The PR closing #92 was merged on the owner's instruction with the physical-target
+items below still open.
 Neither selected physical Windows target was available in this session, and the
 second target is recorded as unavailable in the
 [release scope](../roadmap/release-scope.md). No support claim follows.
@@ -34,7 +36,7 @@ provider error text is never copied.
 | `BatteryFlag` has bit 128 (no system battery) | `not_applicable` | `no_system_battery` |
 | `BatteryFlag` 255 / `BatteryLifePercent` 255 | `sensor_unavailable` | `battery_status_unknown` / `charge_unknown` |
 | PDH thermal object or counter absent | `sensor_unavailable` | `pdh_object_absent` / `pdh_counter_absent` |
-| Thermal object present, zero zones | `sensor_unavailable` | `no_thermal_zones` |
+| Thermal object present, zero zones | `sensor_unavailable` | `no_thermal_zones`, or `pdh_no_instances` when PDH collection reports no data |
 | Zone reports 0 K or less | `sensor_unavailable` | `non_positive_kelvin` |
 | PDH access denied (`0xC0000BDB` or Win32 5) | `permission_denied` | `pdh_access_denied` |
 | Zero GPU engine instances | `sensor_unavailable` | `no_engine_instances` |
@@ -110,7 +112,32 @@ database code.
 
 ## Hosted Windows CI run
 
-Pending the first Check scaffold run on this branch.
+Check scaffold run [44079287075](https://github.com/i-got-this-faa/device-audit/actions/runs/44079287075)
+on `windows-2025` ran `sensoravailability` at commit `972c0a5` as part of
+`tools/check-windows.ps1`: 2 samples, a 2-second interval and a 5-second
+per-source deadline. The committed copy is
+[sensors-92-windows-ci.json](sensors-92-windows-ci.json). The runner reported Go
+1.27.1, `windows/amd64`, OS 10.0.26100, `Intel(R) Xeon(R) Platinum 8370C CPU @
+2.80GHz`, 4 visible cores and 17,174,360,064 bytes of physical memory. It ran
+under the CI account on a hosted VM. It is not a LocalService token and not a
+physical target.
+
+| Source | Metric | Result in both samples | Max query (ms) |
+| --- | --- | --- | ---: |
+| `battery` | `battery_charge` | null, `not_applicable` / `no_system_battery` | 0 |
+| `thermal` | `acpi_zone_temperature` | null, `sensor_unavailable` / `pdh_no_instances` | 292.259 |
+| `gpu_engine` | `gpu_adapter_utilization` | known: 14.805 % then 6.037 % | 250.987 |
+| `gpu_vendor` | `nvidia_gpu_utilization`, `nvidia_gpu_temperature` | null, `not_applicable` / `vendor_tool_absent` | 0 |
+
+The real Windows calls returned three distinct null reasons and one known GPU
+value, and each null left the other sources sampled. The mapped v2 fields were
+`battery_percent` null `not_applicable`, `temperature_c` null
+`sensor_unavailable` and `gpu_utilization` 14.805 then 6.037 percent. The GPU
+engine time is mostly the fixed 250 ms gap between PDH collections. The thermal
+PDH object exists on this VM but collected no zone instances, so the detail is
+`pdh_no_instances`, not `pdh_object_absent`. A 0 ms query means the clock did not
+advance during the call. This run does not exercise an observed
+`permission_denied`.
 
 ## Not done
 
