@@ -733,6 +733,9 @@ func newOIDCTestBed(t *testing.T) (*Service, *fakeIssuer, *httptest.Server, *byt
 	fake := newFakeIssuer(t, "console-client", "client-secret")
 	store := newMemoryStore()
 	clock := &testClock{now: time.Now().UTC()}
+	fake.mu.Lock()
+	fake.now = clock.Now
+	fake.mu.Unlock()
 	var logs bytes.Buffer
 	mux := http.NewServeMux()
 	app := httptest.NewTLSServer(mux)

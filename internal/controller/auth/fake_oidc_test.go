@@ -31,6 +31,11 @@ type fakeIssuer struct {
 	codes            map[string]fakeAuthorizationCode
 	lastCode         string
 	lastIDToken      string
+	// now stamps iat, exp and auth_time. Tests set it to the service's clock:
+	// a frozen service clock compared with a real-time auth_time rejects the
+	// login as not fresh whenever a wall-clock second boundary passes between
+	// test setup and token signing.
+	now func() time.Time
 }
 
 type fakeAuthorizationCode struct {
@@ -54,6 +59,7 @@ func newFakeIssuer(t *testing.T, clientID, clientSecret string) *fakeIssuer {
 		subject:      "subject-viewer",
 		amr:          []string{"pwd", "mfa"},
 		codes:        make(map[string]fakeAuthorizationCode),
+		now:          time.Now,
 	}
 	issuer.server = httptest.NewTLSServer(http.HandlerFunc(issuer.handle))
 	t.Cleanup(issuer.server.Close)
@@ -241,7 +247,9 @@ func (f *fakeIssuer) token(w http.ResponseWriter, r *http.Request) {
 
 func (f *fakeIssuer) signIDToken(subject, nonce string, amr []string) (string, error) {
 	header := map[string]any{"alg": "RS256", "kid": "test-key", "typ": "JWT"}
-	now := time.Now()
+	f.mu.Lock()
+	now := f.now()
+	f.mu.Unlock()
 	claims := map[string]any{
 		"iss":       f.server.URL,
 		"sub":       subject,
