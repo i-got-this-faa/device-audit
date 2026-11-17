@@ -16,7 +16,7 @@ reading carries metric, unit, provider and an index label.
 | --- | --- | --- | --- | --- |
 | `cpu` | `cpu_utilization` | percent | `kernel32!GetSystemTimes`, two reads 250 ms apart; busy = kernel + user − idle | `read_perfos_processor` |
 | `memory` | `memory_used` | percent | `kernel32!GlobalMemoryStatusEx`, (TotalPhys − AvailPhys) / TotalPhys | `read_os_memory` |
-| `disk` | `volume_used` | percent | `GetDiskFreeSpaceExW` for each `DRIVE_FIXED` root, (total − total free) / total | `read_fixed_volume_space` |
+| `disk` | `volume_used` | percent | `GetDiskSpaceInformationW` for each `DRIVE_FIXED` root, volume-wide actual units: (total − available) / total | `read_fixed_volume_space` |
 | `network` | `network_received_rate`, `network_sent_rate` | bytes_per_second | `iphlpapi!GetIfTable2Ex` `InOctets`/`OutOctets`, two reads 250 ms apart, hardware non-filter interfaces only | `read_local_interface_counters` |
 
 No PowerShell, WMI/COM session, shell or install is used. These Go providers
@@ -33,6 +33,8 @@ negative and an unavailable value is never zero.
 | Case | Reason | Detail |
 | --- | --- | --- |
 | A CPU counter or an interface octet counter moved backwards | `collection_error` | `counter_reset` |
+| More than one active processor group (`GetSystemTimes` would cover one group only) | `sensor_unavailable` | `multiple_processor_groups` |
+| Allocation-unit size zero or volume size overflows 64 bits | `collection_error` | `volume_geometry_invalid` |
 | CPU counters did not advance | `collection_error` | `no_elapsed_ticks` |
 | Idle time above kernel + user, available memory above total, free space above size | `collection_error` | `out_of_range` |
 | Interface not up in either read | `sensor_unavailable` | `interface_down` |
@@ -70,6 +72,9 @@ collector now exists.
 
 - `TestCPUReadings`: utilization, and idle, kernel and user counter resets,
   no elapsed ticks and idle above total.
+- `TestVolumeBytesIgnoresQuota`: a quota-reduced caller total does not change
+  volume usage (1,000 units with 100 free is 90 %, not 50 %), and invalid
+  geometry is a `collection_error`.
 - `TestDiskReadingsDeniedVolumeStaysNull`: a denied volume, a not-ready volume,
   a zero-size volume and free above size beside a known 75 % volume.
 - `TestNetworkReadingsCounterResetAndUnavailableInterfaces`: a receive counter
@@ -107,21 +112,25 @@ contains no hostname, user name, adapter or interface name, LUID or zone name.
 
 | Source | Metric | Result over 3 samples | Max query (ms) |
 | --- | --- | --- | ---: |
-| `cpu` | `cpu_utilization` | 43.750 – 52.083 % | 250.662 |
-| `memory` | `memory_used` | 78.731 – 82.439 % | 0 |
-| `disk` | `volume_used` | one fixed volume, 90.996 % | 0.507 |
-| `network` | `network_received_rate` | `interface-0` known 38,775.559 – 357,381.895 B/s; `interface-1` null `sensor_unavailable` / `interface_down` | 254.159 |
-| `network` | `network_sent_rate` | `interface-0` known 572.654 – 46,839.423 B/s; `interface-1` null `interface_down` | 254.159 |
-| `battery` | `battery_charge` | 100 % | 0.319 |
-| `thermal` | `acpi_zone_temperature` | 69.85 – 70.85 °C | 300.209 |
-| `gpu_engine` | `gpu_adapter_utilization` | three adapters, 0 – 32.323 % | 254.713 |
-| `gpu_vendor` | `nvidia_gpu_utilization`, `nvidia_gpu_temperature` | 32 – 36 %, 55 – 57 °C | 70.197 |
+| `cpu` | `cpu_utilization` | 15.625 – 42.487 % | 250.501 |
+| `memory` | `memory_used` | 51.619 – 52.390 % | 0 |
+| `disk` | `volume_used` | one fixed volume, 90.518 % (`Get-Volume`: 90.516 %) | 0 |
+| `network` | `network_received_rate` | `interface-0` known 0 – 1,799.691 B/s; `interface-1` null `sensor_unavailable` / `interface_down` | 252.788 |
+| `network` | `network_sent_rate` | `interface-0` known 214.678 – 557.426 B/s; `interface-1` null `interface_down` | 252.788 |
+| `battery` | `battery_charge` | 100 % | 0 |
+| `thermal` | `acpi_zone_temperature` | 65.85 – 67.85 °C | 213.033 |
+| `gpu_engine` | `gpu_adapter_utilization` | three adapters, 0 – 6.888 % | 253.296 |
+| `gpu_vendor` | `nvidia_gpu_utilization`, `nvidia_gpu_temperature` | 0 – 15 %, 45 – 46 °C | 52.169 |
 
 The mapped v2 fields in each sample were all known: `cpu_utilization`,
 `memory_percent`, `disk_used_percent`, `battery_percent`, `temperature_c` and
 `gpu_utilization`. The second hardware interface was down for the whole run,
 which is the real unavailable-interface case: it produced nulls, not zero
-rates. A 0 ms query means the clock did not advance during the call.
+rates. The idle up interface reported a known 0 B/s in one sample, which is a
+measured zero, not a missing value. A 0 ms query means the clock did not
+advance during the call. This run was re-recorded after the review fix that
+moved disk usage to volume-wide units; an earlier run with the quota-sensitive
+`GetDiskFreeSpaceExW` total read 90.996 %.
 
 This run also answers the open #92 thermal question. On 19 October the CIM
 `MSAcpi_ThermalZoneTemperature` class returned `permission_denied` on this

@@ -20,6 +20,9 @@ type fakeLog struct {
 type fakeEventReader struct {
 	logs     map[string]*fakeLog
 	disorder bool
+	// afterRead runs once ReadErrors has its result, to model a log change
+	// between the read and the position update.
+	afterRead func()
 }
 
 func (f *fakeEventReader) log(name string) (*fakeLog, error) {
@@ -38,7 +41,8 @@ func (f *fakeEventReader) Bounds(_ context.Context, name string) (LogBounds, err
 	if len(l.events) == 0 {
 		return LogBounds{Empty: true}, nil
 	}
-	return LogBounds{Oldest: l.events[0].RecordID, Newest: l.events[len(l.events)-1].RecordID}, nil
+	newest := l.events[len(l.events)-1]
+	return LogBounds{Oldest: l.events[0].RecordID, Newest: newest.RecordID, NewestTime: newest.TimeCreated}, nil
 }
 
 func (f *fakeEventReader) RecordTime(_ context.Context, name string, id uint64) (time.Time, bool, error) {
@@ -67,12 +71,18 @@ func (f *fakeEventReader) ReadErrors(ctx context.Context, name string, after uin
 		if len(out) == limit {
 			break
 		}
-		if e.RecordID > after && (e.Level == 1 || e.Level == 2 || e.Malformed) && (since.IsZero() || !e.TimeCreated.Before(since)) {
+		// An unrenderable event has no ID to filter on, so the query still
+		// returns it.
+		identityless := e.Malformed && e.RecordID == 0
+		if identityless || e.RecordID > after && (e.Level == 1 || e.Level == 2 || e.Malformed) && (since.IsZero() || !e.TimeCreated.Before(since)) {
 			out = append(out, e)
 		}
 	}
 	if f.disorder && len(out) > 1 {
 		out[0], out[1] = out[1], out[0]
+	}
+	if f.afterRead != nil {
+		f.afterRead()
 	}
 	return out, nil
 }
@@ -239,6 +249,27 @@ func TestErrorCollectorRolloverAndReset(t *testing.T) {
 		t.Fatalf("reset by replacement = %+v", l)
 	}
 
+	// Cleared during a read: the position update must not pair the old
+	// newest ID with the new log, or the new log's errors would be skipped.
+	system.events = nil
+	system.appendEvents(4, 4, 4) // newest is 3
+	positions = batch.Positions(positions)
+	reader.afterRead = func() {
+		system.events = nil
+		system.appendEvents(2, 2, 4) // new errors at 1 and 2, a new record 3
+		for i := range system.events {
+			system.events[i].TimeCreated = system.events[i].TimeCreated.Add(2 * time.Hour)
+		}
+		reader.afterRead = nil
+	}
+	batch, _ = c.Collect(context.Background(), positions)
+	positions = batch.Positions(positions)
+	batch, _ = c.Collect(context.Background(), positions)
+	l = logResult(t, batch, LogSystem)
+	if l.Continuity != PositionReset || !equalIDs(recordIDs(l), 1, 2) {
+		t.Fatalf("clear during read = %+v", l)
+	}
+
 	// Empty log after a clear.
 	system.events = nil
 	batch, _ = c.Collect(context.Background(), batch.Positions(positions))
@@ -309,6 +340,7 @@ func TestErrorCollectorFailuresAreBoundedPerLog(t *testing.T) {
 func TestErrorCollectorMalformedAndOversized(t *testing.T) {
 	long := strings.Repeat("é", MaxEventMessageBytes) // two bytes per rune
 	app := &fakeLog{events: []RawEvent{
+		{Malformed: true}, // render failed before the record ID was read
 		{RecordID: 1, Malformed: true},
 		{RecordID: 2, Level: 2, TimeCreated: eventEpoch, Provider: "P", Message: long, MessageStatus: MessageComplete},
 		{RecordID: 3, Level: 2, TimeCreated: eventEpoch, Provider: "P", Message: "bad \x00 nul\r\nline\xff", MessageStatus: MessageComplete},
@@ -323,7 +355,7 @@ func TestErrorCollectorMalformedAndOversized(t *testing.T) {
 		t.Fatal(err)
 	}
 	l := logResult(t, batch, LogApplication)
-	if l.Skipped != 2 || !equalIDs(recordIDs(l), 2, 3, 4, 5, 6) || l.Next.RecordID != 7 {
+	if l.Outcome != LogRead || l.Skipped != 3 || !equalIDs(recordIDs(l), 2, 3, 4, 5, 6) || l.Next.RecordID != 7 {
 		t.Fatalf("result = %+v", l)
 	}
 	truncated, malformed, oversized, unavailable, surrogate := l.Records[0], l.Records[1], l.Records[2], l.Records[3], l.Records[4]

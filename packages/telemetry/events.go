@@ -117,14 +117,18 @@ func (b ErrorBatch) Positions(saved map[string]EventPosition) map[string]EventPo
 	return out
 }
 
-// LogBounds is the record ID range a log currently holds.
+// LogBounds is the record ID range a log currently holds, read from its first
+// and last records. NewestTime is the newest record's creation time, so the
+// pair identifies that record even if the log is cleared later.
 type LogBounds struct {
 	Oldest, Newest uint64
+	NewestTime     time.Time
 	Empty          bool
 }
 
 // RawEvent is one event as the OS returned it. Malformed means its system
 // fields could not be decoded; such an event is counted, not recorded.
+// RecordID is 0 when even the record ID could not be read.
 type RawEvent struct {
 	RecordID      uint64
 	Provider      string
@@ -138,7 +142,8 @@ type RawEvent struct {
 
 // EventLogReader is the OS event-log boundary.
 type EventLogReader interface {
-	// Bounds returns the oldest and newest record IDs of log.
+	// Bounds returns the actual oldest and newest records of log. Record IDs
+	// can have gaps, so a count-based range is not acceptable.
 	Bounds(ctx context.Context, log string) (LogBounds, error)
 	// RecordTime returns the creation time of record id in log, if it exists.
 	RecordTime(ctx context.Context, log string, id uint64) (time.Time, bool, error)
@@ -227,6 +232,13 @@ func (c ErrorCollector) readLog(ctx context.Context, log string, pos EventPositi
 		next.TimeCreated = pos.TimeCreated
 	}
 	for _, raw := range raws {
+		// An event whose system fields could not be rendered may have no
+		// record ID. It is counted and cannot move the position; a later
+		// record or the newest-record anchor below moves past it.
+		if raw.Malformed && raw.RecordID == 0 {
+			result.Skipped++
+			continue
+		}
 		// The reader returns ascending IDs above after. Anything else would
 		// move the position backwards and duplicate events on the next poll.
 		if raw.RecordID <= next.RecordID {
@@ -242,14 +254,11 @@ func (c ErrorCollector) readLog(ctx context.Context, log string, pos EventPositi
 	}
 	// After a complete read every record up to the newest one at Bounds time
 	// was examined, so the position can move there and stay a live anchor.
+	// The anchor's time was captured before the read: if the log is cleared
+	// during the read, the next poll sees a different record at that ID and
+	// resets instead of skipping the new log's records.
 	if !result.More && !bounds.Empty && bounds.Newest > next.RecordID {
-		created, found, err := c.Reader.RecordTime(ctx, log, bounds.Newest)
-		if err != nil {
-			return LogResult{}, err
-		}
-		if found {
-			next = EventPosition{RecordID: bounds.Newest, TimeCreated: created.UTC()}
-		}
+		next = EventPosition{RecordID: bounds.Newest, TimeCreated: bounds.NewestTime.UTC()}
 	}
 	result.Next = &next
 	return result, nil

@@ -13,7 +13,7 @@ The Security log is not selected; the collector refuses any other log name.
 ## What was built
 
 `packages/telemetry/events*.go` adds `ErrorCollector`. On Windows it calls
-`wevtapi.dll` directly (`EvtOpenLog`/`EvtGetLogInfo`, `EvtQuery`/`EvtNext`,
+`wevtapi.dll` directly (`EvtQuery`/`EvtNext`,
 `EvtRender` with a system render context, `EvtFormatMessage`). No PowerShell,
 shell, WMI session or install is used.
 
@@ -47,11 +47,17 @@ time. Each poll checks the saved record against the log:
 | `reset` | the saved ID is above the newest record, the log is empty, or the ID now has a different time (cleared or replaced) | record 0 |
 
 The query is `EventRecordID > position`, so a repeated poll cannot return an
-already collected record. After a complete read the position moves to the
-newest record seen by `EvtGetLogInfo`, so the anchor stays live even without
-new errors. Records returned out of order fail the log instead of moving the
-position backwards. A full batch sets `more`, and the next poll continues from
-the last returned record.
+already collected record. The oldest and newest records are read directly (the
+first record forward and reverse), not computed from `EvtGetLogInfo`'s oldest
+record number plus record count: hosted Windows images have logs with ID gaps,
+where that sum lands below the real newest ID and made a repeated poll reset in
+CI. After a complete read the position moves to the newest record read before
+the error query (its ID and creation time), so the anchor stays live without new
+errors, and a log cleared during the read makes the next poll reset instead of
+skipping the new log's records. Records returned out of order fail the log
+instead of moving the position backwards. A full batch sets `more`, and the next
+poll continues from the last returned record. Each query keeps its goroutine on
+one OS thread until its handles are closed.
 
 `endpoint-agent --collect-errors --state-dir <dir>` writes one batch to
 standard output and only then saves the new positions to
@@ -59,8 +65,9 @@ standard output and only then saves the new positions to
 checksum plus a versioned JSON body, written through the same
 temp-file/flush/rename path as `sequence.state`. A failed output write saves
 nothing, so the next poll returns the same records. A crash after the write
-and before the save can repeat them; consumers deduplicate on `log` and
-`record_id`. Damaged or unknown position state fails closed and is never reset.
+and before the save can repeat them. Consumers deduplicate on `log`,
+`record_id` and `time_created`, because a cleared or replaced log reuses record
+IDs. Damaged or unknown position state fails closed and is never reset.
 
 ### Bounded outcomes
 
@@ -69,7 +76,7 @@ and before the save can repeat them; consumers deduplicate on `log` and
 | Log query denied (`ERROR_ACCESS_DENIED`) | log `permission_denied` / `event_log_access_denied`; saved position kept |
 | Log absent (`ERROR_EVT_CHANNEL_NOT_FOUND`) | log `log_unavailable` / `event_log_absent`; position kept |
 | Deadline expired, other API failure, out-of-order records | log `collection_error` / `timeout`, `event_..._failed` or `record_order_invalid`; position kept |
-| System properties cannot be rendered within 64 KiB, or a field has the wrong type, no record ID, no time or a level other than 1 or 2 | not recorded; `skipped` incremented; the position still advances past it |
+| System properties cannot be rendered within 64 KiB, or a field has the wrong type, no record ID, no time or a level other than 1 or 2 | not recorded; `skipped` incremented; the position advances past it, through its own record ID when readable or otherwise through the next record or the newest-record anchor |
 | Message longer than 2,048 bytes | `truncated` |
 | Invalid UTF-16, invalid UTF-8 or control characters other than newline and tab | `malformed`; replaced with U+FFFD, then bounded |
 | Message larger than the 32 Ki-character read buffer | `oversized`; message empty |
@@ -86,19 +93,20 @@ A failure on one log does not stop the next log.
 - `TestErrorCollectorBatchLimitContinues`: a limit of 2 over 5 errors returns
   each exactly once over three polls.
 - `TestErrorCollectorRolloverAndReset`: overwritten records give `rollover`;
-  a cleared log, a replaced log with the same IDs, and an empty log give
-  `reset`. None skips or repeats a present record.
+  a cleared log, a replaced log with the same IDs, a log cleared during the
+  read, and an empty log give `reset`. None skips or repeats a present record.
 - `TestErrorCollectorFailuresAreBoundedPerLog`: permission denial, an absent
   log, a timeout, out-of-order records and cancellation. The denied log keeps
   its saved position and the other log is still read.
-- `TestErrorCollectorMalformedAndOversized`: undecodable and timeless events
-  are skipped and passed; truncated, malformed, oversized, unavailable and
+- `TestErrorCollectorMalformedAndOversized`: undecodable events, including one
+  without a record ID, and timeless events are skipped and passed; truncated, malformed, oversized, unavailable and
   lone-surrogate messages and a 1,000-byte provider are bounded.
 - `TestDecodeUTF16`, `TestBoundTextCutsAtRuneBoundary`.
 
 `packages/telemetry/events_windows_test.go` uses the real Windows event log:
-two polls of System and Application with no repeated record, and the Security
-log under a standard token classifying as `permission_denied`.
+two polls of System and Application with no repeated record, bounds that match
+`wevtutil qe /rd:true` as an independent oracle, and the Security log under a
+standard token classifying as `permission_denied`.
 
 `apps/endpoint-agent/errors_test.go`: positions survive a store reopen, a
 failed output write commits nothing, a denied log keeps its saved position,
@@ -129,6 +137,19 @@ Microsoft-Windows-TPM-WMI (1040) and TPM (14, six times). Every message status
 was `complete`. `Get-WinEvent` also found no Application error in the window.
 An earlier test run on the same day saw one Application error; it was written
 at 14:43 UTC on 16 November and had left the 24-hour window by the second run.
+
+After the review and CI fixes (direct bounds, pre-read anchor, thread pinning)
+the same two polls were repeated with a fresh state directory. Poll 1 read 23
+System records, because more errors had been logged since, and 0 Application
+records; poll 2 read 0 and 0 with `continued`. The 23 record IDs again matched
+`Get-WinEvent` exactly.
+
+The first CI run of this change failed on the hosted `windows-2025` image: the
+second poll reported `reset` and returned System records again. That image's
+logs have record-ID gaps, so the count-based newest ID was below the real one.
+This laptop's logs are contiguous from 1, which is why the defect did not show
+here. `TestWindowsBoundsMatchRealRecords` now checks bounds against
+`wevtutil`.
 
 The real Security log returned `permission_denied` / `event_log_access_denied`
 to this token. A nonexistent log returned `log_unavailable` /

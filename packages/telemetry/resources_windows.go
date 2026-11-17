@@ -5,6 +5,7 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 	"unsafe"
 
@@ -12,8 +13,10 @@ import (
 )
 
 var (
-	procGetSystemTimes       = kernel32Sensors.NewProc("GetSystemTimes")
-	procGlobalMemoryStatusEx = kernel32Sensors.NewProc("GlobalMemoryStatusEx")
+	procGetSystemTimes               = kernel32Sensors.NewProc("GetSystemTimes")
+	procGetActiveProcessorGroupCount = kernel32Sensors.NewProc("GetActiveProcessorGroupCount")
+	procGlobalMemoryStatusEx         = kernel32Sensors.NewProc("GlobalMemoryStatusEx")
+	procGetDiskSpaceInformationW     = kernel32Sensors.NewProc("GetDiskSpaceInformationW")
 )
 
 // MIB_IF_ROW2 InterfaceAndOperStatusFlags bits.
@@ -23,6 +26,11 @@ const (
 )
 
 func readCPUWindows(ctx context.Context) ([]SensorReading, error) {
+	// With more than one processor group, GetSystemTimes covers only the
+	// calling thread's group, which is not the machine total.
+	if groups, _, _ := procGetActiveProcessorGroupCount.Call(); uint16(groups) > 1 {
+		return nil, sensorErr(ErrSensorUnavailable, "multiple_processor_groups")
+	}
 	first, err := systemTimes()
 	if err != nil {
 		return nil, err
@@ -86,13 +94,30 @@ func readDiskWindows(ctx context.Context) ([]SensorReading, error) {
 			return nil, err
 		}
 		vol := VolumeSpace{Root: windows.UTF16ToString(root)}
-		var available uint64
-		if err := windows.GetDiskFreeSpaceEx(&root[0], &available, &vol.Total, &vol.Free); err != nil {
-			vol.Err = volumeError(err)
-		}
+		vol.Total, vol.Free, vol.Err = volumeSpace(&root[0])
 		volumes = append(volumes, vol)
 	}
 	return DiskReadings(volumes)
+}
+
+// volumeSpace reads volume-wide capacity. GetDiskFreeSpaceExW is not used:
+// with quotas its total is caller-relative while its total free bytes are
+// volume-wide, and mixing them misstates usage.
+func volumeSpace(root *uint16) (total, free uint64, err error) {
+	if err := procGetDiskSpaceInformationW.Find(); err != nil {
+		return 0, 0, sensorErr(ErrSensorUnavailable, "disk_space_api_absent")
+	}
+	var info DiskSpaceInformation
+	hr, _, _ := procGetDiskSpaceInformationW.Call(uintptr(unsafe.Pointer(root)), uintptr(unsafe.Pointer(&info)))
+	if hr != 0 {
+		// A Win32 failure arrives as HRESULT_FROM_WIN32(code).
+		code := uint32(hr)
+		if code&0xFFFF0000 == 0x80070000 {
+			return 0, 0, volumeError(windows.Errno(code & 0xFFFF))
+		}
+		return 0, 0, sensorErr(fmt.Errorf("telemetry: GetDiskSpaceInformationW 0x%08X", code), "volume_query_failed")
+	}
+	return VolumeBytes(info)
 }
 
 func volumeError(err error) error {

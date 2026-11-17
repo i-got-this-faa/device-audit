@@ -175,7 +175,7 @@ go run ./tools/probes/sensoravailability -output artifacts/sensors/target-a.json
 The output parent must exist and an existing file is never overwritten. Samples
 are bounded at 30, the interval at 300 seconds and the per-source deadline at
 30 seconds (default 5). The Windows providers are `GetSystemTimes`,
-`GlobalMemoryStatusEx`, `GetDiskFreeSpaceExW`, `GetIfTable2Ex`,
+`GlobalMemoryStatusEx`, `GetDiskSpaceInformationW`, `GetIfTable2Ex`,
 `GetSystemPowerStatus`, the PDH `Thermal Zone Information` and `GPU Engine`
 counters, and the existing `%SystemRoot%\System32\nvidia-smi.exe` with fixed
 arguments. These differ from the PowerShell probe's CIM and .NET classes. On

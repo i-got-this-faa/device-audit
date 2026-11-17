@@ -27,7 +27,8 @@ func (l *stubEventLog) Bounds(context.Context, string) (telemetry.LogBounds, err
 	if len(l.levels) == 0 {
 		return telemetry.LogBounds{Empty: true}, nil
 	}
-	return telemetry.LogBounds{Oldest: 1, Newest: uint64(len(l.levels))}, nil
+	newest := uint64(len(l.levels))
+	return telemetry.LogBounds{Oldest: 1, Newest: newest, NewestTime: errorEpoch.Add(time.Duration(newest) * time.Second)}, nil
 }
 
 func (l *stubEventLog) RecordTime(_ context.Context, _ string, id uint64) (time.Time, bool, error) {

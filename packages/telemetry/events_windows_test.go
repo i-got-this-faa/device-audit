@@ -4,6 +4,11 @@ package telemetry
 
 import (
 	"context"
+	"fmt"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -53,6 +58,49 @@ func TestWindowsErrorCollectorRepeatedPoll(t *testing.T) {
 			if r.RecordID <= saved.RecordID {
 				t.Fatalf("%s record %d duplicated at or below position %d", l.Log, r.RecordID, saved.RecordID)
 			}
+		}
+	}
+}
+
+// wevtutilRecordID returns the record ID of the first event wevtutil prints,
+// newest first when reverse. It is an oracle independent of this reader.
+func wevtutilRecordID(t *testing.T, log string, reverse bool) uint64 {
+	t.Helper()
+	system, err := windows.GetSystemDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := exec.Command(filepath.Join(system, "wevtutil.exe"), "qe", log, "/c:1", fmt.Sprintf("/rd:%v", reverse), "/f:xml").Output()
+	if err != nil {
+		t.Fatalf("wevtutil %s: %v", log, err)
+	}
+	m := regexp.MustCompile(`<EventRecordID>(\d+)</EventRecordID>`).FindSubmatch(out)
+	if m == nil {
+		t.Fatalf("wevtutil %s printed no record ID", log)
+	}
+	id, err := strconv.ParseUint(string(m[1]), 10, 64)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return id
+}
+
+// Bounds must be the real first and last records. Hosted images have logs
+// whose IDs have gaps, where oldest + count - 1 is below the real newest ID
+// and made a repeated poll reset and return collected records again.
+func TestWindowsBoundsMatchRealRecords(t *testing.T) {
+	for _, log := range []string{LogSystem, LogApplication} {
+		newestBefore := wevtutilRecordID(t, log, true)
+		bounds, err := windowsEventReader{}.Bounds(context.Background(), log)
+		if err != nil {
+			t.Fatal(err)
+		}
+		newestAfter := wevtutilRecordID(t, log, true)
+		if bounds.Empty || bounds.Newest < newestBefore || bounds.Newest > newestAfter || bounds.NewestTime.IsZero() {
+			t.Fatalf("%s bounds %+v, wevtutil newest %d..%d", log, bounds, newestBefore, newestAfter)
+		}
+		if oldest := wevtutilRecordID(t, log, false); bounds.Oldest > oldest {
+			t.Fatalf("%s oldest %d above wevtutil oldest %d", log, bounds.Oldest, oldest)
 		}
 	}
 }

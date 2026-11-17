@@ -64,7 +64,8 @@ func (s *identityStore) loadErrorPositions() (map[string]telemetry.EventPosition
 // collectErrorEvidence writes one error-evidence batch to out and only then
 // commits the new positions. A failed write leaves the saved positions, so the
 // next poll returns the same records. A crash after the write and before the
-// commit can return them again; consumers deduplicate on log and record_id.
+// commit can return them again. Consumers deduplicate on log, record_id and
+// time_created, because a cleared or replaced log reuses record IDs.
 func (s *identityStore) collectErrorEvidence(ctx context.Context, collector telemetry.ErrorCollector, out io.Writer) error {
 	saved, err := s.loadErrorPositions()
 	if err != nil {

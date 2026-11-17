@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -14,8 +15,6 @@ import (
 
 var (
 	wevtapi                      = windows.NewLazySystemDLL("wevtapi.dll")
-	procEvtOpenLog               = wevtapi.NewProc("EvtOpenLog")
-	procEvtGetLogInfo            = wevtapi.NewProc("EvtGetLogInfo")
 	procEvtQuery                 = wevtapi.NewProc("EvtQuery")
 	procEvtNext                  = wevtapi.NewProc("EvtNext")
 	procEvtCreateRenderContext   = wevtapi.NewProc("EvtCreateRenderContext")
@@ -26,11 +25,9 @@ var (
 )
 
 const (
-	evtOpenChannelPath       = 0x1
 	evtQueryChannelPath      = 0x1
 	evtQueryForwardDirection = 0x100
-	evtLogNumberOfLogRecords = 5
-	evtLogOldestRecordNumber = 6
+	evtQueryReverseDirection = 0x200
 	evtRenderContextSystem   = 1
 	evtRenderEventValues     = 0
 	evtFormatMessageEvent    = 1
@@ -88,48 +85,30 @@ func eventLogError(err error, detail string) error {
 	}
 }
 
+// Bounds reads the first record in each direction. EvtGetLogInfo's oldest
+// record number plus record count is not used: hosted images have logs whose
+// record IDs have gaps, and that sum then lands below the real newest ID.
 func (windowsEventReader) Bounds(ctx context.Context, log string) (LogBounds, error) {
-	if err := wevtapi.Load(); err != nil {
-		return LogBounds{}, sensorErr(ErrSensorUnavailable, "wevtapi_absent")
-	}
-	path, err := windows.UTF16PtrFromString(log)
-	if err != nil {
-		return LogBounds{}, sensorErr(err, "event_log_name_invalid")
-	}
-	h, _, callErr := procEvtOpenLog.Call(0, uintptr(unsafe.Pointer(path)), evtOpenChannelPath)
-	if h == 0 {
-		return LogBounds{}, eventLogError(callErr, "event_log_open_failed")
-	}
-	defer evtClose(windows.Handle(h))
-	count, err := logInfo(windows.Handle(h), evtLogNumberOfLogRecords)
+	oldest, err := queryEvents(ctx, log, "*", 1, false, false)
 	if err != nil {
 		return LogBounds{}, err
 	}
-	if count == 0 {
+	newest, err := queryEvents(ctx, log, "*", 1, false, true)
+	if err != nil {
+		return LogBounds{}, err
+	}
+	if len(oldest) == 0 || len(newest) == 0 {
 		return LogBounds{Empty: true}, nil
 	}
-	oldest, err := logInfo(windows.Handle(h), evtLogOldestRecordNumber)
-	if err != nil {
-		return LogBounds{}, err
+	first, last := oldest[0], newest[0]
+	if first.RecordID == 0 || last.RecordID < first.RecordID || last.TimeCreated.IsZero() {
+		return LogBounds{}, sensorErr(errors.New("telemetry: event log bounds unreadable"), "event_log_bounds_invalid")
 	}
-	return LogBounds{Oldest: oldest, Newest: oldest + count - 1}, ctx.Err()
-}
-
-func logInfo(h windows.Handle, property uint32) (uint64, error) {
-	var v evtVariant
-	var used uint32
-	r, _, callErr := procEvtGetLogInfo.Call(uintptr(h), uintptr(property), unsafe.Sizeof(v), uintptr(unsafe.Pointer(&v)), uintptr(unsafe.Pointer(&used)))
-	if r == 0 {
-		return 0, eventLogError(callErr, "event_log_info_failed")
-	}
-	if v.Type&evtVarTypeMask != evtVarTypeUInt64 {
-		return 0, sensorErr(errors.New("telemetry: unexpected log info type"), "event_log_info_failed")
-	}
-	return v.Value, nil
+	return LogBounds{Oldest: first.RecordID, Newest: last.RecordID, NewestTime: last.TimeCreated}, nil
 }
 
 func (windowsEventReader) RecordTime(ctx context.Context, log string, id uint64) (time.Time, bool, error) {
-	events, err := queryEvents(ctx, log, fmt.Sprintf("*[System[EventRecordID=%d]]", id), 1, false)
+	events, err := queryEvents(ctx, log, fmt.Sprintf("*[System[EventRecordID=%d]]", id), 1, false, false)
 	if err != nil || len(events) == 0 {
 		return time.Time{}, false, err
 	}
@@ -144,11 +123,15 @@ func (windowsEventReader) ReadErrors(ctx context.Context, log string, after uint
 	if !since.IsZero() {
 		query += fmt.Sprintf(" and TimeCreated[@SystemTime>='%s']", since.UTC().Format("2006-01-02T15:04:05.000Z"))
 	}
-	return queryEvents(ctx, log, query+"]]", limit, true)
+	return queryEvents(ctx, log, query+"]]", limit, true, false)
 }
 
-// queryEvents runs a forward channel query and renders at most limit events.
-func queryEvents(ctx context.Context, log, query string, limit int, messages bool) ([]RawEvent, error) {
+// queryEvents runs a channel query, oldest first unless reverse, and renders
+// at most limit events. The goroutine stays on one OS thread from EvtQuery
+// until every handle is closed, as the query handle requires.
+func queryEvents(ctx context.Context, log, query string, limit int, messages, reverse bool) ([]RawEvent, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	if err := wevtapi.Load(); err != nil {
 		return nil, sensorErr(ErrSensorUnavailable, "wevtapi_absent")
 	}
@@ -160,7 +143,11 @@ func queryEvents(ctx context.Context, log, query string, limit int, messages boo
 	if err != nil {
 		return nil, sensorErr(err, "event_query_invalid")
 	}
-	results, _, callErr := procEvtQuery.Call(0, uintptr(unsafe.Pointer(path)), uintptr(unsafe.Pointer(q)), evtQueryChannelPath|evtQueryForwardDirection)
+	direction := uintptr(evtQueryForwardDirection)
+	if reverse {
+		direction = evtQueryReverseDirection
+	}
+	results, _, callErr := procEvtQuery.Call(0, uintptr(unsafe.Pointer(path)), uintptr(unsafe.Pointer(q)), evtQueryChannelPath|direction)
 	if results == 0 {
 		return nil, eventLogError(callErr, "event_query_failed")
 	}

@@ -3,6 +3,7 @@ package telemetry
 import (
 	"errors"
 	"fmt"
+	"math/bits"
 	"sort"
 	"time"
 )
@@ -37,7 +38,7 @@ const (
 const (
 	ProviderSystemTimes    = "Win32:kernel32:GetSystemTimes (250 ms delta, busy = kernel + user - idle)"
 	ProviderMemoryStatus   = "Win32:kernel32:GlobalMemoryStatusEx (TotalPhys - AvailPhys) / TotalPhys"
-	ProviderFixedVolumes   = "Win32:kernel32:GetDiskFreeSpaceExW (DRIVE_FIXED, TotalNumberOfFreeBytes)"
+	ProviderFixedVolumes   = "Win32:kernel32:GetDiskSpaceInformationW (DRIVE_FIXED, volume-wide actual units)"
 	ProviderInterfaceRx    = "Win32:iphlpapi:GetIfTable2Ex.InOctets (250 ms delta, hardware interfaces)"
 	ProviderInterfaceTx    = "Win32:iphlpapi:GetIfTable2Ex.OutOctets (250 ms delta, hardware interfaces)"
 	resourceRateWindow     = 250 * time.Millisecond
@@ -98,6 +99,39 @@ func MemoryReadings(totalPhys, availPhys uint64) ([]SensorReading, error) {
 	}
 	v := float64(totalPhys-availPhys) / float64(totalPhys) * 100
 	return []SensorReading{{Metric: MetricMemoryUsed, Instance: instancePhysicalMemory, Value: &v}}, nil
+}
+
+// DiskSpaceInformation mirrors DISK_SPACE_INFORMATION. Actual* fields are
+// volume-wide; Caller* fields are reduced by the caller's disk quota.
+type DiskSpaceInformation struct {
+	ActualTotalAllocationUnits           uint64
+	ActualAvailableAllocationUnits       uint64
+	ActualPoolUnavailableAllocationUnits uint64
+	CallerTotalAllocationUnits           uint64
+	CallerAvailableAllocationUnits       uint64
+	CallerPoolUnavailableAllocationUnits uint64
+	UsedAllocationUnits                  uint64
+	TotalReservedAllocationUnits         uint64
+	VolumeStorageReserveAllocationUnits  uint64
+	AvailableCommittedAllocationUnits    uint64
+	PoolAvailableAllocationUnits         uint64
+	SectorsPerAllocationUnit             uint32
+	BytesPerSector                       uint32
+}
+
+// VolumeBytes returns volume-wide size and free bytes. Quota-relative caller
+// fields are never mixed in, so a quota cannot change the used percentage.
+func VolumeBytes(info DiskSpaceInformation) (total, free uint64, err error) {
+	unit := uint64(info.SectorsPerAllocationUnit) * uint64(info.BytesPerSector) // two uint32s cannot overflow
+	if unit == 0 {
+		return 0, 0, sensorErr(errors.New("telemetry: invalid allocation unit size"), "volume_geometry_invalid")
+	}
+	hi, total := bits.Mul64(info.ActualTotalAllocationUnits, unit)
+	hi2, free := bits.Mul64(info.ActualAvailableAllocationUnits, unit)
+	if hi != 0 || hi2 != 0 {
+		return 0, 0, sensorErr(errors.New("telemetry: volume size overflows"), "volume_geometry_invalid")
+	}
+	return total, free, nil
 }
 
 // VolumeSpace is one fixed volume. Root stays inside the collector; readings

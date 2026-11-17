@@ -101,6 +101,36 @@ func TestDiskReadingsDeniedVolumeStaysNull(t *testing.T) {
 	}
 }
 
+// A disk quota shrinks the caller's view of the volume. Usage must come from
+// volume-wide units only: 1,000 units with 100 free is 90 %, not the 50 % a
+// caller total of 200 paired with volume-wide free space would give.
+func TestVolumeBytesIgnoresQuota(t *testing.T) {
+	info := DiskSpaceInformation{
+		ActualTotalAllocationUnits: 1000, ActualAvailableAllocationUnits: 100,
+		CallerTotalAllocationUnits: 200, CallerAvailableAllocationUnits: 20,
+		SectorsPerAllocationUnit: 8, BytesPerSector: 512,
+	}
+	total, free, err := VolumeBytes(info)
+	if err != nil || total != 1000*4096 || free != 100*4096 {
+		t.Fatalf("total=%d free=%d err=%v", total, free, err)
+	}
+	got, err := DiskReadings([]VolumeSpace{{Root: `C:\`, Total: total, Free: free}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	requireValue(t, got[0], 90)
+
+	for name, bad := range map[string]DiskSpaceInformation{
+		"zero unit": {ActualTotalAllocationUnits: 1},
+		"overflow":  {ActualTotalAllocationUnits: 1 << 62, SectorsPerAllocationUnit: 8, BytesPerSector: 4096},
+	} {
+		_, _, err := VolumeBytes(bad)
+		if reason, detail := ClassifySensorError(err); err == nil || reason != ReasonCollectionError || detail != "volume_geometry_invalid" {
+			t.Fatalf("%s: err=%v %s/%s", name, err, reason, detail)
+		}
+	}
+}
+
 // Counter resets and unavailable interfaces become nulls, never negative or
 // fabricated zero rates. A quiet but up interface is a known zero.
 func TestNetworkReadingsCounterResetAndUnavailableInterfaces(t *testing.T) {

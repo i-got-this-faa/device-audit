@@ -701,7 +701,7 @@ On 17 November 2026 `SensorCollector` gained `cpu`, `memory`, `disk` and
 `network` sources instead of a second collector, so they share the #92
 per-source deadline, panic isolation, v2 missing reasons, observation time and
 `endpoint_sensor` provenance. On Windows they call `GetSystemTimes`,
-`GlobalMemoryStatusEx`, `GetDiskFreeSpaceExW` for each fixed volume and
+`GlobalMemoryStatusEx`, `GetDiskSpaceInformationW` (volume-wide units, so a disk quota cannot skew usage) for each fixed volume and
 `GetIfTable2Ex` for hardware, non-filter interfaces. CPU and network rates come
 from two counter reads 250 ms apart inside one source read. A counter that moved
 backwards is `collection_error` / `counter_reset`; a down, removed or absent
@@ -735,8 +735,9 @@ classifies the saved record as `continued`, `rollover` (overwritten) or `reset`
 repeated poll cannot return a collected record. The endpoint agent saves the
 positions in its private state directory with a checksum, and only after the
 batch is written; damaged state fails closed. Delivery is at least once: a crash
-between output and save can repeat records, which consumers deduplicate on log
-and record ID. Permission denial, an absent log and timeouts are per-log
+between output and save can repeat records. Consumers deduplicate on log, record
+ID and creation time, because a cleared or replaced log restarts record IDs.
+Permission denial, an absent log and timeouts are per-log
 outcomes that keep the saved position. Evidence, including an observed Security
 log denial on the Victus, is in [error-evidence-93.md](validation/error-evidence-93.md).
 
