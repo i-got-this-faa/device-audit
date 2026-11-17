@@ -19,3 +19,8 @@ pins a real historical HDD corpus and a seven-day recorded-event target.
 `partitions.py` builds and verifies its deterministic device/temporal evidence
 indexes. It does not train a model or map SMART values to the fixture endpoint;
 the decision records the remaining labels, telemetry and evaluation blockers.
+
+ML05's [predeclared evaluation and resource thresholds](evaluation/README.md)
+fix the held-out procedure, baseline/false-positive/calibration/horizon gates
+and endpoint budgets before fitting. `evaluation.py` checks reports against
+them and returns pass, fail or blocked. It computes no metric.
