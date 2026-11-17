@@ -1,10 +1,11 @@
 # Relay and bootstrap deployment surface
 
-This directory contains a [reproducible self-hosted DERP lab](derp-lab.md) and
-records the future deployment boundary for DERP maps, TLS/bootstrap
-configuration, persisted network identity, and firewall rules. The lab runs the
-pinned upstream server, not Shepherd's placeholder relay executable. It is not
-a production deployment.
+This directory contains a [reproducible self-hosted DERP lab](derp-lab.md), the
+[scoped relay deployment steps](#deploy-the-scoped-relay-net05-88) and the
+deployment boundary for DERP maps, TLS/bootstrap configuration, persisted
+network identity and firewall rules. Both the lab and `apps/relay` run the
+pinned upstream server, not Shepherd's placeholder relay executable. Neither
+is a qualified production deployment yet.
 
 DERP relays encrypted WireGuard traffic; it does not authenticate application
 requests or validate device reports. Verify authentication/rate-limit options
@@ -69,3 +70,52 @@ DERP traffic and relay restart on one Linux host. Direct UDP, DERP-only and offl
 failure behavior still need evidence on #14's selected machines. The current
 unauthenticated loopback fixture API, minimal local console/auth surface and
 admitted mesh adapter do not establish deployed production access guarantees.
+
+## Deploy the scoped relay, NET05 #88
+
+`apps/relay` wraps the pinned `derpserver` for one organization. Run it on the
+public relay host, not on the controller host. The relay needs no database
+access and no application secrets.
+
+1. Create the relay key once, on protected storage:
+   `relay --init-key --key-file /var/lib/device-audit-relay/relay.key`.
+   The file is created exclusively with mode 0600 and is never replaced.
+2. Get a certificate for the relay's DNS name from a CA the endpoints trust.
+   The relay checks that the certificate covers `--hostname` and is currently
+   valid. It does not issue or renew certificates; restart it after renewal.
+3. Write the admission file. It lists the controller's public node key
+   (`controller --mesh-init` prints it) and each enrolled endpoint's network
+   public key:
+
+   ```json
+   {"version":"device-audit.relay-admission.v1","network_public_keys":["<64 lowercase hex>"]}
+   ```
+
+   Unknown fields, malformed keys and an empty list are rejected. The file is
+   re-read on every connection. Replace it atomically to add or remove keys.
+   A damaged file denies everyone.
+4. Start the relay:
+   `relay --listen :443 --hostname relay.example.org --tls-cert chain.pem
+   --tls-key key.pem --key-file relay.key --admission-file admission.json`.
+   Allow inbound TCP on that port only. No UDP 3478 (STUN) or TCP 80
+   listener is opened. Do not put an HTTP proxy in front, because DERP switches
+   protocols inside TLS.
+5. Generate the region file for the controller and endpoints:
+   `relay --print-region --hostname relay.example.org --port 443 --region-id 900`.
+   Add `--ipv4` to pin the dial address. Add `--cert-name sha256-raw:<hex>` to
+   pin one certificate, but that pin must be changed on every renewal.
+   Distribute the file through trusted configuration and pass it as
+   `--derp-region-file`.
+
+When the mesh starts, the controller and the endpoint agent connect to the
+relay with their admitted key. They check TLS and admission and require a DERP
+ping reply. A failure reports `self-hosted DERP relay unavailable` with the
+region, host and port. The endpoint then refuses to send and keeps the signed
+envelope. The controller logs the error and keeps its HTTPS boundary running.
+Neither falls back to public relays or weaker TLS.
+
+`make relay-fallback-proof` runs the application mesh through this relay in a
+private namespace with all UDP dropped. Results and remaining gaps are in
+[relay-fallback-88.md](../../docs/validation/relay-fallback-88.md). Public DNS,
+a public CA certificate, real host firewalls, NAT/WAN, the selected Windows
+laptop and automatic export of revocations to the admission file are still open.

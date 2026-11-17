@@ -1,11 +1,12 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof fake-check database-check storage-crash-check collector-budget
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof relay-fallback-proof fake-check database-check storage-crash-check collector-budget
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
 	$(GO) build -o bin/endpoint-agent ./apps/endpoint-agent
+	$(GO) build -o bin/relay ./apps/relay
 test:
 	$(GO) test -race ./...
 lint:
@@ -51,6 +52,9 @@ tailcat-lab-proof:
 	GO=$(GO) networking/tailcat-lab/run-proof.sh
 derp-lab-proof:
 	GO=$(GO) sh infra/networking/run-derp-lab.sh
+# NET05 #88: application mesh through the scoped relay with all UDP dropped.
+relay-fallback-proof:
+	GO=$(GO) sh infra/networking/run-relay-fallback.sh
 # Synthetic sampler cost at the two candidate cadences. This is not a Windows
 # sensor or service-token measurement. Output files are not overwritten.
 collector-budget:

@@ -24,6 +24,7 @@ GO_MODULE = ("go.mod", "go.sum")
 MODULE_GO = (
     "apps/controller/**",
     "apps/endpoint-agent/**",
+    "apps/relay/**",
     "apps/web-console/*.go",
     "apps/web-console/templates/**",
     "apps/web-console/static/**",
@@ -32,6 +33,7 @@ MODULE_GO = (
     "infra/**",
     "internal/**",
     "networking/mesh/**",
+    "networking/relay/**",
     "packages/**",
     "tools/fakes/**",
     "tools/probes/collectorbudget/**",
@@ -95,6 +97,17 @@ TAILCAT_LAB = (
     CHECK_WORKFLOW,
     FILTER_SCRIPT,
 )
+# relay-fallback-proof compiles the mesh test binary, which imports the relay
+# package and its test helpers, and runs it under the namespace script.
+RELAY_FALLBACK = (
+    "networking/mesh/**",
+    "networking/relay/**",
+    "infra/networking/run-relay-fallback.sh",
+    MAKEFILE,
+    *GO_MODULE,
+    CHECK_WORKFLOW,
+    FILTER_SCRIPT,
+)
 # database-check tests these packages. Endpoint and controller tests read two
 # contract fixture files; other contract fixtures are not inputs.
 DATABASE = (
@@ -146,6 +159,7 @@ WORKFLOWS = {
         "project_automation": PROJECT_AUTOMATION,
         "check": CHECK,
         "tailcat_lab": TAILCAT_LAB,
+        "relay_fallback": RELAY_FALLBACK,
         "database": DATABASE,
         "dataset_reproduction": DATASET_REPRODUCTION,
     },
