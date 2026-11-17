@@ -23,6 +23,10 @@ not deployed service or Windows qualification.
    hostname. No remote map is fetched. `InsecureForTests` is accepted only
    with literal loopback hostname/IPv4 and `IPv6: "none"`. Public relay
    defaults and `TS_DEBUG_ADDR` are rejected. No proxy or forwarding is enabled.
+   Generate this file with `relay --print-region` from the
+   [scoped relay](../../infra/networking/README.md#deploy-the-scoped-relay-net05-88)
+   rather than writing it by hand. Production nodes may pin `IPv4` and
+   `CertName` but never use `InsecureForTests`.
 3. Start the controller with its existing PostgreSQL, deployment, TLS and OIDC
    configuration plus `--transport mesh --mesh-state-dir /private/controller-mesh
    --derp-region-file /config/private-region.json`. All enrollment prerequisites
@@ -114,6 +118,18 @@ package test additionally rejects a pre-existing unprotected directory and a
 broadened or unreadable DACL. Those Windows checks run under the account that
 executes the test. They do not qualify LocalService or the selected physical
 laptop.
+
+`CheckRelay` and `CheckServerRelay` connect to the configured relay with the
+admitted key before a session starts. Tailcat finds the controller through the
+relay, so a cold session cannot start without it. The endpoint refuses to send
+when the check fails. The controller logs the error and keeps HTTPS running.
+`TestScopedRelayDirectAndRelayDelivery` and
+`TestScopedRelayUntrustedCertificateFailsVisibly` (Linux) run separate processes
+through `networking/relay` with a verified test-CA certificate. They cover
+direct and relay delivery and relay and controller admission. They also cover
+a closed relay and an impostor relay. `make relay-fallback-proof` repeats them
+with all UDP dropped. See
+[relay fallback evidence](../../docs/validation/relay-fallback-88.md).
 
 Same-host direct transport is not a NAT/WAN result. The direct UDP restart
 test is built for Linux and Darwin. The independent relay lab remains separate

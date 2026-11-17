@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -32,12 +33,19 @@ type transportConfig struct {
 	Pin     string
 	Private key.NodePrivate
 	Denied  bool
+	// Relay requires the DERP path instead of direct UDP; CheckRelay runs the
+	// production relay preflight first and reports its error.
+	Relay      bool
+	CheckRelay bool
 }
 type transportReport struct {
-	Address string
-	Ready   bool
-	Direct  bool
-	Status  int
+	Address  string
+	Ready    bool
+	Direct   bool
+	Relay    bool
+	RegionID int
+	Status   int
+	RelayErr string
 }
 
 // Private configuration crosses anonymous pipes only. Each engine has its own process.
@@ -54,12 +62,21 @@ func TestTransportProcess(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
+	relayErr := ""
+	if cfg.Server && cfg.CheckRelay {
+		if err := CheckServerRelay(ctx, cfg.State, DERPConfig{Region: cfg.Region}); err != nil {
+			relayErr = err.Error()
+		}
+	}
 	if cfg.Server {
-		s, err := NewServer(ServerConfig{Context: ctx, StateDir: cfg.State, DERP: DERPConfig{Region: cfg.Region}, Allow: func(peer string) bool { return peer == cfg.Allowed }})
+		s, err := NewServer(ServerConfig{Context: ctx, StateDir: cfg.State, DERP: DERPConfig{Region: cfg.Region}, Allow: func(peer string) bool { return allowed(cfg.Allowed, peer) }})
 		if err != nil {
 			t.Fatal("server startup failed: ", err)
 		}
 		defer s.Close()
+		// Upstream wireguard-go can block in Close when TS_DEBUG_ALWAYS_USE_DERP
+		// disables UDP; real blocked UDP closes normally. Exit after a passing run.
+		defer exitIfForcedDERP(t)
 		ln, err := s.Listen(ctx, "tcp", ":8080")
 		if err != nil {
 			t.Fatal("listen failed")
@@ -71,7 +88,7 @@ func TestTransportProcess(t *testing.T) {
 				return
 			}
 			peer, err := s.PeerKey(remote)
-			if err != nil || peer != cfg.Allowed {
+			if err != nil || !allowed(cfg.Allowed, peer) {
 				w.WriteHeader(403)
 				return
 			}
@@ -79,7 +96,7 @@ func TestTransportProcess(t *testing.T) {
 		})}
 		go h.Serve(ln)
 		defer h.Close()
-		if out.Encode(transportReport{Address: s.Addr(), Ready: true}) != nil {
+		if out.Encode(transportReport{Address: s.Addr(), Ready: true, RelayErr: relayErr}) != nil {
 			t.Fatal("private address pipe failed")
 		}
 		var stop bool
@@ -87,13 +104,25 @@ func TestTransportProcess(t *testing.T) {
 		return
 	}
 	raw := cfg.Private.Raw32()
+	if cfg.CheckRelay {
+		if err := CheckRelay(ctx, DERPConfig{Region: cfg.Region}, raw[:]); err != nil {
+			relayErr = err.Error()
+		}
+	}
 	c, err := NewClient(ClientConfig{NetworkPrivateKey: raw[:], ServerAddr: cfg.Address, ServerPublicKey: cfg.Pin, DERP: DERPConfig{Region: cfg.Region}})
 	if err != nil {
 		t.Fatal("client startup failed: ", err)
 	}
 	defer c.Close()
+	// Upstream wireguard-go can block in Close when TS_DEBUG_ALWAYS_USE_DERP
+	// disables UDP; real blocked UDP closes normally. Exit after a passing run.
+	defer exitIfForcedDERP(t)
 	if cfg.Denied {
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		wait := 2 * time.Second
+		if cfg.Relay {
+			wait = 5 * time.Second
+		}
+		ctx, cancel := context.WithTimeout(ctx, wait)
 		defer cancel()
 		r, _ := http.NewRequestWithContext(ctx, "POST", "http://"+ApplicationHost+"/v1/evidence", nil)
 		response, err := c.HTTPClient().Do(r)
@@ -101,27 +130,34 @@ func TestTransportProcess(t *testing.T) {
 			response.Body.Close()
 			t.Fatal("unknown peer reached application")
 		}
-		_ = out.Encode(transportReport{Status: 403})
+		_ = out.Encode(transportReport{Status: 403, RelayErr: relayErr})
 		return
 	}
+	relayRegion := 0
 	for ctx.Err() == nil {
 		probe, stop := context.WithTimeout(ctx, time.Second)
 		result, err := c.(*client).node.DiscoPing(probe)
 		stop()
-		if err == nil && result.Endpoint != "" && result.DERPRegionID == 0 {
+		if err == nil && !cfg.Relay && result.Endpoint != "" && result.DERPRegionID == 0 {
+			break
+		}
+		// Tailcat renumbers the single configured region locally, so the
+		// relay path is any DERP region with no direct endpoint.
+		if err == nil && cfg.Relay && result.Endpoint == "" && result.DERPRegionID != 0 {
+			relayRegion = int(result.DERPRegionID)
 			break
 		}
 		time.Sleep(30 * time.Millisecond)
 	}
 	if ctx.Err() != nil {
-		t.Fatal("direct UDP path unavailable")
+		t.Fatal("requested mesh path unavailable")
 	}
 	response, err := c.HTTPClient().Post("http://"+ApplicationHost+"/v1/evidence", "application/json", nil)
 	if err != nil {
-		t.Fatal("direct application request failed")
+		t.Fatal("application request failed")
 	}
 	response.Body.Close()
-	_ = out.Encode(transportReport{Direct: true, Status: response.StatusCode})
+	_ = out.Encode(transportReport{Direct: !cfg.Relay, Relay: cfg.Relay, RegionID: relayRegion, Status: response.StatusCode, RelayErr: relayErr})
 }
 
 type transportProcess struct {
@@ -131,14 +167,14 @@ type transportProcess struct {
 	waited bool
 }
 
-func meshProcess(t *testing.T, cfg transportConfig) *transportProcess {
+func meshProcess(t *testing.T, cfg transportConfig, env ...string) *transportProcess {
 	t.Helper()
 	exe, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
 	cmd := exec.Command(exe, "-test.run=^TestTransportProcess$", "-test.timeout=30s")
-	cmd.Env = []string{"DEVICE_AUDIT_MESH_CHILD=1", "PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir()}
+	cmd.Env = append([]string{"DEVICE_AUDIT_MESH_CHILD=1", "PATH=" + os.Getenv("PATH"), "HOME=" + t.TempDir()}, env...)
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		t.Fatal(err)
@@ -312,5 +348,30 @@ func TestAdmissionLookupsBoundedBeforeAuthorization(t *testing.T) {
 	}
 	if !allow(key.NewNode().Public()) {
 		t.Fatal("admission capacity was not released")
+	}
+}
+
+// allowed treats Allowed as a comma-separated list of admitted peer keys.
+func allowed(list, peer string) bool {
+	for _, k := range strings.Split(list, ",") {
+		if k != "" && k == peer {
+			return true
+		}
+	}
+	return false
+}
+
+func mustJSON(t *testing.T, v any) []byte {
+	t.Helper()
+	data, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func exitIfForcedDERP(t *testing.T) {
+	if os.Getenv("TS_DEBUG_ALWAYS_USE_DERP") != "" && !t.Failed() {
+		os.Exit(0)
 	}
 }

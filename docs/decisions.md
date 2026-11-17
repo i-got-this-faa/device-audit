@@ -732,3 +732,31 @@ measurements of a model. #103, #33 and #104 must produce the reports. The
 [ML05 record](../models/evaluation/README.md) and
 [validation notes](validation/model-thresholds-86.md) list the commands and
 limits.
+
+## Scoped relay and production fallback settings, NET05 #88
+
+On 17 November 2026 the pinned upstream DERP server became a deployable relay,
+`apps/relay`, rather than a lab-only handler. Each organization runs one relay
+host (#73). The operator chooses a DNS hostname, a certificate chain that must
+cover it, a TCP port (443 by convention), a persisted relay key and an
+admission file of admitted mesh network keys. STUN, the HTTP/ACME listener,
+debug pages and mesh forwarding are off. Certificate issuance and renewal stay
+outside the process; a renewed certificate needs a restart.
+
+Relay admission is defense in depth. It sits beside controller admission and
+does not replace it. Relay access never grants controller access, and device
+signatures and chain keys are not involved. The pinned server supports
+admission only through a URL, so the relay serves its allowlist on a loopback
+listener with fail-open disabled and re-reads the file for every client. The
+file is static until a controller export exists. Revocation is enforced first
+by controller admission.
+
+The mesh region file stays the only source of relay configuration.
+`relay --print-region` writes a region that the adapter accepts. Production nodes
+never use `InsecureForTests`. They may pin the dial IPv4 address and the
+certificate (`CertName`, including `sha256-raw:`). Because Tailcat discovers the
+controller through the relay, `mesh.CheckRelay` runs before a session starts.
+The endpoint refuses to send evidence when that check fails. The controller logs
+the failure and keeps its HTTPS boundary running. Neither falls back to public
+relays, plaintext or weaker TLS. Evidence and remaining gaps are in
+[relay-fallback-88.md](validation/relay-fallback-88.md).

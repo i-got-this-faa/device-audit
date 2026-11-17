@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -52,6 +53,11 @@ func sendMeshEvidence(ctx context.Context, stateDir, serverKey, regionFile strin
 	}
 	private := i.network.Bytes()
 	defer clear(private)
+	// A cold Tailcat session discovers the controller through the relay.
+	// Report a bad relay explicitly instead of an opaque delivery timeout.
+	if err := mesh.CheckRelay(ctx, mesh.DERPConfig{Region: region}, private); err != nil {
+		return fmt.Errorf("%v; evidence not sent, retain the signed envelope", err)
+	}
 	client, err := mesh.NewClient(mesh.ClientConfig{NetworkPrivateKey: private, ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}})
 	if err != nil {
 		return err
