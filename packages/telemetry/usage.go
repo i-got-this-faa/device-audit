@@ -12,16 +12,21 @@ var ErrProcessUsageUnsupported = errors.New("telemetry: process cpu and rss are 
 // ProcessUsage is one sample of this process only. It excludes provider-host
 // processes and child tools. Sequential samples must not be added together.
 type ProcessUsage struct {
-	CPU       time.Duration
-	RSS       uint64
+	CPU time.Duration
+	RSS uint64
+	// PeakRSS is the OS high-water mark of RSS over the process lifetime
+	// (Windows PeakWorkingSetSize, Linux VmHWM). It catches peaks between
+	// samples. Zero means the OS did not report one.
+	PeakRSS   uint64
 	HeapAlloc uint64
 	HeapInuse uint64
 	CoreCount int
 }
 
 type osSample struct {
-	CPU time.Duration
-	RSS uint64
+	CPU     time.Duration
+	RSS     uint64
+	PeakRSS uint64
 }
 
 // SampleProcess reads this process. CoreCount is runtime.NumCPU, which is the
@@ -43,6 +48,7 @@ func SampleProcess() (ProcessUsage, error) {
 	return ProcessUsage{
 		CPU:       os.CPU,
 		RSS:       os.RSS,
+		PeakRSS:   os.PeakRSS,
 		HeapAlloc: mem.HeapAlloc,
 		HeapInuse: mem.HeapInuse,
 		CoreCount: cores,

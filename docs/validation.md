@@ -2,7 +2,7 @@
 
 Follow-up: [TEL08 bounded configurable sampling, 17 November 2026](validation/sampling-94.md)
 records the per-source scheduler, its isolation tests, the explicit fixture
-switch and three 10-minute HP Victus runs against the declared CPU/RSS budget;
+switch and four 10-minute HP Victus runs against the declared CPU/RSS budget;
 one exceeded the RSS limit with an unattributed transient.
 
 Follow-up: [TEL05 CPU, memory, disk and network collectors, 17 November 2026](validation/telemetry-91.md)

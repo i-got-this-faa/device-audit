@@ -7,13 +7,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"time"
 
+	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/telemetry"
 )
 
 // maxSamplingRun bounds one --sample invocation.
 const maxSamplingRun = 24 * time.Hour
+
+var deviceIDPattern = regexp.MustCompile(contracts.OpaqueIDPattern)
 
 // errBudgetExceeded means the run finished but measured more CPU or RSS than
 // the configuration declared.
@@ -40,6 +44,11 @@ func loadSamplingConfig(path string) (telemetry.SamplingConfig, error) {
 func runSampling(ctx context.Context, scheduler telemetry.Scheduler, deviceID string, duration time.Duration, out, errOut io.Writer) (telemetry.SamplingReport, error) {
 	if duration < time.Second || duration > maxSamplingRun {
 		return telemetry.SamplingReport{}, fmt.Errorf("sampling duration must be from 1s to %s", maxSamplingRun)
+	}
+	// Every payload would fail on a bad ID; refuse before the run instead of
+	// sampling for the whole duration and emitting nothing.
+	if !deviceIDPattern.MatchString(deviceID) {
+		return telemetry.SamplingReport{}, errors.New("device ID is not a valid telemetry v2 device_id")
 	}
 	ctx, cancel := context.WithTimeout(ctx, duration)
 	defer cancel()

@@ -116,7 +116,8 @@ func ParseSamplingConfig(r io.Reader) (SamplingConfig, error) {
 	if err := decoder.Decode(&cfg); err != nil {
 		return SamplingConfig{}, fmt.Errorf("telemetry: sampling config: %w", err)
 	}
-	if decoder.More() {
+	// More misses a trailing "]" or "}"; only EOF proves the document ended.
+	if err := decoder.Decode(new(json.RawMessage)); !errors.Is(err, io.EOF) {
 		return SamplingConfig{}, errors.New("telemetry: sampling config has trailing data")
 	}
 	return cfg, cfg.Validate()
@@ -191,7 +192,11 @@ type BudgetResult struct {
 	CPUTimeMS         float64 `json:"cpu_ms"`
 	CPUPercentOneCore float64 `json:"cpu_percent_one_core"`
 	RSSPeakBytes      uint64  `json:"rss_peak_bytes"`
-	RSSSamples        int     `json:"rss_samples"`
+	// OSPeakRSSBytes is the OS high-water mark over the process lifetime, so it
+	// includes start-up and any peak between samples. 0 when the OS gives none.
+	// The RSS verdict uses the larger of it and RSSPeakBytes.
+	OSPeakRSSBytes uint64 `json:"os_peak_rss_bytes"`
+	RSSSamples     int    `json:"rss_samples"`
 	// RSSPeakAfter names what ran just before the peak sample: a source read,
 	// an emit, or start/end. RSSPeakAtMS is that sample's offset into the run.
 	RSSPeakAfter    string  `json:"rss_peak_after"`
@@ -333,9 +338,6 @@ func (st *sourceState) loop(ctx context.Context, now func() time.Time, meter *us
 
 func (st *sourceState) readOnce(ctx context.Context, now func() time.Time) SourceResult {
 	if !st.busy.CompareAndSwap(false, true) {
-		st.mu.Lock()
-		st.stats.BusySkips++
-		st.mu.Unlock()
 		return SourceResult{
 			Source: st.source.Name, Provenance: ProvenanceEndpointSensor, ObservedAt: now().UTC(), Outcome: "null",
 			Readings: nullReadings(st.source, ReasonCollectionError, "provider_busy"),
@@ -349,6 +351,11 @@ func (st *sourceState) record(result SourceResult) {
 	defer st.mu.Unlock()
 	st.latest = &result
 	st.stats.Reads++
+	// Counted here, with the recorded result, so a busy tick dropped by
+	// cancellation never shows in the stats without its provider_busy detail.
+	if len(result.Readings) > 0 && result.Readings[0].Detail == "provider_busy" {
+		st.stats.BusySkips++
+	}
 	if result.QueryMS > st.stats.MaxQueryMS {
 		st.stats.MaxQueryMS = result.QueryMS
 	}
@@ -418,6 +425,7 @@ type usageMeter struct {
 	began     time.Time
 	mu        sync.Mutex
 	peak      uint64
+	osPeak    uint64
 	peakAfter string
 	peakAt    time.Duration
 	count     int
@@ -429,7 +437,7 @@ func newUsageMeter(usage func() (ProcessUsage, error)) (*usageMeter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &usageMeter{usage: usage, start: start, began: time.Now(), peak: start.RSS, peakAfter: "start", count: 1}, nil
+	return &usageMeter{usage: usage, start: start, began: time.Now(), peak: start.RSS, osPeak: start.PeakRSS, peakAfter: "start", count: 1}, nil
 }
 
 func (m *usageMeter) sampleRSS(after string) {
@@ -442,6 +450,7 @@ func (m *usageMeter) sampleRSS(after string) {
 	}
 	m.count++
 	m.note(u.RSS, after)
+	m.osPeak = max(m.osPeak, u.PeakRSS)
 }
 
 // note records rss if it is a new peak. The caller holds mu.
@@ -464,25 +473,26 @@ func (m *usageMeter) finish(budget SamplingBudget) (BudgetResult, error) {
 	}
 	m.count++
 	m.note(end.RSS, "end")
+	m.osPeak = max(m.osPeak, end.PeakRSS)
 	cpu, err := cpuDelta(m.start.CPU, end.CPU)
 	if err != nil {
 		return BudgetResult{}, err
 	}
-	result, err := evaluateBudget(budget, cpu, wall, m.peak, m.count)
+	result, err := evaluateBudget(budget, cpu, wall, m.peak, m.osPeak, m.count)
 	result.RSSPeakAfter, result.RSSPeakAtMS = m.peakAfter, ms(m.peakAt)
 	return result, err
 }
 
 // evaluateBudget turns measured cost into a verdict against the budget.
-func evaluateBudget(budget SamplingBudget, cpu, wall time.Duration, peak uint64, samples int) (BudgetResult, error) {
+func evaluateBudget(budget SamplingBudget, cpu, wall time.Duration, peak, osPeak uint64, samples int) (BudgetResult, error) {
 	oneCore, _, err := cpuPercents(cpu, wall, 1)
 	if err != nil {
 		return BudgetResult{}, err
 	}
 	return BudgetResult{
-		WallMS: ms(wall), CPUTimeMS: ms(cpu), CPUPercentOneCore: oneCore, RSSPeakBytes: peak, RSSSamples: samples,
+		WallMS: ms(wall), CPUTimeMS: ms(cpu), CPUPercentOneCore: oneCore, RSSPeakBytes: peak, OSPeakRSSBytes: osPeak, RSSSamples: samples,
 		CPUWithinBudget: oneCore <= budget.MaxCPUPercentOneCore,
-		RSSWithinBudget: peak <= budget.MaxRSSBytes,
+		RSSWithinBudget: max(peak, osPeak) <= budget.MaxRSSBytes,
 	}, nil
 }
 

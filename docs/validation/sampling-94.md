@@ -1,8 +1,8 @@
 # Bounded configurable telemetry sampling, TEL08 #94
 
 Status on 17 November 2026: **the per-source scheduler, configuration
-validation, isolation tests, the explicit fixture switch and three 10-minute
-runs on the HP Victus target are recorded. Two runs met the declared budget; the
+validation, isolation tests, the explicit fixture switch and four 10-minute
+runs on the HP Victus target are recorded. Three runs met the declared budget; the
 first exceeded its RSS limit once with an unattributed transient.** The budget
 is a declared measurement ceiling, not an approved production budget.
 
@@ -29,7 +29,11 @@ is a declared measurement ceiling, not an approved production budget.
 - **Budget.** The run measures this process's CPU over the whole run as percent
   of one core and samples RSS after every source read and emit. The report
   records the peak, what ran just before it and when, and whether each limit
-  held. Process CPU excludes child processes such as `nvidia-smi`.
+  held. The RSS verdict uses the larger of the sampled peak and the OS high-water
+  mark (Windows `PeakWorkingSetSize`, Linux `VmHWM`), so a peak between samples
+  cannot pass. That mark covers the process lifetime, including start-up, which
+  makes the verdict conservative. Process CPU excludes child processes such as
+  `nvidia-smi`.
 - **Default.** Every source at 15 s (the TEL04 fast candidate), the NVIDIA tool
   at 60 s because it starts a process, emits every 60 s, declared budget 2 % of
   one core and 64 MiB.
@@ -68,6 +72,8 @@ runs a 6-second real schedule and validates the emitted v2 payload.
 
 ## HP Victus runs, 17 November 2026
 
+Four runs; run 4 is after the review fixes.
+
 Same machine as [telemetry-91.md](telemetry-91.md#hp-victus-run-17-november-2026):
 interactive standard user, not elevated, Go 1.27.4. Each run used the built-in
 default configuration for 10 minutes:
@@ -81,6 +87,7 @@ endpoint-agent --sample --device-id <id> --sampling-duration 10m --sampling-repo
 | 1 | 17:54:00 | 0.167 | 85,123,072 B | **no** (RSS) | [run1](sampling-94-victus-run1.json) |
 | 2 | 18:15:30 | 0.036 | 28,741,632 B | yes | [run2](sampling-94-victus-run2.json) |
 | 3 | 18:26:36 | 0.031 | 27,742,208 B | yes | [run3](sampling-94-victus-run3.json) |
+| 4 | 18:56:29 | 0.036 | 29,503,488 B (OS high-water; sampled 29,446,144 B) | yes | [run4](sampling-94-victus-run4.json) |
 
 In every run each 15-second source was read 40 times and `nvidia-smi` 10 times,
 with no busy skips and no overruns, and 9 snapshots were emitted. All readings
@@ -100,12 +107,17 @@ exited 1 as designed. It was not reproduced:
   instances, about 0.08 MB of PDH buffer.
 
 The run-1 excess was therefore outside the Go heap and is not attributed.
+Runs 1–3 judged RSS on sampled points only; a review finding showed a spike
+between samples could pass. Run 4 is the first with the OS high-water mark, and
+it matched the sampled peak within 57 KB, so no unsampled spike occurred. Run 1's
+85 MB was itself a sampled value, so its true peak was at least that.
+
 Run 3 added the `rss_peak_after` field, which named a `disk` read 360 s into the
 run as the 27.7 MB peak. A future overrun report names its source.
 
 ## Not done
 
-- **Run-1 RSS transient.** Its cause is unknown. Two of three runs met the
+- **Run-1 RSS transient.** Its cause is unknown. Three of four runs met the
   budget; a single 10-minute run is not proof that the 64 MiB ceiling always
   holds.
 - **Child processes.** `nvidia-smi` CPU and memory are not in the measured

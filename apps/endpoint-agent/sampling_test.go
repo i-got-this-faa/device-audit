@@ -56,6 +56,13 @@ func TestRunSamplingRejectsDuration(t *testing.T) {
 			t.Fatalf("duration %s accepted", d)
 		}
 	}
+	// An invalid ID fails at once, not after a full run with no output.
+	for _, id := range []string{"", "bad id", "-leading-dash"} {
+		start := time.Now()
+		if _, err := runSampling(context.Background(), s, id, time.Hour, &bytes.Buffer{}, &bytes.Buffer{}); err == nil || time.Since(start) > time.Second {
+			t.Fatalf("device ID %q: err=%v after %s", id, err, time.Since(start))
+		}
+	}
 }
 
 // On Windows: a short real schedule emits valid endpoint v2 payloads and a

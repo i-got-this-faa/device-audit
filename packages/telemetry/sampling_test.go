@@ -57,6 +57,9 @@ func TestParseSamplingConfigIsStrict(t *testing.T) {
 	good := `{"schema_version":"device-audit.sampling-config.v1","emit_interval":"60s",
 		"budget":{"max_cpu_percent_one_core":2,"max_rss_bytes":67108864},
 		"sources":[{"source":"cpu","interval":"15s","deadline":"5s"},{"source":"gpu_vendor","interval":"1m","deadline":"5s"}]}`
+	if _, err := ParseSamplingConfig(strings.NewReader(good + "\n  \t")); err != nil {
+		t.Fatalf("trailing whitespace rejected: %v", err)
+	}
 	cfg, err := ParseSamplingConfig(strings.NewReader(good))
 	if err != nil {
 		t.Fatal(err)
@@ -69,6 +72,8 @@ func TestParseSamplingConfigIsStrict(t *testing.T) {
 		"numeric time":   strings.Replace(good, `"60s"`, `60`, 1),
 		"bad duration":   strings.Replace(good, `"60s"`, `"soon"`, 1),
 		"trailing data":  good + `{}`,
+		"trailing ]":     good + `]`,
+		"trailing }":     good + `}`,
 		"invalid bounds": strings.Replace(good, `"5s"}`, `"20s"}`, 1),
 		"oversized":      strings.Repeat(" ", MaxSamplingConfigBytes+1) + good,
 	} {
@@ -202,16 +207,21 @@ func TestSchedulerSnapshotMarksMissingAndStaleResults(t *testing.T) {
 
 func TestEvaluateBudget(t *testing.T) {
 	budget := SamplingBudget{MaxCPUPercentOneCore: 2, MaxRSSBytes: 32 << 20}
-	ok, err := evaluateBudget(budget, 1200*time.Millisecond, time.Minute, 30<<20, 9)
+	ok, err := evaluateBudget(budget, 1200*time.Millisecond, time.Minute, 30<<20, 31<<20, 9)
 	if err != nil || !ok.Within() || ok.CPUPercentOneCore != 2 {
 		t.Fatalf("at limit = %+v %v", ok, err)
 	}
-	over, _ := evaluateBudget(budget, 1300*time.Millisecond, time.Minute, 33<<20, 9)
+	over, _ := evaluateBudget(budget, 1300*time.Millisecond, time.Minute, 33<<20, 0, 9)
 	if over.CPUWithinBudget || over.RSSWithinBudget || over.Within() {
 		t.Fatalf("over limit = %+v", over)
 	}
-	if _, err := evaluateBudget(budget, time.Second, 0, 1, 1); err == nil {
+	if _, err := evaluateBudget(budget, time.Second, 0, 1, 0, 1); err == nil {
 		t.Fatal("zero wall time accepted")
+	}
+	// A spike between samples is caught by the OS high-water mark.
+	between, _ := evaluateBudget(budget, time.Second, time.Minute, 20<<20, 40<<20, 9)
+	if between.RSSWithinBudget || between.OSPeakRSSBytes != 40<<20 {
+		t.Fatalf("peak between samples passed: %+v", between)
 	}
 }
 

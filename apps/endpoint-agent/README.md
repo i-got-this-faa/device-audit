@@ -147,9 +147,10 @@ endpoint-agent --sample --device-id <admitted device ID> \
 
 `--sample` runs every configured source on its own interval and prints one
 validated `device-audit.telemetry.v2` payload per emit interval. The
-configuration (`device-audit.sampling-config.v1`) is strict JSON; without
-`--sampling-config` the built-in default samples every source at 15 s, except
-the NVIDIA tool at 60 s, and emits every 60 s:
+configuration (`device-audit.sampling-config.v1`) is strict JSON. Without
+`--sampling-config` the built-in default samples all eight sources at 15 s,
+except the NVIDIA tool at 60 s, and emits every 60 s. This example is not the
+default: it schedules only two sources, so the other six are not sampled.
 
 ```json
 {
