@@ -1,7 +1,7 @@
 GO ?= go
 PYTHON ?= python3
 
-.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof fake-check database-check storage-crash-check
+.PHONY: build test lint fmt check cross-build model-check telemetry-check contract-check replay-check demo tailcat-lab-check tailcat-lab-proof derp-lab-proof fake-check database-check storage-crash-check collector-budget
 build:
 	mkdir -p bin
 	$(GO) build -o bin/controller ./apps/controller
@@ -51,3 +51,9 @@ tailcat-lab-proof:
 	GO=$(GO) networking/tailcat-lab/run-proof.sh
 derp-lab-proof:
 	GO=$(GO) sh infra/networking/run-derp-lab.sh
+# Synthetic sampler cost at the two candidate cadences. This is not a Windows
+# sensor or service-token measurement. Output files are not overwritten.
+collector-budget:
+	mkdir -p artifacts/collector-budget
+	$(GO) run ./tools/probes/collectorbudget -output artifacts/collector-budget/harness-15s.json -interval 15s -samples 3 -repeats 2 -baseline 2s -iterations 200000
+	$(GO) run ./tools/probes/collectorbudget -output artifacts/collector-budget/harness-60s.json -interval 60s -samples 3 -repeats 2 -baseline 2s -iterations 200000

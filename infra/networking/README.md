@@ -68,4 +68,4 @@ exposing any service. The [isolated NET04 lab](derp-lab.md) measures blocked-UDP
 DERP traffic and relay restart on one Linux host. Direct UDP, DERP-only and offline
 failure behavior still need evidence on #14's selected machines. The current
 unauthenticated loopback fixture API, minimal local console/auth surface and
-unavailable mesh adapter do not establish deployed production access guarantees.
+admitted mesh adapter do not establish deployed production access guarantees.

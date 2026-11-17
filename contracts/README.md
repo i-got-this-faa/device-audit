@@ -4,6 +4,8 @@ Smart contracts are an explicit user decision in the handoff. CHAIN01 #47 now
 selects [Base Mainnet and its release policy](release-policy.md), with a separate
 writer, threshold administrator and L1-derived finality. The disabled deployment
 descriptor in `release-policy.json` contains no deployed contract or account.
+`release-policy.schema.json` checks descriptor shape. `contracts/policy.Parse`
+also enforces the selected fee ceilings. Those checks are not chain evidence.
 `packages/audit.Anchorer` is the application-facing boundary.
 
 Initial contract requirements:

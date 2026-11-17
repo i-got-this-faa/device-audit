@@ -1,5 +1,13 @@
 # Resume the ready node tasks from Windows
 
+Continuation on 16 November 2026: controller mesh persistence is no longer
+Unix-only. Windows uses a protected DACL, recorded in
+[mesh-adapters-25.md](mesh-adapters-25.md). The sections below are the 13
+November pause notes. Where they say the controller store is Unix-only, use
+the continuation record instead. PR #198 was later merged.
+
+
+
 Paused at the user's request on 13 November 2026 to commit current work before
 rebooting to native Windows. Branch: `feat/ready-node-tasks`, based on
 `origin/main` at `0a9f2069f312d820332e9cc950dd847e86f6faf5`.
@@ -23,9 +31,12 @@ The original `/home/radhey/code/device-audit` dirty checkout was left untouched.
   [release policy](../../contracts/release-policy.md).
 - **#85 partially measured; qualification on hold.** Existing Windows probe code
   and earlier single-laptop measurements are merged through PRs #169/#181.
-  A second physical target is still unavailable. LocalService versus actual
-  denied-permission comparisons and controlled full-system overhead remain.
-  See [measurement matrix](collector-budget-85.md).
+  A second physical target is still unavailable. On 16 November 2026 a
+  GitHub-hosted `windows-2025` VM recorded LocalService and a separate
+  low-privilege service token, including 30-sweep 15s and 60s probe and
+  harness runs. That VM is not a physical machine. Full-system overhead and
+  the two-physical-machine gate remain. See
+  [measurement matrix](collector-budget-85.md).
 - **#87 merged separately in [PR #198](https://github.com/i-got-this-faa/device-audit/pull/198).**
   It adds `--sign-evidence`, scope-bound `sequence.state`, durable reservation
   before signing and forced-process restart/golden-vector tests. Native Windows
@@ -83,17 +94,17 @@ python -m venv .venv
 ```
 
 This checks native tests/builds and the existing fixture demo. It does not
-qualify service tokens or mesh delivery. Mesh **controller** persistence is
-Unix-only; the Windows endpoint imports its existing DPAPI/ACL-protected
-identity. Use a separately running Unix controller and explicit self-hosted
-DERP for Windows endpoint transport qualification. Do not run the old lab's
-Unix mode-0600 state check as proof of Windows endpoint support.
+qualify service tokens or deployed mesh delivery. Mesh controller persistence
+on Windows is the ACL store exercised by `go test ./networking/mesh` in this
+script. The Windows endpoint still imports its existing DPAPI/ACL-protected
+identity. A passing native test is not LocalService, physical-laptop, NAT/WAN,
+or deployed DERP qualification. Do not run the Unix mode-0600 state check as
+proof of Windows endpoint support.
 
-For #85, begin with the existing physical laptop/token/source matrix. Do not
+For #85, the hosted-runner service measurement is already recorded. Do not
 claim two-machine completion, convert an interactive run to service evidence,
 modify live source permissions to obtain success, or infer production cost from
-the PowerShell prototype. Service-token setup and second-target access remain
-explicit prerequisites.
+the PowerShell prototype. Two physical targets remain an explicit prerequisite.
 
 ## #87 review and integration
 

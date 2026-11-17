@@ -1,5 +1,12 @@
 # Sequential node task completion record
 
+Continuation on 16 November 2026: controller mesh state now has a Windows ACL
+store, and the current #25 evidence is in
+[mesh-adapters-25.md](mesh-adapters-25.md). The notes below are the 13 November
+record for `feat/ready-node-tasks` and are not the current limit list.
+
+
+
 Work branch: `feat/ready-node-tasks`. Base: `origin/main` at
 `0a9f2069f312d820332e9cc950dd847e86f6faf5`. The original dirty checkout
 is preserved. Implementation is by the primary agent; Luna scouting is read-only.
@@ -29,7 +36,7 @@ Resume instructions are in `windows-resume-ready-tasks.md`.
 |---|---|---|---|---|
 | #25 persisted admitted mesh | networking, controller, endpoint | restart/admission/application tests, full Go checks | proved locally | Real direct UDP + HTTP across process restarts; full TLS enrollment -> persisted endpoint -> fresh process -> Tailcat -> PostgreSQL evidence before/after restart |
 | #47 chain policy | contracts/release-policy.md, contracts/release-policy.json, decisions | official Base/Ethereum sources; JSON parse; diff check | proved as local decision | Base Mainnet 8453, separate chain signer/2-of-3 admin, verified finalized-head policy; no deployed contract/funding claim |
-| #85 permissions and overhead | tools/probes, telemetry | service/denied access on both physical targets | partially measured; qualification blocked | Existing probe implementation and earlier single-laptop measurements are merged through PRs #169/#181. LocalService/denied-token and two-machine/full-overhead evidence remain. See collector-budget-85.md |
+| #85 permissions and overhead | tools/probes, telemetry | service/denied access on both physical targets | partially measured; physical qualification blocked | PRs #169/#181 measured one laptop. A 16 November 2026 hosted `windows-2025` run recorded LocalService and a denied service token at 15s and 60s. That runner is a VM. Two physical machines and full-system overhead remain. See collector-budget-85.md |
 | #87 signed evidence allocation | endpoint evidence.go and sequence.state in PR #198 | native Windows forced restarts, golden vectors, CI | merged separately | PR #198 adds --sign-evidence and durable sequence reservation; approved, all 16 CI checks passed, merged as e7d2a6d. This branch does not contain it |
 
 ## #25 affected paths

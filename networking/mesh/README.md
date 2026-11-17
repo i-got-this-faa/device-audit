@@ -8,12 +8,15 @@ not deployed service or Windows qualification.
 
 ## Configuration and provisioning
 
-1. Provision the controller on a Unix host using
+1. Provision the controller with
    `controller --mesh-init --mesh-state-dir /private/controller-mesh`.
-   This exclusively creates mode-0600 node/PSK state in a current-owner
-   mode-0700 directory and prints only the public X25519 key. Pin that public
-   key on endpoints through trusted configuration. Startup does not generate
-   replacement keys. Windows controller persistence is explicitly unsupported.
+   This exclusively creates node/PSK state and prints only the public X25519
+   key. On Unix the directory is mode 0700, owned by the current user, and the
+   state file is mode 0600. On Windows the same JSON state is stored under a
+   protected DACL for the current user, or for an enabled per-service SID when
+   the process token is LocalService. LocalService without that SID fails
+   closed. Startup does not generate replacement keys or repair an existing
+   ACL. Pin the printed public key on endpoints through trusted configuration.
 2. Configure an operator-owned local DERP region JSON file. It uses Tailcat's
    `tailcfg.DERPRegion` format with at least one node, explicit `DERPPort`,
    `STUNPort: -1`, matching positive region/node IDs, and a self-hosted TLS
@@ -39,13 +42,16 @@ not deployed service or Windows qualification.
    HTTP redirects, environment proxies and other destination hosts/ports are
    disabled. HTTP here is inside the authenticated encrypted tunnel.
 
-Controller identity/PSK and endpoint identities survive restart. Disco keys and
-the bootstrap address are derived by the pinned API. An existing address file
-must match; an operator must explicitly remove a stale address when changing
-relay configuration. Keep private state and its permissions in backups; missing,
-damaged or concurrently owned state fails closed. Controller state is protected
-by Unix permissions, not encrypted storage. Endpoint Windows DPAPI/ACL rules are
-unchanged. Do not copy an endpoint directory to two active installations.
+Controller identity/PSK and endpoint identities survive process restart. Disco
+keys and the bootstrap address are derived by the pinned API. An existing
+address file must match; an operator must explicitly remove a stale address
+when changing relay configuration. Keep private state and its permissions in
+backups; missing, damaged or concurrently owned state fails closed. Controller
+state is protected by Unix permissions or the Windows DACL above, not by
+encrypting the node key or PSK. Windows flushes the state file and has no
+directory fsync; power-loss recovery is unclaimed on either platform. Endpoint
+Windows DPAPI/ACL rules for the device identity are unchanged. Do not copy an
+endpoint directory to two active installations.
 
 ## Authorization and HTTP boundary
 
@@ -87,7 +93,16 @@ administrator separation. With `TEST_DATABASE_URL`, durable admission tests use
 the actual TLS enrollment handlers and an independent PostgreSQL repository,
 then deny a revoked binding. Run `make check` and `make cross-build` too.
 
-Same-host direct transport is not a NAT/WAN or physical Windows result. The
-independent relay lab remains separate evidence. Real service-token execution,
-installed packages, deployed DERP/proxy/IdP, client-only/server-only restarts,
-power-loss storage recovery and full production rollout are unqualified.
+`go test -race -count=1 ./networking/mesh` also reloads the persisted public key,
+rejects a second owner, a changed address and corrupt state. On Windows that
+package test additionally rejects a pre-existing unprotected directory and a
+broadened or unreadable DACL. Those Windows checks run under the account that
+executes the test. They do not qualify LocalService or the selected physical
+laptop.
+
+Same-host direct transport is not a NAT/WAN result. The direct UDP restart
+test is built for Linux and Darwin. The independent relay lab remains separate
+evidence. Real service-token execution, installed packages, deployed
+DERP/proxy/IdP, client-only/server-only restarts, power-loss storage recovery
+and full production rollout are unqualified. See
+[mesh adapter evidence](../../docs/validation/mesh-adapters-25.md).

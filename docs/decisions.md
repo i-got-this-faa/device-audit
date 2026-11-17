@@ -559,11 +559,22 @@ real telemetry freshness rules and health assessments remain separate work.
 
 The 13 November 2026 implementation promotes the NET01 Tailcat pin into the
 application module. The independent lab remains separately versioned. Endpoints
-import their existing protected, admitted X25519 key; the controller exclusively
-provisions persistent Unix node/PSK state. Startup never generates replacement
-identities. An explicit local self-hosted DERP region and a separately delivered
-server key pin replace public relay discovery defaults. PSK-bearing addresses
-use private files, and unsafe address-debug logging is rejected.
+import their existing protected, admitted X25519 key. The controller provisions
+persistent node/PSK state and startup never generates replacement identities.
+An explicit local self-hosted DERP region and a separately delivered server key
+pin replace public relay discovery defaults. PSK-bearing addresses use private
+files, and unsafe address-debug logging is rejected.
+
+On 16 November 2026 the controller store gained a Windows ACL path beside the
+Unix owner/mode path. Both use the same JSON node and PSK fields. Windows
+protection is a protected DACL for the current user or an enabled per-service
+SID, plus an exclusive lock and reparse/link rejection. It is the permission
+equivalent of mode 0700/0600, not DPAPI encryption of controller mesh state.
+LocalService without a per-service SID fails closed. A GitHub-hosted Windows
+test account can exercise that store; that account is not the selected physical
+laptop and is not a LocalService qualification. Power-loss durability remains
+unclaimed. Unix still fsyncs the state file and its directory; Windows flushes
+the state file and has no directory fsync.
 
 New connections resolve the actual tunnel peer against committed, active
 PostgreSQL admission. Each evidence request rechecks admission and scope before
@@ -604,3 +615,47 @@ as pending/unverified. The [policy](../contracts/release-policy.md) records exac
 role limits, fee ceilings, nonce reconciliation, retry and incident behavior,
 official protocol sources and follow-on runtime/release gates. No funds, chain
 accounts, contract or signer service have been provisioned by this decision.
+
+On 16 November 2026 the same decision gained machine-checked descriptor and
+observation fixtures. `contracts/policy` accepts the disabled Base Mainnet
+descriptor and rejects incomplete enabled descriptors, zero addresses, null
+`enabled`, and local descriptors that use chain IDs 1, 8453, or 84532. Parse,
+not the JSON Schema wei pattern, rejects raised fee ceilings. Reference checks
+reject listed key and device-identity words and do not prove a name contains
+no secret. Observation fixtures require one
+finality claim, preserve history, and keep outages and source disagreement
+distinct from reverts. Draft 2020-12 schema validation covers the same
+descriptor vectors. `ReleaseDeploymentObserved` stays false. No RPC query,
+transaction, deployment, measured gas quote, or signer-custody check was added.
+The legacy Anchorer interface remains unimplemented.
+
+## Collector permission and cadence harness, TEL04 #85
+
+On 16 November 2026 the telemetry package gained a planning permission catalog,
+a 15-second and 60-second cadence scheduler, and an in-process sampler. The
+catalog is the minimum read set for the selected sources. It rejects
+administrator, LocalSystem, SeDebug, a broad event-log group, WMI ACL changes
+and Security-log access. Planning and denied profiles are unattested capability
+sets. Native token attestation returns an error, including on Windows, until a
+measured LocalService token and a separately provisioned denied token exist.
+
+The sampler preserves nulls on denial, timeout and collection failure, continues
+to later sources, and does not insert catch-up sweeps. Its report schema is
+`device-audit.collector-budget.harness.v1`. It is not telemetry v1 or v2 and it
+carries no device identifier. Process CPU and RSS describe the sampler process
+only. The 16 November Linux measurements and the exact remaining physical
+Windows steps are in [collector-budget-85.md](validation/collector-budget-85.md).
+Those measurements do not approve a production cadence, memory budget or
+service-permission claim. The production collector interface still returns
+`ErrNotImplemented`.
+
+`AttestNativeToken` still returns an error. A separate manual workflow,
+`service-budget.yml`, can install the probe and synthetic harness as Windows
+services on a GitHub-hosted `windows-2025` runner under `NT AUTHORITY\LocalService`
+and a distinct low-privilege account. Its attestation schema is
+`device-audit.service-token-attestation.v1`. That runner is a hosted VM. It
+does not satisfy the two-physical-machine gate, and the workflow does not
+change sensor, WMI or event-log ACLs or grant administrator rights. The 16
+November 2026 run 43859814735 recorded both tokens and the 15s/60s measurements;
+the numbers are in [collector-budget-85.md](validation/collector-budget-85.md).
+They do not approve a production budget.
