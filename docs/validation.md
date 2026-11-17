@@ -1,5 +1,9 @@
 # Initial scaffold validation
 
+Follow-up: [TEL06 battery, thermal and GPU collectors, 17 November 2026](validation/sensors-92.md)
+records the nullable collector, its failure-path tests and hosted Windows CI
+availability. Neither physical Windows target was measured.
+
 Follow-up: [NET05 scoped relay and fallback, 17 November 2026](validation/relay-fallback-88.md)
 records loopback direct, UDP-blocked relay and invalid-relay runs of the deployable
 relay. It does not record a public relay deployment.

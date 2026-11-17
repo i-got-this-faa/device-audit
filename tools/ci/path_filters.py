@@ -38,6 +38,7 @@ MODULE_GO = (
     "tools/fakes/**",
     "tools/probes/collectorbudget/**",
     "tools/probes/collectorservice/**",
+    "tools/probes/sensoravailability/**",
     *GO_MODULE,
 )
 MODELS = ("models/**",)

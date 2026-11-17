@@ -661,6 +661,40 @@ November 2026 run 43859814735 recorded both tokens and the 15s/60s measurements;
 the numbers are in [collector-budget-85.md](validation/collector-budget-85.md).
 They do not approve a production budget.
 
+## Nullable battery, thermal and GPU collectors, TEL06 #92
+
+On 17 November 2026 `packages/telemetry` gained a `SensorCollector` with four
+independently bounded sources: `battery`, `thermal`, `gpu_engine` and
+`gpu_vendor`. On Windows they call `GetSystemPowerStatus`, the PDH
+`\Thermal Zone Information(*)\Temperature` and `\GPU Engine(*)\Utilization
+Percentage` counters, and the already-installed System32 `nvidia-smi.exe` with
+fixed arguments. No PowerShell, COM/WMI session, shell, PATH search, driver or
+tool install is used. These Go providers replace the probe's CIM classes for
+the collector only; the PowerShell probe and the #85 planning catalog are
+unchanged, and each source still maps to one catalog capability.
+
+Every reading carries metric, unit, provider and a source-local index label.
+Nulls use exactly the telemetry v2 reasons plus a fixed detail word: no system
+battery is `not_applicable`; an absent thermal object, no thermal zones or an
+unreadable Kelvin value is `sensor_unavailable`; a PDH or vendor access denial
+is `permission_denied`; timeouts, panics and unknown errors are
+`collection_error`. Provider error text is never exported. Zero GPU engine
+instances are `sensor_unavailable`, not `not_applicable`, because the hosted
+denied service account in #85 saw zero instances on a VM with an adapter. A
+failing source never stops later sources.
+
+`SensorSample.MetricsV2` fills the existing v2 fields without a contract
+change: `battery_percent` is the system charge, `temperature_c` is the highest
+ACPI zone, and `gpu_utilization` is the highest adapter or NVIDIA utilization.
+The NVIDIA GPU temperature never fills `temperature_c`. These aggregations are
+provisional and are not health inputs. Provider names stay in the collector and
+availability report because v2 has no provider field; adding one needs a
+separate contract PR. The endpoint agent's `Collector` still returns
+`ErrNotImplemented` until #91 lands CPU, memory, disk and network. Linux and
+macOS sources return `sensor_unavailable` (`platform_not_selected`); #14
+selects no non-Windows endpoint. Evidence and the remaining two-physical-target
+gate are in [sensors-92.md](validation/sensors-92.md).
+
 ## Predeclared evaluation and resource thresholds, ML05 #86
 
 On 17 November 2026, before any model was fitted, `models/evaluation/ml05-policy.json`
