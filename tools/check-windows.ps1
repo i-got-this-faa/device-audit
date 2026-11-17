@@ -50,7 +50,8 @@ try {
     Invoke-Checked go @('run', './tools/probes/collectorbudget',
         '-output', 'artifacts/collector-budget/windows-ci.json',
         '-interval', '15s', '-samples', '2', '-repeats', '1', '-baseline', '1s', '-iterations', '200000')
-    # Battery, thermal and GPU availability through the Go collector (#92).
+    # CPU, memory, disk, network, battery, thermal and GPU availability through
+    # the Go collector (#91, #92).
     # A hosted VM under the CI account; not a physical target or LocalService token.
     $null = New-Item -ItemType Directory -Force -Path artifacts/sensors
     Invoke-Checked go @('run', './tools/probes/sensoravailability',

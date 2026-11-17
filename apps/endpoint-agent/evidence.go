@@ -40,22 +40,34 @@ type sequenceState struct {
 	LastReserved  uint64 `json:"last_reserved"`
 }
 
-func encodeSequence(state sequenceState) []byte {
-	body, _ := json.Marshal(state)
+// checksummed prefixes body with its SHA-256 so accidental state corruption is
+// detected on read. It is not an authenticity check.
+func checksummed(body []byte) []byte {
 	sum := sha256.Sum256(body)
 	return append(sum[:], body...)
 }
 
-func decodeSequence(data []byte, receipt contracts.EnrollmentAcceptedV1) (sequenceState, error) {
-	var state sequenceState
+// verifyChecksum returns the body of checksummed data, or ok false.
+func verifyChecksum(data []byte) (body []byte, ok bool) {
 	if len(data) <= sha256.Size {
-		return state, errors.New("invalid sequence state")
+		return nil, false
 	}
 	sum := sha256.Sum256(data[sha256.Size:])
-	if !bytes.Equal(sum[:], data[:sha256.Size]) {
+	return data[sha256.Size:], bytes.Equal(sum[:], data[:sha256.Size])
+}
+
+func encodeSequence(state sequenceState) []byte {
+	body, _ := json.Marshal(state)
+	return checksummed(body)
+}
+
+func decodeSequence(data []byte, receipt contracts.EnrollmentAcceptedV1) (sequenceState, error) {
+	var state sequenceState
+	body, ok := verifyChecksum(data)
+	if !ok {
 		return state, errors.New("sequence state checksum failed")
 	}
-	decoder := json.NewDecoder(bytes.NewReader(data[sha256.Size:]))
+	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&state) != nil || decoder.More() {
 		return state, errors.New("invalid sequence state")
@@ -114,16 +126,16 @@ func (s *identityStore) reserveSequence(receipt contracts.EnrollmentAcceptedV1) 
 // target and flushes the result. Unix also flushes the directory entry.
 func (s *identityStore) replace(name, temp string, data []byte) error {
 	if info, err := s.root.Lstat(temp); err == nil {
-		// A leftover temporary file is an uncommitted reservation from a crash.
+		// A leftover temporary file is an uncommitted write from a crash.
 		if !info.Mode().IsRegular() || s.root.Remove(temp) != nil {
-			return errors.New("unsafe or unremovable sequence temporary file")
+			return errors.New("unsafe or unremovable state temporary file")
 		}
 	} else if !errors.Is(err, os.ErrNotExist) {
-		return errors.New("inspect sequence temporary file")
+		return errors.New("inspect state temporary file")
 	}
 	f, err := s.root.OpenFile(temp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
-		return errors.New("create sequence temporary file")
+		return errors.New("create state temporary file")
 	}
 	if err := checkPrivateFile(f, s.principal); err != nil {
 		f.Close()
@@ -131,18 +143,18 @@ func (s *identityStore) replace(name, temp string, data []byte) error {
 	}
 	if _, err := f.Write(data); err != nil {
 		f.Close()
-		return errors.New("write sequence state")
+		return errors.New("write state")
 	}
 	if f.Sync() != nil || f.Close() != nil {
-		return errors.New("sync sequence state")
+		return errors.New("sync state")
 	}
 	sequenceStage("before-commit")
 	if s.root.Rename(temp, name) != nil {
-		return errors.New("commit sequence state")
+		return errors.New("commit state")
 	}
 	committed, err := s.root.OpenFile(name, os.O_RDWR, 0)
 	if err != nil {
-		return errors.New("reopen sequence state")
+		return errors.New("reopen state")
 	}
 	defer committed.Close()
 	if err := checkPrivateFile(committed, s.principal); err != nil {
@@ -151,7 +163,7 @@ func (s *identityStore) replace(name, temp string, data []byte) error {
 	// On NTFS, flushing the renamed file forces the metadata journal through
 	// the rename. Unix additionally flushes the directory.
 	if committed.Sync() != nil || syncDirectory(s.root) != nil {
-		return errors.New("sync committed sequence state")
+		return errors.New("sync committed state")
 	}
 	sequenceStage("after-commit")
 	return nil

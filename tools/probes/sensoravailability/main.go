@@ -1,6 +1,7 @@
-// Command sensoravailability records which battery, thermal and GPU readings
-// this host returns through the TEL06 #92 collector. It reads only; it does not
-// elevate, change ACLs, install drivers or tools, or attest its token.
+// Command sensoravailability records which CPU, memory, disk, network, battery,
+// thermal and GPU readings this host returns through the TEL05 #91 and TEL06
+// #92 collector. It reads only; it does not elevate, change ACLs, install
+// drivers or tools, or attest its token.
 package main
 
 import (
