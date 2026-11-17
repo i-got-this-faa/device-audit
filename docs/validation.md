@@ -1,5 +1,9 @@
 # Initial scaffold validation
 
+Follow-up: [TEL06 battery, thermal and GPU collectors, 17 November 2026](validation/sensors-92.md)
+records the nullable collector, its failure-path tests and hosted Windows CI
+availability. Neither physical Windows target was measured.
+
 Follow-up: [CHAIN01 descriptor checks, 16 November 2026](validation/chain-policy-47.md)
 records schema and fixture validation of the selected Base policy. It does not
 record a chain transaction or deployment.
