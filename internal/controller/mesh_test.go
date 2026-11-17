@@ -48,9 +48,69 @@ func (r *meshTestRepository) NetworkPeerBinding(context.Context, string) (Device
 	}
 	return r.binding, nil
 }
-func (r *meshTestRepository) AcceptEvidence(context.Context, contracts.EvidenceEnvelopeV1) error {
+func (r *meshTestRepository) AcceptEvidence(_ context.Context, e contracts.EvidenceEnvelopeV1) (time.Time, error) {
 	r.calls++
-	return r.err
+	issued, _ := time.Parse(time.RFC3339, e.IssuedAt)
+	return issued, r.err
+}
+
+// meshTestAckKey is a test-only controller acknowledgement key.
+var meshTestAckKey = ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x89}, ed25519.SeedSize))
+
+func newMeshTestServer(t *testing.T, cfg MeshConfig) *http.Server {
+	t.Helper()
+	cfg.AcknowledgementKey = meshTestAckKey
+	if cfg.Logger == nil {
+		cfg.Logger = slog.New(slog.DiscardHandler)
+	}
+	s, err := MeshHTTPServer(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return s
+}
+
+// recordMeshEvidence serves one request as the given tunnel peer. It does not
+// use testing.T, so concurrent goroutines may call it.
+func recordMeshEvidence(s *http.Server, peer string, e contracts.EvidenceEnvelopeV1) *httptest.ResponseRecorder {
+	data, _ := json.Marshal(e)
+	r := httptest.NewRequest(http.MethodPost, "/v1/evidence", bytes.NewReader(data))
+	r = r.WithContext(context.WithValue(r.Context(), meshPeerContextKey{}, peer))
+	w := httptest.NewRecorder()
+	s.Handler.ServeHTTP(w, r)
+	return w
+}
+
+// meshAcknowledgement returns the response's acknowledgement, if any, after
+// checking it with the endpoint's pinned-key correlation rule.
+func meshAcknowledgement(t *testing.T, w *httptest.ResponseRecorder, e contracts.EvidenceEnvelopeV1) *contracts.AcknowledgementV1 {
+	t.Helper()
+	if w.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("evidence response can be cached")
+	}
+	if w.Header().Get("Content-Type") != "application/json" {
+		return nil
+	}
+	var ack contracts.AcknowledgementV1
+	if err := json.Unmarshal(w.Body.Bytes(), &ack); err != nil {
+		t.Fatalf("acknowledgement body: %v", err)
+	}
+	if err := ack.VerifyForEvidence(meshTestAckKey.Public().(ed25519.PublicKey), e); err != nil {
+		t.Fatalf("acknowledgement does not verify for its request: %v", err)
+	}
+	return &ack
+}
+
+func serveMeshEvidence(t *testing.T, s *http.Server, peer string, e contracts.EvidenceEnvelopeV1) (int, *contracts.AcknowledgementV1) {
+	t.Helper()
+	w := recordMeshEvidence(s, peer, e)
+	return w.Code, meshAcknowledgement(t, w, e)
+}
+
+func TestMeshHTTPServerRequiresAcknowledgementKey(t *testing.T) {
+	if _, err := MeshHTTPServer(MeshConfig{Node: &meshTestNode{}, Repository: &meshTestRepository{}}); err == nil {
+		t.Fatal("mesh evidence server started without an acknowledgement key")
+	}
 }
 
 func TestMeshHTTPAdmissionAndBoundary(t *testing.T) {
@@ -61,7 +121,7 @@ func TestMeshHTTPAdmissionAndBoundary(t *testing.T) {
 	}
 	node := &meshTestNode{peer: "peer"}
 	repo := &meshTestRepository{binding: DeviceNetworkBinding{DeploymentID: envelope.DeploymentID, DeviceID: envelope.DeviceID, SigningKeyID: envelope.SigningKeyID, SigningPublicKey: repositoryFixtureKey().Public().(ed25519.PublicKey), NetworkPublicKey: node.peer}}
-	s := MeshHTTPServer(MeshConfig{Node: node, Repository: repo, Logger: slog.New(slog.DiscardHandler), Now: func() time.Time { return now }})
+	s := newMeshTestServer(t, MeshConfig{Node: node, Repository: repo, Now: func() time.Time { return now }})
 	request := func(path string, e contracts.EvidenceEnvelopeV1) int {
 		data, _ := json.Marshal(e)
 		r := httptest.NewRequest("POST", path, bytes.NewReader(data))
@@ -70,8 +130,8 @@ func TestMeshHTTPAdmissionAndBoundary(t *testing.T) {
 		s.Handler.ServeHTTP(w, r)
 		return w.Code
 	}
-	if got := request("/v1/evidence", envelope); got != 204 || repo.calls != 1 {
-		t.Fatalf("valid peer status=%d calls=%d", got, repo.calls)
+	if got, ack := serveMeshEvidence(t, s, node.peer, envelope); got != 200 || ack == nil || ack.Status != "accepted" || ack.ReceivedAt != envelope.IssuedAt || repo.calls != 1 {
+		t.Fatalf("valid peer status=%d ack=%+v calls=%d", got, ack, repo.calls)
 	}
 	for _, path := range []string{"/admin/bootstrap-tokens", "/v1/enrollment", "/auth/login", "/v1/telemetry"} {
 		if got := request(path, envelope); got != 404 {
@@ -96,8 +156,8 @@ func TestMeshHTTPAdmissionAndBoundary(t *testing.T) {
 		t.Fatalf("rejected evidence reached ingestion: calls=%d", repo.calls)
 	}
 	repo.denied, repo.err = false, ErrRepositoryUnavailable
-	if got := request("/v1/evidence", envelope); got != 503 || repo.calls != 2 {
-		t.Fatalf("uncertain storage status=%d calls=%d", got, repo.calls)
+	if got, ack := serveMeshEvidence(t, s, node.peer, envelope); got != 503 || ack != nil || repo.calls != 2 {
+		t.Fatalf("uncertain storage status=%d signed=%v calls=%d", got, ack != nil, repo.calls)
 	}
 }
 
@@ -193,7 +253,7 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 	a, b := enrollMeshTestDevice(t, bed, "device:a"), enrollMeshTestDevice(t, bed, "device:b")
 	var logs bytes.Buffer
 	node := &meshTestNode{}
-	server := MeshHTTPServer(MeshConfig{Node: node, Repository: bed.repo, Logger: slog.New(slog.NewJSONHandler(&logs, nil)), Now: bed.clock.Now})
+	server := newMeshTestServer(t, MeshConfig{Node: node, Repository: bed.repo, Logger: slog.New(slog.NewJSONHandler(&logs, nil)), Now: bed.clock.Now})
 	deployment := bed.repo.deploymentID
 
 	evidence := func(d meshTestDevice, issuedAt time.Time) contracts.EvidenceEnvelopeV1 {
@@ -214,21 +274,11 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 		}
 		return samples, marks
 	}
-	send := func(peer string, e contracts.EvidenceEnvelopeV1) (int, []meshSecurityEvent) {
+	send := func(peer string, e contracts.EvidenceEnvelopeV1) (int, *contracts.AcknowledgementV1, []meshSecurityEvent) {
 		t.Helper()
 		logs.Reset()
 		node.disconnected = false
-		data, err := json.Marshal(e)
-		if err != nil {
-			t.Fatal(err)
-		}
-		r := httptest.NewRequest(http.MethodPost, "/v1/evidence", bytes.NewReader(data))
-		r = r.WithContext(context.WithValue(r.Context(), meshPeerContextKey{}, peer))
-		w := httptest.NewRecorder()
-		server.Handler.ServeHTTP(w, r)
-		if w.Header().Get("Cache-Control") != "no-store" {
-			t.Fatal("evidence response can be cached")
-		}
+		status, ack := serveMeshEvidence(t, server, peer, e)
 		if e.Signature != "" && strings.Contains(logs.String(), e.Signature) || strings.Contains(logs.String(), e.PayloadBase64) {
 			t.Fatal("security event disclosed signature or payload")
 		}
@@ -243,7 +293,7 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 			}
 			events = append(events, event)
 		}
-		return w.Code, events
+		return status, ack, events
 	}
 
 	unrelated := newEnrollmentKeys(t)
@@ -252,25 +302,26 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 	cases := []struct {
 		name, peer, reason, deviceID string
 		status                       int
+		signed                       bool // a correlatable request naming the peer's own device
 		advance                      time.Duration
 		envelope                     func() contracts.EvidenceEnvelopeV1
 	}{
-		{name: "forged", peer: a.peer, reason: contracts.EnvelopeRejectionInvalidSignature, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
+		{name: "forged", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionInvalidSignature, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
 			e := evidence(a, issued)
 			signMeshTestEvidence(t, &e, unrelated.signing)
 			return e
 		}},
-		{name: "altered payload with recomputed digest", peer: a.peer, reason: contracts.EnvelopeRejectionInvalidSignature, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
+		{name: "altered payload with recomputed digest", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionInvalidSignature, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
 			e := evidence(a, issued)
 			setMeshTestPayload(&e, meshTestTelemetry(t, a.id, issued.Add(-time.Minute)))
 			return e
 		}},
-		{name: "altered payload with stale digest", peer: a.peer, reason: contracts.EnvelopeRejectionInvalidPayload, deviceID: a.id, status: 400, envelope: func() contracts.EvidenceEnvelopeV1 {
+		{name: "altered payload with stale digest", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionInvalidPayload, deviceID: a.id, status: 400, envelope: func() contracts.EvidenceEnvelopeV1 {
 			e := evidence(a, issued)
 			e.PayloadBase64 = base64.StdEncoding.EncodeToString(meshTestTelemetry(t, a.id, issued.Add(-time.Minute)))
 			return e
 		}},
-		{name: "wrong key", peer: a.peer, reason: contracts.EnvelopeRejectionKeyMismatch, deviceID: a.id, status: 403, envelope: func() contracts.EvidenceEnvelopeV1 {
+		{name: "wrong key", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionKeyMismatch, deviceID: a.id, status: 403, envelope: func() contracts.EvidenceEnvelopeV1 {
 			e := evidence(a, issued)
 			e.SigningKeyID = b.keyID
 			signMeshTestEvidence(t, &e, b.signing)
@@ -278,8 +329,8 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 		}},
 		{name: "misbound peer", peer: b.peer, reason: contracts.EnvelopeRejectionUnauthorizedPeer, deviceID: b.id, status: 403, envelope: func() contracts.EvidenceEnvelopeV1 { return evidence(a, issued) }},
 		{name: "unknown peer", peer: unknownPeer, reason: contracts.EnvelopeRejectionUnauthorizedPeer, status: 403, envelope: func() contracts.EvidenceEnvelopeV1 { return evidence(a, issued) }},
-		{name: "expired", peer: a.peer, reason: contracts.EnvelopeRejectionExpired, deviceID: a.id, status: 409, advance: time.Hour, envelope: func() contracts.EvidenceEnvelopeV1 { return evidence(a, issued) }},
-		{name: "future timestamp", peer: a.peer, reason: contracts.EnvelopeRejectionFutureTimestamp, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
+		{name: "expired", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionExpired, deviceID: a.id, status: 409, advance: time.Hour, envelope: func() contracts.EvidenceEnvelopeV1 { return evidence(a, issued) }},
+		{name: "future timestamp", signed: true, peer: a.peer, reason: contracts.EnvelopeRejectionFutureTimestamp, deviceID: a.id, status: 409, envelope: func() contracts.EvidenceEnvelopeV1 {
 			return evidence(a, issued.Add(contracts.EnvelopeMaxFutureSkewV1+time.Second))
 		}},
 		{name: "wrong schema version", peer: a.peer, reason: contracts.EnvelopeRejectionInvalidPayload, deviceID: a.id, status: 400, envelope: func() contracts.EvidenceEnvelopeV1 {
@@ -299,10 +350,16 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 			samples, marks := durableState()
 			e := tc.envelope()
 			bed.clock.Advance(tc.advance)
-			status, events := send(tc.peer, e)
+			status, ack, events := send(tc.peer, e)
 			bed.clock.Advance(-tc.advance)
 			if status != tc.status {
 				t.Fatalf("status=%d want %d", status, tc.status)
+			}
+			if (ack != nil) != tc.signed {
+				t.Fatalf("signed acknowledgement=%v want %v", ack != nil, tc.signed)
+			}
+			if ack != nil && (ack.Status != "rejected" || *ack.RejectionReason != tc.reason || ack.LastSequence != nil) {
+				t.Fatalf("rejection acknowledgement=%+v", ack)
 			}
 			if len(events) != 1 {
 				t.Fatalf("security events=%d want 1", len(events))
@@ -323,9 +380,9 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 		})
 	}
 
-	status, events := send(a.peer, evidence(a, issued))
+	status, ack, events := send(a.peer, evidence(a, issued))
 	samples, marks := durableState()
-	if status != http.StatusNoContent || len(events) != 0 || samples != 1 || marks != [2]uint64{contracts.FirstEvidenceSequenceV1, contracts.EnrollmentSequenceV1} {
+	if status != http.StatusOK || ack == nil || ack.Status != "accepted" || len(events) != 0 || samples != 1 || marks != [2]uint64{contracts.FirstEvidenceSequenceV1, contracts.EnrollmentSequenceV1} {
 		t.Fatalf("valid evidence status=%d events=%d samples=%d marks=%v", status, len(events), samples, marks)
 	}
 }

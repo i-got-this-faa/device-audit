@@ -29,8 +29,12 @@ not deployed service or Windows qualification.
    `CertName` but never use `InsecureForTests`.
 3. Start the controller with its existing PostgreSQL, deployment, TLS and OIDC
    configuration plus `--transport mesh --mesh-state-dir /private/controller-mesh
-   --derp-region-file /config/private-region.json`. All enrollment prerequisites
-   remain required. The server writes `mesh-address` inside its private state
+   --derp-region-file /config/private-region.json --ack-key-file
+   /private/controller-ack.pem`. The acknowledgement key is a PKCS#8 PEM Ed25519
+   key, for example from `openssl genpkey -algorithm ed25519`. It signs CT04
+   receipts only. Never reuse the mesh, TLS, device or chain key. Protect it like
+   the TLS private key. Export its public half with `openssl pkey -pubout` and pin
+   that file on endpoints. All enrollment prerequisites remain required. The server writes `mesh-address` inside its private state
    directory. This address contains a PSK: never print it or pass it on a command
    line. Deliver it to each admitted endpoint using protected operator IPC/files.
    The endpoint file must be named `mesh-address` inside its existing identity
@@ -41,7 +45,9 @@ not deployed service or Windows qualification.
    key. It never provisions another transport identity.
 5. Submit an already signed CT04 envelope from stdin using
    `endpoint-agent --transport mesh --state-dir /private/endpoint
-   --mesh-server-key PUBLIC_HEX --derp-region-file /config/private-region.json`.
+   --mesh-server-key PUBLIC_HEX --controller-ack-key-file /config/controller-ack.pub.pem
+   --derp-region-file /config/private-region.json`. The agent prints the verified
+   acknowledgement JSON and exits non-zero for a rejection or an unverified reply.
    The URL is fixed to `http://controller.mesh:8080/v1/evidence` inside WireGuard.
    HTTP redirects, environment proxies and other destination hosts/ports are
    disabled. HTTP here is inside the authenticated encrypted tunnel.
@@ -83,13 +89,27 @@ log at error level and security rejections at warning level.
 
 Only `POST /v1/evidence` is exposed on mesh TCP port 8080. The request is the
 existing strict `device-audit.evidence.v1` contract, bounded to 400 KiB, without
-queries. HTTP 204 means the repository returned after commit; it has no response
-body and is **not** a CT04 signed acknowledgement. Storage and uncertain commit
-failures are 503. Malformed input and queries are 400 (`invalid_payload`). Peer,
+queries. HTTP 200 carries a signed `device-audit.acknowledgement.v1` with status
+`accepted`, sent only after COMMIT returned. Its `received_at` is the stored
+receive time. Malformed input and queries are 400 (`invalid_payload`). Peer,
 deployment and signing-key scope denials are 403. Signature, timestamp, replay
-and other envelope rejections are 409. Lost replies remain uncertain. Preserve the signed envelope;
+and other envelope rejections are 409. Storage and uncertain commit failures
+are 503.
+
+A rejection also carries a signed acknowledgement (status `rejected`) when the
+request is correlatable and names the admitted peer's own deployment and device.
+`last_sequence` is the mark read under the device row lock (replay, and expiry
+found under the lock), otherwise null. Other rejections, including unadmitted or
+misbound peers, get a plain-text error. A 503 is never signed: a failed COMMIT may
+still have committed, so the controller cannot truthfully reject it.
+
+Concurrent copies of one envelope serialize on the device row lock. One gets
+`accepted`; every other copy gets a signed `replay` with the committed mark.
+The endpoint verifies the pinned key and every correlation field before it
+trusts a reply. Lost replies remain uncertain. Preserve the signed envelope;
 never fabricate a receipt or allocate a new sequence for an automatic retry.
-Signed acknowledgement/reconciliation policy remains #89.
+A `replay` after a lost reply does not prove that this payload was stored.
+Authenticated receipt lookup remains open.
 
 Bootstrap, inventory, OIDC and administrator routes use the separate HTTPS
 listener, with existing authorization. In mesh mode that listener excludes the

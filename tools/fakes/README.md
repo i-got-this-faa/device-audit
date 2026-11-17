@@ -54,8 +54,8 @@ go run ./tools/fakes/controllerfake --scenario duplicate
 
 The suite covers named assignment, expiry, offline and duplicate behavior. It
 does not prove durable restart behavior, concurrency, challenge issuance,
-authorization, replay after process restart or production storage. Those remain
-with #18, #19, #83 and #89.
+authorization, replay after process restart or production storage. #18, #83
+and #89 cover those against the real controller and PostgreSQL; #19 remains.
 
 ## Replay endpoint fixtures against an HTTP boundary
 

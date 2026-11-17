@@ -98,8 +98,8 @@ backup, recovery-objective, TLS, least-privilege or production-schema decision.
 The candidate `001_initial.sql` and `002_console_auth.sql` tables are applied.
 Console role bindings, login transactions and sessions are durable. #83 adds
 a separate durable signed-device repository, described below. The fixture API
-continues to use memory; authorized admission, signed acknowledgements and
-revocation authority remain #18/#24/#89/#90. #14 still bounds the deployment
+continues to use memory. #18, #24 and #89 now provide authorized admission,
+evidence verification and signed acknowledgements; revocation authority remains #90. #14 still bounds the deployment
 target; no production persistence is claimed.
 
 ## Provisional telemetry/inventory contract v2
@@ -585,12 +585,31 @@ on the application mesh. Bootstrap, OIDC, inventory and administrator APIs stay
 on their separate HTTPS boundary. Unsigned fixture routes are excluded there
 when mesh mode is selected. No device key is reused as a chain signing key.
 
-The empty HTTP 204 response is a transport-level commit result, not a signed
-acknowledgement. Uncertain commits never become success; callers retain their
-original signed envelope. #89 still owns signed receipts/reconciliation. See
+#89 replaced the empty HTTP 204 response with signed acknowledgements; see the
+SEC08 decision below. Uncertain commits never become success; callers retain
+their original signed envelope. See
 the [adapter guide](../networking/mesh/README.md) for commands, failure handling,
 restart/direct test scope and unqualified physical/deployed paths. Local
 implementation does not complete reviewer/merge or release qualification gates.
+
+## Signed evidence acknowledgements and replay, SEC08 #89
+
+The mesh evidence handler answers with controller-signed CT04 acknowledgements.
+A separate PKCS#8 Ed25519 key from `--ack-key-file` signs them. Endpoints pin
+its public half with `--controller-ack-key-file`, just as they pin the mesh
+server key. We chose operator pinning over adding the key to the bootstrap
+response. Operator pinning needs no wire change and keeps the receipt key
+separate from the mesh, TLS, device and chain keys. Key rotation is not
+implemented.
+
+`accepted` is signed only after COMMIT returns, with the stored receive time.
+Duplicates and out-of-order sequences get a signed `replay` that carries the
+committed mark. The PostgreSQL device row lock serializes them, so the mark
+survives a controller restart. Signed rejections are limited to correlatable
+requests that name the admitted peer's own device. A failed or uncertain COMMIT
+returns an unsigned 503 and never a signed rejection. Replay is still not proof
+of storage, and authenticated receipt lookup remains open. Evidence is in
+[the validation record](validation/replay-acknowledgements-89.md).
 
 ## Release chain and writer policy, CHAIN01 #47
 

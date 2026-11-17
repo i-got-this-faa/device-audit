@@ -28,6 +28,7 @@ func main() {
 	caFile := flag.String("ca-file", "", "optional enrollment CA PEM file")
 	signEvidence := flag.Bool("sign-evidence", false, "sign a telemetry v2 payload from stdin with the admitted identity")
 	meshServerKey := flag.String("mesh-server-key", "", "trusted controller X25519 public key hex")
+	controllerAckKeyFile := flag.String("controller-ack-key-file", "", "pinned controller Ed25519 acknowledgement public key PEM")
 	regionFile := flag.String("derp-region-file", "", "explicit self-hosted DERP region JSON")
 	collectTelemetry := flag.Bool("collect-telemetry", false, "print one endpoint telemetry v2 payload for an explicit --device-id")
 	collectErrors := flag.Bool("collect-errors", false, "print new System/Application error records and save read positions in --state-dir")
@@ -125,10 +126,17 @@ func main() {
 		return
 	}
 	if *transport == "mesh" {
-		if err := sendMeshEvidence(context.Background(), *stateDir, *meshServerKey, *regionFile, os.Stdin); err != nil {
+		controllerKey, err := loadControllerAckKey(*controllerAckKeyFile)
+		if err != nil {
 			fail(err)
 		}
-		fmt.Println("evidence committed; signed acknowledgement is not available")
+		ack, err := sendMeshEvidence(context.Background(), *stateDir, *meshServerKey, controllerKey, *regionFile, os.Stdin)
+		if err != nil {
+			fail(err)
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(ack); err != nil {
+			fail(fmt.Errorf("write evidence acknowledgement"))
+		}
 		return
 	}
 	if *transport != "loopback" {

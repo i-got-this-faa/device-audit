@@ -2,8 +2,14 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
 	"database/sql"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/http"
@@ -337,6 +343,33 @@ func TestOIDCSecretEnvironmentFallbackAndExplicitEmpty(t *testing.T) {
 		err := run(context.Background(), args, environment{OIDCClientSecret: "synthetic-oidc-secret"})
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Fatalf("explicit empty=%v: got %v want %s", explicitEmpty, err, want)
+		}
+	}
+}
+
+func TestLoadAcknowledgementKeyAcceptsOnlyEd25519PKCS8(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name string, key any) string {
+		t.Helper()
+		der, err := x509.MarshalPKCS8PrivateKey(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der}), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	_, signing, _ := ed25519.GenerateKey(nil)
+	loaded, err := loadAcknowledgementKey(write("ack.pem", signing))
+	if err != nil || !loaded.Equal(signing) {
+		t.Fatalf("Ed25519 key=%v err=%v", loaded != nil, err)
+	}
+	ecdsaKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	for name, path := range map[string]string{"ecdsa": write("ecdsa.pem", ecdsaKey), "missing": filepath.Join(dir, "absent.pem")} {
+		if _, err := loadAcknowledgementKey(path); err == nil {
+			t.Fatalf("%s acknowledgement key accepted", name)
 		}
 	}
 }

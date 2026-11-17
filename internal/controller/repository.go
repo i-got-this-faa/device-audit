@@ -215,17 +215,18 @@ func (s *PostgresRepository) enrollInTransaction(ctx context.Context, tx *sql.Tx
 
 // AcceptEvidence verifies against the locked enrolled key, then commits the
 // exact payload and shared device high-water mark in the same transaction.
+// It returns the stored receipt time only after COMMIT succeeds.
 // Callers must authorize the authenticated peer before invoking this method.
-func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contracts.EvidenceEnvelopeV1) error {
+func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contracts.EvidenceEnvelopeV1) (time.Time, error) {
 	if envelope.DeploymentID != s.deploymentID {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionDeploymentMismatch}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionDeploymentMismatch}
 	}
 	if err := envelope.Validate(); err != nil {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	tx, err := s.beginWrite(ctx)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	defer tx.Rollback()
 	var publicKey []byte
@@ -234,32 +235,32 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	err = tx.QueryRowContext(ctx, `SELECT public_key, last_sequence, revoked_at FROM device_enrollments
 		WHERE deployment_id=$1 AND device_id=$2 FOR UPDATE`, s.deploymentID, envelope.DeviceID).Scan(&publicKey, &lastSequence, &revokedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionUnknownDevice}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionUnknownDevice}
 	}
 	if err != nil {
-		return repositoryUnavailable(err)
+		return time.Time{}, repositoryUnavailable(err)
 	}
 	if revokedAt != nil {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionRevokedKey}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionRevokedKey}
 	}
 	if err := envelope.VerifySignature(publicKey); err != nil {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
 	}
 	// Read the clock after acquiring the lock: a waiter may have expired.
 	now := s.now().UTC()
 	if reason, err := envelope.EnvelopeHeaderV1.FreshnessRejection(now, lastSequence); err != nil {
-		return err
+		return time.Time{}, err
 	} else if reason != "" {
-		return &RepositoryRejection{Reason: reason, LastSequence: &lastSequence}
+		return time.Time{}, &RepositoryRejection{Reason: reason, LastSequence: &lastSequence}
 	}
 	payload, _ := base64.StdEncoding.Strict().DecodeString(envelope.PayloadBase64)
 	var telemetry contracts.TelemetryV2
 	if err := json.Unmarshal(payload, &telemetry); err != nil {
-		return &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
+		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidPayload}
 	}
 	encoded, err := json.Marshal(envelope)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 	signingBytes, _ := envelope.SigningBytes()
 	requestDigest, _ := contracts.EnvelopeRequestSHA256V1(signingBytes, envelope.Signature)
@@ -268,13 +269,16 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, s.deploymentID, envelope.DeviceID, envelope.Sequence,
 		string(encoded), payload, decodeRepositoryDigest(requestDigest), telemetry.CollectedAt, now)
 	if err != nil {
-		return repositoryUnavailable(err)
+		return time.Time{}, repositoryUnavailable(err)
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE device_enrollments SET last_sequence=$3
 		WHERE deployment_id=$1 AND device_id=$2`, s.deploymentID, envelope.DeviceID, envelope.Sequence); err != nil {
-		return repositoryUnavailable(err)
+		return time.Time{}, repositoryUnavailable(err)
 	}
-	return repositoryCommit(tx)
+	if err := repositoryCommit(tx); err != nil {
+		return time.Time{}, err
+	}
+	return now, nil
 }
 
 func (s *PostgresRepository) Device(ctx context.Context, deviceID string) (EnrolledDevice, error) {
