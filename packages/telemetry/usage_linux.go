@@ -31,7 +31,27 @@ func sampleProcessOS() (osSample, error) {
 		return osSample{}, fmt.Errorf("telemetry: page size %d is invalid", page)
 	}
 	cpu := time.Duration(utime+stime) * time.Second / time.Duration(ticks)
-	return osSample{CPU: cpu, RSS: uint64(rssPages) * uint64(page)}, nil
+	sample := osSample{CPU: cpu, RSS: uint64(rssPages) * uint64(page)}
+	// The high-water mark is optional; a missing field leaves it zero.
+	if status, err := os.ReadFile("/proc/self/status"); err == nil {
+		sample.PeakRSS = parseVmHWM(string(status))
+	}
+	return sample, nil
+}
+
+// parseVmHWM returns the VmHWM line of /proc/self/status in bytes, or 0.
+func parseVmHWM(status string) uint64 {
+	for _, line := range strings.Split(status, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 3 && fields[0] == "VmHWM:" && fields[2] == "kB" {
+			kb, err := strconv.ParseUint(fields[1], 10, 64)
+			if err != nil || kb > 1<<44 {
+				return 0
+			}
+			return kb * 1024
+		}
+	}
+	return 0
 }
 
 // parseProcStat reads utime, stime and rss from /proc/self/stat.

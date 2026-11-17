@@ -4,9 +4,10 @@ The endpoint can explicitly enroll separate Ed25519 application-signing and
 X25519 network identities through the existing bootstrap v1 protocol. It saves
 keys before sending proofs, pins their deployment/device scope, and saves a
 public admission receipt only after a matching HTTP 201 response. Normal status
-reads never provision keys. The default executable mode still sends unsigned
-fixture telemetry over loopback. Enrollment does not enable production mesh or
-authenticated telemetry delivery.
+reads never provision keys. There is no default mode: unsigned synthetic
+telemetry over loopback needs `--fixture`, which prints
+`provenance=fixture` on standard error. Enrollment does not enable production
+mesh or authenticated telemetry delivery.
 
 ## Enroll and inspect
 
@@ -136,6 +137,42 @@ from the admission receipt. Per-source providers, observation times and network
 rates are not on the v2 wire. On non-Windows hosts no source is selected, so the
 command fails rather than emitting nulls only. See
 [telemetry-91.md](../../docs/validation/telemetry-91.md).
+
+## Scheduled sampling, TEL08 #94
+
+```sh
+endpoint-agent --sample --device-id <admitted device ID> \
+  --sampling-config sampling.json --sampling-duration 10m --sampling-report report.json
+```
+
+`--sample` runs every configured source on its own interval and prints one
+validated `device-audit.telemetry.v2` payload per emit interval. The
+configuration (`device-audit.sampling-config.v1`) is strict JSON. Without
+`--sampling-config` the built-in default samples all eight sources at 15 s,
+except the NVIDIA tool at 60 s, and emits every 60 s. This example is not the
+default: it schedules only two sources, so the other six are not sampled.
+
+```json
+{
+  "schema_version": "device-audit.sampling-config.v1",
+  "emit_interval": "60s",
+  "budget": {"max_cpu_percent_one_core": 2, "max_rss_bytes": 67108864},
+  "sources": [
+    {"source": "cpu", "interval": "15s", "deadline": "5s"},
+    {"source": "gpu_vendor", "interval": "60s", "deadline": "5s"}
+  ]
+}
+```
+
+Unlisted sources are not sampled. Intervals are 5 s to 300 s; a deadline is
+positive, at most 30 s and at most its interval. A provider still blocked from
+its previous read is not started again; that tick is `collection_error` /
+`provider_busy`. A result older than its interval plus deadline plus 1 s is
+emitted as `stale_result`, never as a current value. The report records reads,
+nulls by reason, busy skips, overruns and the process CPU and peak RSS against
+the declared budget. The command exits 1 when the budget is exceeded. Process
+CPU excludes child processes such as `nvidia-smi`. See
+[sampling-94.md](../../docs/validation/sampling-94.md).
 
 ## Error evidence, TEL07 #93
 

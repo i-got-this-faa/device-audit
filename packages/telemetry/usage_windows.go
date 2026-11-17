@@ -41,5 +41,5 @@ func sampleProcessOS() (osSample, error) {
 		}
 		return osSample{}, fmt.Errorf("telemetry: process memory read failed")
 	}
-	return osSample{CPU: cpu, RSS: uint64(counters.WorkingSetSize)}, nil
+	return osSample{CPU: cpu, RSS: uint64(counters.WorkingSetSize), PeakRSS: uint64(counters.PeakWorkingSetSize)}, nil
 }

@@ -158,7 +158,7 @@ func (c SensorCollector) Collect(ctx context.Context) (SensorSample, error) {
 		if err := ctx.Err(); err != nil {
 			return SensorSample{}, err
 		}
-		result := c.readSource(ctx, src, deadline, now)
+		result := readSource(ctx, src, deadline, now, nil)
 		if errors.Is(ctx.Err(), context.Canceled) {
 			return SensorSample{}, ctx.Err()
 		}
@@ -199,12 +199,18 @@ type readOutcome struct {
 	err      error
 }
 
-func (c SensorCollector) readSource(parent context.Context, src SensorSource, deadline time.Duration, now func() time.Time) SourceResult {
+// readSource reads one source under its own deadline. onExit, when set, runs
+// when the provider goroutine itself returns, which can be after readSource
+// has given up on it at the deadline.
+func readSource(parent context.Context, src SensorSource, deadline time.Duration, now func() time.Time, onExit func()) SourceResult {
 	ctx, cancel := context.WithTimeout(parent, deadline)
 	defer cancel()
 	start := now()
 	done := make(chan readOutcome, 1)
 	go func() {
+		if onExit != nil {
+			defer onExit()
+		}
 		defer func() {
 			if recovered := recover(); recovered != nil {
 				done <- readOutcome{err: sensorErr(errors.New("telemetry: sensor provider panicked"), "provider_panic")}

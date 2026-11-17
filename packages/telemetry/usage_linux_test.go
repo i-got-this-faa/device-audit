@@ -26,6 +26,17 @@ func TestParseProcStatAndOSRelease(t *testing.T) {
 	if memTotalBytes("MemTotal:       1024 kB\n") != 1024*1024 {
 		t.Fatal("memory total")
 	}
+	if got := parseVmHWM("Name:\tx\nVmPeak:\t  9000 kB\nVmHWM:\t    2048 kB\nVmRSS:\t 1024 kB\n"); got != 2048*1024 {
+		t.Fatalf("VmHWM = %d", got)
+	}
+	for _, status := range []string{"", "VmHWM:\tlots kB\n", "VmHWM:\t12 MB\n"} {
+		if parseVmHWM(status) != 0 {
+			t.Fatalf("%q parsed", status)
+		}
+	}
+	if u, err := SampleProcess(); err != nil || u.PeakRSS < u.RSS {
+		t.Fatalf("live high-water %d below rss %d (err %v)", u.PeakRSS, u.RSS, err)
+	}
 	host := CurrentHost()
 	if host.Role != hostRole || host.GOOS != "linux" || host.CoreCount < 1 {
 		t.Fatalf("host = %#v", host)

@@ -1,0 +1,182 @@
+{
+  "schema": "device-audit.sampling-report.v1",
+  "provenance": "endpoint_sensor",
+  "qualification": "not_service_token_or_physical_target_attested",
+  "host": {
+    "role": "development_or_ci_not_physical_target",
+    "go_version": "go1.27.4",
+    "goos": "windows",
+    "goarch": "amd64",
+    "os_family": "windows",
+    "os_version": "10.0.26200",
+    "cpu_model": "AMD Ryzen 5 5600H with Radeon Graphics         ",
+    "core_count": 12,
+    "total_physical_bytes": 16473231360
+  },
+  "config": {
+    "schema_version": "device-audit.sampling-config.v1",
+    "emit_interval": "1m0s",
+    "budget": {
+      "max_cpu_percent_one_core": 2,
+      "max_rss_bytes": 67108864
+    },
+    "sources": [
+      {
+        "source": "cpu",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "memory",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "disk",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "network",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "battery",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "thermal",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "gpu_engine",
+        "interval": "15s",
+        "deadline": "5s"
+      },
+      {
+        "source": "gpu_vendor",
+        "interval": "1m0s",
+        "deadline": "5s"
+      }
+    ]
+  },
+  "started_at": "2026-11-17T18:15:30.8388146Z",
+  "ended_at": "2026-11-17T18:25:30.8385373Z",
+  "emits": 9,
+  "sources": [
+    {
+      "source": "cpu",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 40,
+      "null_readings": 0,
+      "max_query_ms": 251.753,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "memory",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 40,
+      "null_readings": 0,
+      "max_query_ms": 0,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "disk",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 40,
+      "null_readings": 0,
+      "max_query_ms": 1.1909,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "network",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 80,
+      "null_readings": 80,
+      "reasons": {
+        "sensor_unavailable": 80
+      },
+      "details": {
+        "interface_down": 80
+      },
+      "max_query_ms": 252.8976,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "battery",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 40,
+      "null_readings": 0,
+      "max_query_ms": 0.7087,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "thermal",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 40,
+      "null_readings": 0,
+      "max_query_ms": 198.0252,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "gpu_engine",
+      "interval_ms": 15000,
+      "deadline_ms": 5000,
+      "reads": 40,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 120,
+      "null_readings": 0,
+      "max_query_ms": 448.3563,
+      "provider_busy_at_end": false
+    },
+    {
+      "source": "gpu_vendor",
+      "interval_ms": 60000,
+      "deadline_ms": 5000,
+      "reads": 10,
+      "busy_skips": 0,
+      "overruns": 0,
+      "known_readings": 20,
+      "null_readings": 0,
+      "max_query_ms": 54.2956,
+      "provider_busy_at_end": false
+    }
+  ],
+  "budget": {
+    "wall_ms": 600000.2478,
+    "cpu_ms": 218.75,
+    "cpu_percent_one_core": 0.03645831827604789,
+    "rss_peak_bytes": 28741632,
+    "rss_samples": 301,
+    "cpu_within_budget": true,
+    "rss_within_budget": true
+  }
+}
