@@ -59,7 +59,7 @@ func sendMeshEvidence(ctx context.Context, stateDir, serverKey string, controlle
 	// A cold Tailcat session discovers the controller through the relay.
 	// Report a bad relay explicitly instead of an opaque delivery timeout.
 	if err := mesh.CheckRelay(ctx, mesh.DERPConfig{Region: region}, private); err != nil {
-		return fmt.Errorf("%v; evidence not sent, retain the signed envelope", err)
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%v; evidence not sent, retain the signed envelope", err)
 	}
 	client, err := mesh.NewClient(mesh.ClientConfig{NetworkPrivateKey: private, ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}})
 	if err != nil {
