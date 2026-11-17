@@ -94,7 +94,7 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, pa
 			node.Close()
 			t.Fatal(err)
 		}
-		server := controller.MeshHTTPServer(node, repo)
+		server := controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repo})
 		go server.Serve(ln)
 		if phase == 0 {
 			s, err := openIdentityStore(path, false)

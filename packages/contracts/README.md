@@ -202,7 +202,9 @@ even for a mismatched key fingerprint or invalid evidence body. Senders must
 validate the completed envelope. `VerifySignature(trustedKey)` validates it and
 checks the key fingerprint and real Ed25519 signature.
 `FreshnessRejection(now, durableMark)` is
-a pure policy check with an explicit clock and no state mutation. None of these
+a pure policy check with an explicit clock and no state mutation.
+`TimestampRejection(now)` is its expiry and future-skew part alone, for a
+consumer that must apply the timestamp policy before it reads the durable mark. None of these
 functions enrolls, authorizes, persists, handles revocation or admits a peer.
 Consumers must atomically compare-and-commit state before accepting a request.
 Binding conflicts and challenge admission remain outside the freshness helper;

@@ -404,11 +404,9 @@ func EnvelopeRequestSHA256V1(signingBytes []byte, signature string) (string, err
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-// FreshnessRejection is a pure contract check after validation/authentication.
-// It neither reads nor advances durable state. Consumers must compare-and-commit
-// atomically; a passing check alone must never produce an accepted response.
-// Enrollment binding conflicts and challenge admission are outside this check.
-func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64) (string, error) {
+// TimestampRejection applies the declared expiry and future-skew policy. It is
+// pure, reads no durable state, and does not decide replay.
+func (h EnvelopeHeaderV1) TimestampRejection(now time.Time) (string, error) {
 	var lifetime time.Duration
 	switch h.SchemaVersion {
 	case EnrollmentV1Version:
@@ -421,8 +419,8 @@ func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64)
 	if err := h.validate(h.SchemaVersion, lifetime); err != nil {
 		return "", err
 	}
-	if lastSequence > MaxEnvelopeSequence || now.IsZero() {
-		return "", fmt.Errorf("invalid durable mark or receiver clock")
+	if now.IsZero() {
+		return "", fmt.Errorf("invalid receiver clock")
 	}
 	issued, _ := parseEnvelopeTime(h.IssuedAt)
 	expires, _ := parseEnvelopeTime(h.ExpiresAt)
@@ -431,6 +429,20 @@ func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64)
 	}
 	if issued.After(now.Add(EnvelopeMaxFutureSkewV1)) {
 		return EnvelopeRejectionFutureTimestamp, nil
+	}
+	return "", nil
+}
+
+// FreshnessRejection is a pure contract check after validation/authentication.
+// It neither reads nor advances durable state. Consumers must compare-and-commit
+// atomically; a passing check alone must never produce an accepted response.
+// Enrollment binding conflicts and challenge admission are outside this check.
+func (h EnvelopeHeaderV1) FreshnessRejection(now time.Time, lastSequence uint64) (string, error) {
+	if lastSequence > MaxEnvelopeSequence {
+		return "", fmt.Errorf("invalid durable mark")
+	}
+	if reason, err := h.TimestampRejection(now); err != nil || reason != "" {
+		return reason, err
 	}
 	if h.Sequence <= lastSequence {
 		return EnvelopeRejectionReplay, nil

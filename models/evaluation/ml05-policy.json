@@ -1,0 +1,109 @@
+{
+  "schema_version": "device-audit.evaluation-policy.v1",
+  "policy_version": "ml05.v1",
+  "declared_on": "2026-11-17",
+  "declared_before_fit": true,
+  "study": {
+    "name": "Backblaze Drive Stats 2013 recorded HDD event study",
+    "partition_policy_sha256": "f5e1080c971001622a220d6843f3a0463084db79ea4e685a83c41a15bebfeff8",
+    "partition_manifest_sha256": "a786dfefa4254308b65d7fd2a9d5a785976b2dc22b8ab26892e4b2f60a1be025",
+    "horizon_hours": 168,
+    "history_days": 7,
+    "label": "recorded failure=1 event in (anchor, anchor + 7 days]"
+  },
+  "procedure": {
+    "evaluation_partition": "test",
+    "operating_point_partition": "validation",
+    "operating_point_uses": "validation_negative_scores_only",
+    "operating_points": {
+      "degraded": {"target_window_false_positive_rate": 0.005},
+      "critical": {"target_window_false_positive_rate": 0.001}
+    },
+    "calibration_fit_partition": "train_device_grouped_out_of_fold",
+    "calibration_folds": 5,
+    "validation_positive_use_min_events": 30,
+    "max_test_evaluations_per_candidate": 1,
+    "bootstrap": {"unit": "device", "replicates": 2000, "seed": 86, "interval": 0.95, "method": "percentile"},
+    "example_sampling": "none",
+    "baselines": {
+      "prevalence": "constant probability equal to the train positive-window rate",
+      "smart_rule": "most recent non-null smart_5_raw + smart_197_raw in the 7-day window; all-null scores rank lowest"
+    }
+  },
+  "minimum_evidence": {
+    "test_positive_events": 30,
+    "test_positive_windows": 100,
+    "test_negative_windows": 10000,
+    "test_devices": 1000,
+    "validation_negative_windows": 10000
+  },
+  "gates": [
+    {"id": "baseline_average_precision", "kind": "baseline", "metric": "average_precision_minus_best_baseline", "bound": "lower", "op": ">", "value": 0.0},
+    {"id": "baseline_event_recall", "kind": "baseline", "metric": "event_recall_minus_smart_rule", "bound": "lower", "op": ">=", "value": -0.05},
+    {"id": "discrimination_roc_auc", "kind": "baseline", "metric": "roc_auc", "bound": "lower", "op": ">=", "value": 0.70},
+    {"id": "window_fpr_degraded", "kind": "false_positive", "metric": "window_false_positive_rate_degraded", "bound": "upper", "op": "<=", "value": 0.01},
+    {"id": "window_fpr_critical", "kind": "false_positive", "metric": "window_false_positive_rate_critical", "bound": "upper", "op": "<=", "value": 0.002},
+    {"id": "device_false_alarm", "kind": "false_positive", "metric": "never_positive_device_alert_fraction", "bound": "upper", "op": "<=", "value": 0.10},
+    {"id": "brier_skill", "kind": "calibration", "metric": "brier_skill_vs_prevalence", "bound": "lower", "op": ">", "value": 0.0},
+    {"id": "observed_expected_low", "kind": "calibration", "metric": "observed_to_expected_ratio", "bound": "point", "op": ">=", "value": 0.67},
+    {"id": "observed_expected_high", "kind": "calibration", "metric": "observed_to_expected_ratio", "bound": "point", "op": "<=", "value": 1.5},
+    {"id": "calibration_slope_low", "kind": "calibration", "metric": "calibration_slope", "bound": "point", "op": ">=", "value": 0.7},
+    {"id": "calibration_slope_high", "kind": "calibration", "metric": "calibration_slope", "bound": "point", "op": "<=", "value": 1.3},
+    {"id": "event_recall_point", "kind": "horizon", "metric": "event_recall_within_horizon", "bound": "point", "op": ">=", "value": 0.30},
+    {"id": "event_recall_lower", "kind": "horizon", "metric": "event_recall_within_horizon", "bound": "lower", "op": ">=", "value": 0.15},
+    {"id": "median_lead_time", "kind": "horizon", "metric": "median_first_alert_lead_days", "bound": "point", "op": ">=", "value": 2.0}
+  ],
+  "health_mapping": {
+    "requires_gate_status": "pass",
+    "source_warning_term": "degraded",
+    "critical": "probability at or above the critical operating point",
+    "degraded": "probability at or above the degraded operating point and below critical",
+    "healthy": "probability below the degraded operating point with fresh complete inputs",
+    "unknown": "gate not passed, model unavailable, timeout, stale or insufficient inputs"
+  },
+  "resource_budgets": {
+    "target": {
+      "hardware_class": "HP Victus 15-fb0xxx",
+      "cpu_model": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "logical_processors": 12,
+      "os_build_family": 26200,
+      "os_visible_memory_gib": 15.34,
+      "measured_in": ["docs/validation/windows-2026-10-14.md", "docs/validation/windows-2026-10-19.md"]
+    },
+    "endpoint_inference": {
+      "artifact_max_bytes": 16777216,
+      "peak_working_set_max_bytes": 67108864,
+      "latency_p95_max_ms": 200,
+      "latency_max_ms": 1000,
+      "timeout_ms": 2000,
+      "cpu_ms_per_prediction_max": 250,
+      "min_interval_seconds": 3600,
+      "max_sweep_start_delay_ms": 1000,
+      "min_measured_predictions": 30,
+      "concurrent_sampling_cadence_seconds": 60,
+      "on_breach": "unknown health with model_unavailable; telemetry continues"
+    },
+    "endpoint_training": {
+      "peak_working_set_max_bytes": 268435456,
+      "max_logical_processors": 1,
+      "wall_seconds_max": 600,
+      "min_interval_seconds": 86400,
+      "requires_ac_power": true,
+      "process_priority": "below_normal",
+      "on_breach": "abort round, discard update, telemetry continues"
+    },
+    "central_training": {
+      "runner": "GitHub-hosted ubuntu-latest; Ubuntu 24.04, 4 cores, 16,780,623,872 bytes when measured",
+      "measured_in": ["docs/validation/collector-budget-85.md"],
+      "wall_seconds_max": 1800,
+      "peak_rss_max_bytes": 4294967296,
+      "max_logical_processors": 4,
+      "negative_subsampling": {"allowed": true, "method": "sha256(device_key NUL anchor) keep-rate declared before fit", "min_keep_rate": 0.05, "positives": "never_subsampled"}
+    },
+    "sampling": {
+      "inference_adds_collector_sweeps": false,
+      "inference_input": "seven daily aggregates from existing sweeps; no extra sensor reads",
+      "collector_cadence_budget_owner": "#85"
+    }
+  }
+}

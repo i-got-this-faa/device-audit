@@ -21,6 +21,7 @@ discussion can drift and does not automatically become product scope.
 | Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | Independent network observation | SRC05 finds no defined observer/source/trust boundary in [0051], p.10, [0074], p.18, [0078], p.19 or FIG.2, p.31; #14 records an explicit block | Blocked because the source, permissions, trust boundary, retention and acceptance evidence are unselected. Endpoint telemetry, network identity and chain verification imply no independent observer. #138 owns resolution and any approved rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
+| ML05 evaluation and resource thresholds (#86) | Declared 17 November 2026 before any fit; pins the ML01 policy and manifest | Numerical baseline, false-positive, calibration and horizon gates, a once-only device-clustered held-out procedure, and endpoint inference/training budgets tied to the measured laptop. Missing labels or measurements block rather than relax a threshold. See [ML05 thresholds](../models/evaluation/README.md). |
 | Frontend | Provisional SRC04 #74 decision below | Go HTML templates, embedded static assets and progressive enhancement; a minimal console/auth surface is implemented, dashboard pages are not |
 | LLM explanations | Optional in handoff | Future optional component; prediction and aggregation do not depend on it |
 
@@ -659,6 +660,44 @@ change sensor, WMI or event-log ACLs or grant administrator rights. The 16
 November 2026 run 43859814735 recorded both tokens and the 15s/60s measurements;
 the numbers are in [collector-budget-85.md](validation/collector-budget-85.md).
 They do not approve a production budget.
+
+## Predeclared evaluation and resource thresholds, ML05 #86
+
+On 17 November 2026, before any model was fitted, `models/evaluation/ml05-policy.json`
+fixed the evaluation gates for the ML01 Backblaze 2013 study. It pins the
+partition policy's canonical SHA-256 and the exact `partitions.json` bytes, and
+it keeps the 168-hour horizon. Any change to those inputs or to a threshold
+changes the policy digest and blocks earlier reports.
+
+The model trains on `train` only. Validation has four positive events, which is
+below the 30-event minimum, so only validation negative scores set the 0.5%
+(`degraded`) and 0.1% (`critical`) false-positive operating points. Test is
+scored once per candidate with no subsampling. Uncertainty comes from a
+2,000-replicate device-clustered bootstrap with seed 86. Pass needs average
+precision above both the prevalence and SMART-rule baselines at the lower
+bound, ROC AUC lower bound ≥ 0.70, test window FPR upper bounds ≤ 1% and ≤ 0.2%,
+≤ 10% of never-positive devices alerted, positive Brier skill, observed/expected
+0.67–1.5, calibration slope 0.7–1.3, event recall ≥ 0.30 (lower bound ≥ 0.15)
+and a median first-alert lead time ≥ 2 days. Fewer than 30 test events or any
+other missing count, label class or metric gives `blocked`, never a relaxed
+pass.
+
+`degraded` is the interpretation of the source's "warning" health term. Model
+health applies only after a pass. Otherwise the result is `unknown`. #35 still
+owns combining this with fault history.
+
+Endpoint inference on the selected HP Victus (Ryzen 5 5600H, 12 logical
+processors, 15.34 GiB visible, build family 26200) is limited to a 16 MiB
+artifact, a 64 MiB working set, p95 200 ms and max 1 s latency, a 2 s timeout,
+250 ms CPU per prediction, one prediction per hour and at most 1 s delay to a
+concurrent 60 s telemetry sweep. Endpoint training is limited to 256 MiB, one
+logical processor, 600 s, once a day, on AC power. Central training is limited
+to 30 minutes, 4 GiB and four cores on the hosted Ubuntu runner. A resource
+report from a VM or another CPU is blocked. These are budgets, not
+measurements of a model. #103, #33 and #104 must produce the reports. The
+[ML05 record](../models/evaluation/README.md) and
+[validation notes](validation/model-thresholds-86.md) list the commands and
+limits.
 
 ## Scoped relay and production fallback settings, NET05 #88
 
