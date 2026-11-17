@@ -89,7 +89,12 @@ func TestConsoleEscapesSubjectsAndFailsClosed(t *testing.T) {
 func consoleBrowserFixture(t *testing.T) *httptest.Server {
 	t.Helper()
 	s, issuer, app, _, clock, _ := newOIDCTestBed(t)
+	// The browser runs in real time. The issuer must stamp tokens from the
+	// same clock as the service, or every login is rejected as not fresh.
 	s.now = time.Now
+	issuer.mu.Lock()
+	issuer.now = time.Now
+	issuer.mu.Unlock()
 	issuer.SetSubject("viewer:browser")
 	if err := s.EnsureBinding(context.Background(), "viewer:browser", RoleViewer); err != nil {
 		t.Fatal(err)
