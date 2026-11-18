@@ -177,6 +177,7 @@ func validateEvidenceDACL(sd *windows.SECURITY_DESCRIPTOR, serviceSID string) er
 	if err != nil || dacl == nil {
 		return errors.New("evidence storage requires a DACL")
 	}
+	ownerRights := false
 	for i := range uint32(dacl.AceCount) {
 		var ace *windows.ACCESS_ALLOWED_ACE
 		if windows.GetAce(dacl, i, &ace) != nil {
@@ -187,11 +188,20 @@ func validateEvidenceDACL(sd *windows.SECURITY_DESCRIPTOR, serviceSID string) er
 			continue
 		case windows.ACCESS_ALLOWED_ACE_TYPE:
 			switch (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String() {
+			case "S-1-3-4":
+				const readControl = 0x00020000
+				if ace.Mask == readControl && ace.Header.AceFlags&windows.INHERIT_ONLY_ACE == 0 {
+					ownerRights = true
+					continue
+				}
 			case "S-1-5-18", "S-1-5-32-544", serviceSID:
 				continue
 			}
 		}
 		return errors.New("evidence storage grants access beyond SYSTEM, Administrators and the service; reinstall to reset it")
+	}
+	if !ownerRights {
+		return errors.New("evidence storage requires an OWNER RIGHTS read-control entry; reinstall to reset it")
 	}
 	return nil
 }

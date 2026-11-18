@@ -56,8 +56,12 @@ func TestSpoolProcessRecovery(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			third, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
+			if err != nil {
+				t.Fatal(err)
+			}
 			store.close()
-			s, err := openEvidenceSpool(dir, minEvidenceCap, 2, public, receipt)
+			s, err := openEvidenceSpool(dir, minEvidenceCap, 3, public, receipt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -81,7 +85,7 @@ func TestSpoolProcessRecovery(t *testing.T) {
 			if out, err := cmd.CombinedOutput(); cmd.ProcessState == nil || cmd.ProcessState.ExitCode() != 88 {
 				t.Fatalf("child did not exit at commit boundary: %v %s", err, out)
 			}
-			s, err = openEvidenceSpool(dir, minEvidenceCap, 2, public, receipt)
+			s, err = openEvidenceSpool(dir, minEvidenceCap, 3, public, receipt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -93,6 +97,9 @@ func TestSpoolProcessRecovery(t *testing.T) {
 				}
 				if err := s.append(second); err == nil {
 					t.Fatal("duplicate sequence accepted")
+				}
+				if err := s.append(third); err != nil {
+					t.Fatalf("next sequence rejected after duplicate: %v", err)
 				}
 			case "dequeue-committed":
 				if _, _, err := s.head(); !errors.Is(err, io.EOF) || s.acknowledged != first.Sequence {
@@ -240,7 +247,7 @@ func TestSpoolCommandAcknowledgesOnlyVerifiedHead(t *testing.T) {
 	store.close()
 	for _, e := range envelopes {
 		var out bytes.Buffer
-		if err := runSpoolCommand(configPath, "", false, nil, &out); err != nil {
+		if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 		expected, _ := json.Marshal(e)
@@ -248,11 +255,106 @@ func TestSpoolCommandAcknowledgesOnlyVerifiedHead(t *testing.T) {
 			t.Fatal("spool command changed original bytes or order")
 		}
 		ack, _ := json.Marshal(spoolTestAck(t, key, e))
-		if err := runSpoolCommand(configPath, keyPath, true, bytes.NewReader(ack), io.Discard); err != nil {
+		if err := runSpoolCommand(configPath, keyPath, spoolAcceptHead, bytes.NewReader(ack), io.Discard, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := runSpoolCommand(configPath, "", false, nil, io.Discard); err == nil {
+	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, io.Discard, io.Discard); !errors.Is(err, errEmptySpool) {
 		t.Fatal("retired record was redelivered")
+	}
+}
+
+func TestSpoolLegacyBatchArchiveAndSession(t *testing.T) {
+	store, stateDir, i, receipt := admittedStore(t)
+	dir := testServiceConfig(t, stateDir).EvidenceDir
+	public := i.signing.Public().(ed25519.PublicKey)
+	now := time.Now()
+	var envelopes []contracts.EvidenceEnvelopeV1
+	var lines [][]byte
+	for _, when := range []time.Time{now.Add(-2 * time.Hour), now, now} {
+		env, err := store.signEvidence(testPayload(receipt.DeviceID), when)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(env)
+		envelopes = append(envelopes, env)
+		lines = append(lines, append(raw, '\n'))
+	}
+	store.close()
+	torn := []byte("{\"sequence\":")
+	original := append(bytes.Join(lines, nil), torn...)
+	if err := os.WriteFile(filepath.Join(dir, evidenceLogFile), original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	s, err := openEvidenceSpool(dir, minEvidenceCap, 1, public, receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !s.legacyMore || len(s.queue) != 1 {
+		t.Fatal("initial migration did not respect the batch cap")
+	}
+	name, err := s.archiveExpired(now)
+	if err != nil || s.acknowledged != 0 {
+		t.Fatalf("archive wrongly acknowledged evidence: %v", err)
+	}
+	s.close()
+	archived, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil || !bytes.Equal(archived, lines[0]) {
+		t.Fatal("archiving changed the original bytes")
+	}
+
+	s, err = openEvidenceSpool(dir, minEvidenceCap, 1, public, receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.close()
+	if s.acknowledged != 0 || s.archivedThrough != envelopes[0].Sequence {
+		t.Fatal("archival state was not distinct after restart")
+	}
+	if _, err := s.archiveExpired(now); err == nil {
+		t.Fatal("unexpired head archived")
+	}
+
+	controller, private, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var acks, out bytes.Buffer
+	for _, e := range envelopes[1:] {
+		if err := json.NewEncoder(&acks).Encode(spoolTestAck(t, private, e)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := drainSpoolSession(s, controller, &acks, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(out.Bytes(), bytes.Join(lines[1:], nil)) || s.acknowledged != envelopes[2].Sequence {
+		t.Fatal("session did not drain exact signed records in sequence")
+	}
+	tail, err := os.ReadFile(filepath.Join(dir, spoolLegacyTail))
+	if err != nil || !s.recoveredTail || !bytes.Equal(tail, torn) {
+		t.Fatal("bounded torn tail was not preserved")
+	}
+	if _, err := os.Stat(filepath.Join(dir, evidenceLogFile)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("legacy source still active after migration")
+	}
+}
+
+func TestSpoolCommittedRecordRequiresNewline(t *testing.T) {
+	store, stateDir, i, receipt := admittedStore(t)
+	defer store.close()
+	dir := testServiceConfig(t, stateDir).EvidenceDir
+	public := i.signing.Public().(ed25519.PublicKey)
+	e, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(e)
+	if err := os.WriteFile(filepath.Join(dir, recordName(e.Sequence)), raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if s, err := openEvidenceSpool(dir, minEvidenceCap, 3, public, receipt); err == nil {
+		s.close()
+		t.Fatal("committed record with a truncated delimiter accepted")
 	}
 }

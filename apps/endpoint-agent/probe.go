@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/signal"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/workflows"
@@ -47,7 +49,7 @@ func runProbeWorker(in io.Reader, out, errOut io.Writer) int {
 	return writeProbeOutcome(evidence, err, out, errOut)
 }
 
-func runAssignedProbe(ctx context.Context, stateDir, keyPath string, in io.Reader, out, errOut io.Writer) int {
+func runAssignedProbe(stateDir, keyPath string, in io.Reader, out, errOut io.Writer) int {
 	const maxAssignment = 16 << 10
 	var assignment contracts.DiagnosticAssignmentV1
 	data, err := io.ReadAll(io.LimitReader(in, maxAssignment+1))
@@ -67,6 +69,8 @@ func runAssignedProbe(ctx context.Context, stateDir, keyPath string, in io.Reade
 	if err != nil {
 		return writeProbeOutcome(nil, err, out, errOut)
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 	evidence, err := workflows.NewProbeRunner(executeProbeWorker).RunAssigned(ctx, assignment, key, receipt.DeploymentID, receipt.DeviceID)
 	return writeProbeOutcome(evidence, err, out, errOut)
 }

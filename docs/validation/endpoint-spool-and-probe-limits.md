@@ -26,3 +26,14 @@ no configured test database. The crash tests cover process exits at commit
 boundaries. Physical power loss, disk exhaustion, reconnect and authenticated
 network draining have their own follow-up issues. Assignment deduplication and
 signed result delivery remain part of the diagnostic workflow.
+
+## Review follow-up
+
+Focused Windows tests exercise batch migration across a restart, byte-preserving
+expired archive, a torn legacy tail, and session acknowledgement of successive
+heads. The Windows access-control test verifies the inherited OWNER RIGHTS
+entry and rejects both a missing entry and a grant to rewrite the DACL.
+Probe tests distinguish the hard memory ceiling from reporting an observed
+memory budget termination. The updated qualification harness checks that the
+service retains the exact spool contents at capacity and reports a fresh
+rejection. Elevated execution of that harness remains unverified.

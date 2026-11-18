@@ -44,6 +44,8 @@ func main() {
 	serviceConfigPath := flag.String("service-config", "", "service configuration JSON, required with --service")
 	spoolNext := flag.Bool("spool-next", false, "write the oldest queued envelope without dequeuing it")
 	spoolAck := flag.Bool("spool-ack", false, "retire the oldest queued envelope after verifying the accepted acknowledgement on stdin")
+	spoolArchive := flag.Bool("spool-archive-expired", false, "preserve an expired head without acknowledging it")
+	spoolMaintain := flag.Bool("spool-session", false, "emit heads and accept signed acknowledgements in one maintenance session")
 	signedProbe := flag.Bool("run-assigned-probe", false, "run one signed diagnostic assignment from stdin for the admitted identity")
 	diagnosticKey := flag.String("diagnostic-controller-key-file", "", "pinned controller Ed25519 diagnostic assignment public key PEM")
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
@@ -58,20 +60,31 @@ func main() {
 		if *stateDir == "" || *diagnosticKey == "" || flag.NFlag() != 3 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--run-assigned-probe requires --state-dir and --diagnostic-controller-key-file"))
 		}
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-		code := runAssignedProbe(ctx, *stateDir, *diagnosticKey, os.Stdin, os.Stdout, os.Stderr)
-		stop()
-		os.Exit(code)
+		os.Exit(runAssignedProbe(*stateDir, *diagnosticKey, os.Stdin, os.Stdout, os.Stderr))
 	}
-	if *spoolNext || *spoolAck {
+	var operation spoolOperation
+	spoolModes := 0
+	for _, mode := range []struct {
+		active    bool
+		operation spoolOperation
+	}{
+		{*spoolNext, spoolShowHead}, {*spoolAck, spoolAcceptHead}, {*spoolArchive, spoolArchiveHead}, {*spoolMaintain, spoolSession},
+	} {
+		if mode.active {
+			operation = mode.operation
+			spoolModes++
+		}
+	}
+	if spoolModes > 0 {
+		wantsKey := operation == spoolAcceptHead || operation == spoolSession
 		expected := 2
-		if *spoolAck {
+		if wantsKey {
 			expected++
 		}
-		if *spoolNext == *spoolAck || *serviceConfigPath == "" || *spoolAck != (*controllerAckKeyFile != "") || flag.NFlag() != expected || flag.NArg() != 0 {
-			fail(fmt.Errorf("choose --spool-next or --spool-ack, supply --service-config and pin the controller acknowledgement key for --spool-ack"))
+		if spoolModes != 1 || *serviceConfigPath == "" || wantsKey != (*controllerAckKeyFile != "") || flag.NFlag() != expected || flag.NArg() != 0 {
+			fail(fmt.Errorf("choose one spool mode with --service-config; acknowledgement modes require --controller-ack-key-file"))
 		}
-		if err := runSpoolCommand(*serviceConfigPath, *controllerAckKeyFile, *spoolAck, os.Stdin, os.Stdout); err != nil {
+		if err := runSpoolCommand(*serviceConfigPath, *controllerAckKeyFile, operation, os.Stdin, os.Stdout, os.Stderr); err != nil {
 			fail(err)
 		}
 		return
@@ -80,8 +93,14 @@ func main() {
 		if flag.NFlag() != 1 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--run-probe runs alone"))
 		}
+		req, err := workflows.ParseRequest(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "probe request rejected: %s\n", err)
+			os.Exit(2)
+		}
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-		code := runProbeRequest(ctx, workflows.NewProbeRunner(executeProbeWorker), os.Stdin, os.Stdout, os.Stderr)
+		data, err := workflows.NewProbeRunner(executeProbeWorker).Run(ctx, req)
+		code := writeProbeOutcome(data, err, os.Stdout, os.Stderr)
 		stop()
 		os.Exit(code)
 	}

@@ -53,6 +53,15 @@ func TestProbeWorkerProcess(t *testing.T) {
 	case "cpu":
 		for {
 		}
+	case "memory_pressure":
+		for range 32 {
+			_, err := windows.VirtualAlloc(0, 2<<20, windows.MEM_RESERVE|windows.MEM_COMMIT, windows.PAGE_READWRITE)
+			if err != nil {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+		time.Sleep(30 * time.Second)
 	case "memory":
 		p, err := windows.VirtualAlloc(0, 128<<20, windows.MEM_RESERVE|windows.MEM_COMMIT, windows.PAGE_READWRITE)
 		if err == nil {
@@ -69,8 +78,14 @@ func TestProbeWorkerProcess(t *testing.T) {
 }
 
 func probeTestRunner(executable, mode string) *workflows.ProbeRunner {
+	threshold := uintptr(probeMemoryThreshold)
+	if mode == "memory" {
+		// Observe the kernel's hard allocation failure without the parent
+		// killing the child before it can report the allocation result.
+		threshold = 0
+	}
 	return workflows.NewProbeRunner(func(ctx context.Context, r workflows.Request) ([]byte, error) {
-		return runWindowsProbeProcess(ctx, r, executable, []string{"-test.run=^TestProbeWorkerProcess$", "--", "probe-test:" + mode}, 300*time.Millisecond)
+		return runWindowsProbeProcess(ctx, r, executable, []string{"-test.run=^TestProbeWorkerProcess$", "--", "probe-test:" + mode}, 300*time.Millisecond, threshold)
 	})
 }
 
@@ -82,7 +97,7 @@ func TestProbeWorkerWindowsLimits(t *testing.T) {
 		t.Fatalf("build worker: %v %s", err, out)
 	}
 	for _, tc := range []struct{ mode, detail string }{
-		{"hang", "wall_budget"}, {"noisy", "output_budget"}, {"cpu", "cpu_budget"},
+		{"hang", "wall_budget"}, {"noisy", "output_budget"}, {"cpu", "cpu_budget"}, {"memory_pressure", "memory_budget"},
 	} {
 		t.Run(tc.mode, func(t *testing.T) {
 			start := time.Now()
@@ -94,17 +109,26 @@ func TestProbeWorkerWindowsLimits(t *testing.T) {
 			}
 		})
 	}
-	if data, err := probeTestRunner(worker, "memory").Run(context.Background(), diagnosticTestRequest()); string(data) != "{\"memory_limit_enforced\":true}" && (err == nil || !strings.Contains(err.Error(), "memory_budget")) {
+	if data, err := probeTestRunner(worker, "memory").Run(context.Background(), diagnosticTestRequest()); err != nil || string(data) != "{\"memory_limit_enforced\":true}" {
 		t.Fatalf("Windows job did not deny over-budget allocation: %v", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(250*time.Millisecond, cancel)
-	_, err := probeTestRunner(worker, "hang").Run(ctx, diagnosticTestRequest())
+	runner := workflows.NewProbeRunner(func(ctx context.Context, req workflows.Request) ([]byte, error) {
+		mode := "hang"
+		if req.Budget.MaxOutputBytes == 128 {
+			mode = "ok"
+		}
+		return runWindowsProbeProcess(ctx, req, worker, []string{"-test.run=^TestProbeWorkerProcess$", "--", "probe-test:" + mode}, 300*time.Millisecond, probeMemoryThreshold)
+	})
+	_, err := runner.Run(ctx, diagnosticTestRequest())
 	var failure *workflows.Failure
 	if !errors.As(err, &failure) || failure.Detail != "cancel_requested" {
 		t.Fatalf("cancellation: %v", err)
 	}
-	if data, err := probeTestRunner(worker, "ok").Run(context.Background(), diagnosticTestRequest()); err != nil || string(data) != "{}" {
+	req := diagnosticTestRequest()
+	req.Budget.MaxOutputBytes = 128
+	if data, err := runner.Run(context.Background(), req); err != nil || string(data) != "{}" {
 		t.Fatalf("healthy probe after exhaustion: %v", err)
 	}
 }

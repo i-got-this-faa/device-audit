@@ -58,10 +58,18 @@ func (r *ProbeRunner) run(ctx context.Context, req Request, expires time.Time) (
 	ctx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
 	data, err := r.execute(ctx, req)
+	var failure *Failure
+	// A worker may cross a limit and then be reaped after the caller's
+	// deadline. Preserve the resource reason it already observed.
+	if errors.As(err, &failure) && failure.Reason == ReasonBudgetExhausted {
+		switch failure.Detail {
+		case "cpu_budget", "memory_budget", "output_budget":
+			return nil, &Failure{Reason: failure.Reason, Detail: failure.Detail}
+		}
+	}
 	if ctx.Err() != nil {
 		return nil, stoppedProbe(ctx.Err(), signedDeadline && !time.Now().Before(expires))
 	}
-	var failure *Failure
 	if errors.As(err, &failure) && len(failure.Partial) > int(req.Budget.MaxOutputBytes) {
 		return nil, &Failure{Reason: failure.Reason, Detail: failure.Detail}
 	}

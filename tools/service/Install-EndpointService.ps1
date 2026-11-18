@@ -98,9 +98,12 @@ try {
     $enrollment = Join-Path $Root 'enrollment'
     $null = New-Item -ItemType Directory -Force -Path $Root, $evidence, $enrollment
     Set-PrivateAcl $Root "(A;;0x1200ad;;;$sid)"
-    Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)"
+    Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)(A;OICI;RC;;;OW)"
     Set-PrivateAcl $enrollment "(A;OICI;0x1301bf;;;$sid)"
-    foreach ($existing in Get-ChildItem -LiteralPath $evidence, $enrollment -File -Force) {
+    foreach ($existing in Get-ChildItem -LiteralPath $evidence -File -Force) {
+        Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)(A;;RC;;;OW)"
+    }
+    foreach ($existing in Get-ChildItem -LiteralPath $enrollment -File -Force) {
         Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)"
     }
 

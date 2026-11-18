@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
@@ -20,6 +21,7 @@ import (
 const (
 	evidenceLogFile     = "signed-evidence.jsonl" // pre-spool service files
 	maxSpoolRecordBytes = 400 << 10
+	spoolLegacyTail     = "spool.legacy-tail"
 	spoolImported       = "spool.imported"
 	spoolPending        = "spool.pending"
 	spoolRetired        = "spool.acknowledged"
@@ -36,27 +38,31 @@ type spoolRecord struct {
 
 // The spool lock serializes disk mutations. The caller holds the identity lock so sequences are reserved by one process.
 type evidenceSpool struct {
-	root           *os.Root
-	lock           *os.File
-	key            ed25519.PublicKey
-	receipt        contracts.EnrollmentAcceptedV1
-	queue          []spoolRecord
-	acknowledged   uint64
-	size, maxBytes int64
-	maxRecords     int
-	failed         bool
+	root                      *os.Root
+	lock                      *os.File
+	key                       ed25519.PublicKey
+	receipt                   contracts.EnrollmentAcceptedV1
+	queue                     []spoolRecord
+	acknowledged              uint64
+	archivedThrough           uint64
+	archiveBytes              int64
+	archiveRecords            int
+	legacyMore, recoveredTail bool
+	size, maxBytes            int64
+	maxRecords                int
+	failed                    bool
 }
 
 func recordName(seq uint64) string { return fmt.Sprintf("spool-%016d.json", seq) }
 
-func spoolSequence(name string) (uint64, bool) {
-	value, ok := strings.CutPrefix(name, "spool-")
+func spoolSequence(name, prefix string) (uint64, bool) {
+	value, ok := strings.CutPrefix(name, prefix)
 	if !ok {
 		return 0, false
 	}
 	value, ok = strings.CutSuffix(value, ".json")
 	seq, err := strconv.ParseUint(value, 10, 64)
-	return seq, ok && err == nil && name == recordName(seq)
+	return seq, ok && err == nil && name == fmt.Sprintf("%s%016d.json", prefix, seq)
 }
 
 func openEvidenceSpool(dir string, maxBytes int64, maxRecords int, key ed25519.PublicKey, receipt contracts.EnrollmentAcceptedV1) (*evidenceSpool, error) {
@@ -118,12 +124,18 @@ func (s *evidenceSpool) recover() error {
 	for {
 		names, err := dir.Readdirnames(128)
 		for _, name := range names {
+			if strings.HasPrefix(strings.ToLower(name), "expired-") {
+				if err := s.recoverArchived(name); err != nil {
+					return err
+				}
+				continue
+			}
 			if !strings.HasPrefix(strings.ToLower(name), "spool-") {
 				continue
 			}
-			seq, ok := spoolSequence(name)
+			seq, ok := spoolSequence(name, "spool-")
 			data, envelope, readErr := s.read(name)
-			if !ok || readErr != nil || envelope.Sequence != seq || seq <= s.acknowledged {
+			if !ok || readErr != nil || envelope.Sequence != seq {
 				return fmt.Errorf("corrupt or out-of-order evidence spool record at sequence %d", seq)
 			}
 			s.size += int64(len(data))
@@ -142,13 +154,42 @@ func (s *evidenceSpool) recover() error {
 	slices.SortFunc(s.queue, func(a, b spoolRecord) int {
 		return cmp.Compare(a.sequence, b.sequence)
 	})
+	if len(s.queue) > 0 && s.queue[0].sequence <= s.settledThrough() {
+		return errors.New("spool record overlaps acknowledged or archived evidence")
+	}
 	if err := s.removeRecoverable(spoolPending); err != nil {
 		return err
 	}
 	if err := s.importLegacy(); err != nil {
 		return err
 	}
+	tail, err := s.openRegular(spoolLegacyTail)
+	if err == nil {
+		tail.Close()
+		s.recoveredTail = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return errors.New("unsafe preserved legacy tail")
+	}
 	return s.removeRecoverable(spoolImported)
+}
+
+func (s *evidenceSpool) recoverArchived(name string) error {
+	seq, ok := spoolSequence(name, "expired-")
+	data, envelope, err := s.read(name)
+	if !ok || err != nil || envelope.Sequence != seq {
+		return errors.New("corrupt archived evidence")
+	}
+	s.archiveBytes += int64(len(data))
+	s.archiveRecords++
+	if s.archiveRecords > maxSpoolRecords || s.archiveBytes > maxEvidenceCap {
+		return errors.New("expired evidence archive exceeds recovery bounds")
+	}
+	s.archivedThrough = max(s.archivedThrough, seq)
+	return nil
+}
+
+func (s *evidenceSpool) settledThrough() uint64 {
+	return max(s.acknowledged, s.archivedThrough)
 }
 
 func (s *evidenceSpool) openRegular(name string) (*os.File, error) {
@@ -190,6 +231,9 @@ func (s *evidenceSpool) read(name string) ([]byte, contracts.EvidenceEnvelopeV1,
 	if err != nil || len(data) > maxSpoolRecordBytes {
 		return nil, contracts.EvidenceEnvelopeV1{}, errors.New("read bounded spool record")
 	}
+	if !bytes.HasSuffix(data, []byte{'\n'}) {
+		return nil, contracts.EvidenceEnvelopeV1{}, errors.New("committed spool record has no final newline")
+	}
 	e, err := s.verify(data)
 	return data, e, err
 }
@@ -197,6 +241,7 @@ func (s *evidenceSpool) read(name string) ([]byte, contracts.EvidenceEnvelopeV1,
 // Migration preserves the entire legacy line as stored. A partial migration
 // resumes by comparing already committed copies byte for byte.
 func (s *evidenceSpool) importLegacy() error {
+	s.legacyMore = false
 	f, err := s.openRegular(evidenceLogFile)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -209,25 +254,34 @@ func (s *evidenceSpool) importLegacy() error {
 	last := uint64(0)
 	for {
 		line, err := reader.ReadSlice('\n')
-		if errors.Is(err, io.EOF) && len(line) == 0 {
+		if errors.Is(err, io.EOF) && len(line) <= maxSpoolRecordBytes {
+			if len(line) > 0 {
+				if err := s.preserveLegacyTail(line); err != nil {
+					return err
+				}
+			}
 			break
 		}
 		if err != nil || len(line) > maxSpoolRecordBytes {
-			return errors.New("legacy evidence contains an incomplete or oversized record; preserve for recovery")
+			return errors.New("legacy evidence contains an unreadable or oversized record; preserve for recovery")
 		}
 		e, err := s.verify(line)
-		if err != nil || e.Sequence <= last || e.Sequence <= s.acknowledged {
+		if err != nil || e.Sequence <= last {
 			return errors.New("legacy evidence contains a corrupt or out-of-order record")
 		}
 		last = e.Sequence
+		if last <= s.settledThrough() {
+			continue
+		}
 		if existing, _, err := s.read(recordName(last)); err == nil {
 			if !bytes.Equal(existing, line) {
 				return errors.New("legacy evidence differs from previously migrated bytes")
 			}
 		} else if !errors.Is(err, os.ErrNotExist) {
 			return errors.New("inspect migrated evidence")
-		} else if len(s.queue) >= maxSpoolRecords || int64(len(line)) > maxEvidenceCap-s.size {
-			return errors.New("legacy evidence exceeds spool recovery bounds; preserve for recovery")
+		} else if len(s.queue) >= s.maxRecords || int64(len(line)) > s.maxBytes-s.size {
+			s.legacyMore = true
+			return nil
 		} else if err := s.commitRecord(line, last); err != nil {
 			return fmt.Errorf("import legacy evidence: %w", err)
 		}
@@ -239,6 +293,23 @@ func (s *evidenceSpool) importLegacy() error {
 	if err := commitSpoolRename(s.root, evidenceLogFile, spoolImported); err != nil {
 		return errors.New("commit legacy evidence migration")
 	}
+	return s.removeRecoverable(spoolImported)
+}
+
+func (s *evidenceSpool) preserveLegacyTail(data []byte) error {
+	file, err := s.openRegular(spoolLegacyTail)
+	if err == nil {
+		existing, readErr := io.ReadAll(io.LimitReader(file, maxSpoolRecordBytes+1))
+		file.Close()
+		if readErr != nil || !bytes.Equal(existing, data) {
+			return errors.New("existing quarantine differs from torn legacy tail")
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return errors.New("open legacy quarantine")
+	} else if s.stageRecord(data) != nil || commitSpoolRename(s.root, spoolPending, spoolLegacyTail) != nil {
+		return errors.New("preserve torn legacy tail")
+	}
+	s.recoveredTail = true
 	return nil
 }
 
@@ -255,7 +326,7 @@ func (s *evidenceSpool) removeRecoverable(name string) error {
 
 func (s *evidenceSpool) lastSequence() uint64 {
 	if len(s.queue) == 0 {
-		return s.acknowledged
+		return s.settledThrough()
 	}
 	return s.queue[len(s.queue)-1].sequence
 }
@@ -275,10 +346,14 @@ func (s *evidenceSpool) appendBytes(data []byte, seq uint64) error {
 	if len(data) > maxSpoolRecordBytes {
 		return errors.New("signed envelope exceeds spool record bound")
 	}
-	if len(s.queue) >= s.maxRecords || int64(len(data)) > s.maxBytes-s.size {
+	if s.full() || int64(len(data)) > s.maxBytes-s.size {
 		return errEvidenceFull
 	}
 	return s.commitRecord(data, seq)
+}
+
+func (s *evidenceSpool) full() bool {
+	return s.legacyMore || len(s.queue) >= s.maxRecords || s.size >= s.maxBytes
 }
 
 func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
@@ -286,6 +361,21 @@ func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
 		return errors.New("spool unavailable or sequence did not increase")
 	}
 	s.failed = true // an uncertain write requires recovery before further mutations
+	if err := s.stageRecord(data); err != nil {
+		return err
+	}
+	spoolStage("append-staged")
+	if err := commitSpoolRename(s.root, spoolPending, recordName(seq)); err != nil {
+		return errors.New("commit spool record")
+	}
+	spoolStage("append-committed")
+	s.queue = append(s.queue, spoolRecord{seq, int64(len(data))})
+	s.size += int64(len(data))
+	s.failed = false
+	return nil
+}
+
+func (s *evidenceSpool) stageRecord(data []byte) error {
 	file, err := s.root.OpenFile(spoolPending, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return errors.New("stage spool record")
@@ -301,14 +391,6 @@ func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
 	if writeErr != nil || closeErr != nil {
 		return errors.New("flush staged spool record")
 	}
-	spoolStage("append-staged")
-	if err := commitSpoolRename(s.root, spoolPending, recordName(seq)); err != nil {
-		return errors.New("commit spool record")
-	}
-	spoolStage("append-committed")
-	s.queue = append(s.queue, spoolRecord{seq, int64(len(data))})
-	s.size += int64(len(data))
-	s.failed = false
 	return nil
 }
 
@@ -317,6 +399,12 @@ var spoolStage = func(string) {}
 func (s *evidenceSpool) head() ([]byte, contracts.EvidenceEnvelopeV1, error) {
 	if s.failed {
 		return nil, contracts.EvidenceEnvelopeV1{}, errors.New("spool needs recovery")
+	}
+	if len(s.queue) == 0 && s.legacyMore {
+		if err := s.importLegacy(); err != nil {
+			s.failed = true
+			return nil, contracts.EvidenceEnvelopeV1{}, err
+		}
 	}
 	if len(s.queue) == 0 {
 		return nil, contracts.EvidenceEnvelopeV1{}, io.EOF
@@ -350,4 +438,30 @@ func (s *evidenceSpool) acknowledge(key ed25519.PublicKey, ack contracts.Acknowl
 	s.queue = s.queue[1:]
 	s.failed = false
 	return nil
+}
+
+func (s *evidenceSpool) archiveExpired(now time.Time) (string, error) {
+	data, envelope, err := s.head()
+	if err != nil {
+		return "", err
+	}
+	expiry, err := time.Parse(time.RFC3339, envelope.ExpiresAt)
+	if err != nil || now.Before(expiry) {
+		return "", errors.New("only an expired spool head may be archived")
+	}
+	if s.archiveRecords >= maxSpoolRecords || int64(len(data)) > maxEvidenceCap-s.archiveBytes {
+		return "", errors.New("expired evidence archive is full; export older archives before retrying")
+	}
+	name := fmt.Sprintf("expired-%016d.json", envelope.Sequence)
+	s.failed = true
+	if err := commitSpoolRename(s.root, recordName(envelope.Sequence), name); err != nil {
+		return "", errors.New("commit expired spool archive")
+	}
+	s.archivedThrough = envelope.Sequence
+	s.archiveBytes += int64(len(data))
+	s.archiveRecords++
+	s.size -= s.queue[0].size
+	s.queue = s.queue[1:]
+	s.failed = false
+	return name, nil
 }

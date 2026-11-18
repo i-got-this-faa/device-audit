@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	probeMemoryLimit = 64 << 20
-	probeCPULimit    = 5 * time.Second
+	probeMemoryLimit     = 64 << 20
+	probeMemoryThreshold = 56 << 20
+	probeCPULimit        = 5 * time.Second
 )
 
 func probeWorkerReady() bool {
@@ -39,10 +40,10 @@ func executeProbeWorker(ctx context.Context, req workflows.Request) ([]byte, err
 	if err != nil {
 		return nil, probeWorkerError("worker_image_unavailable")
 	}
-	return runWindowsProbeProcess(ctx, req, executable, []string{"--probe-worker"}, probeCPULimit)
+	return runWindowsProbeProcess(ctx, req, executable, []string{"--probe-worker"}, probeCPULimit, probeMemoryThreshold)
 }
 
-func runWindowsProbeProcess(ctx context.Context, req workflows.Request, executable string, args []string, cpu time.Duration) ([]byte, error) {
+func runWindowsProbeProcess(ctx context.Context, req workflows.Request, executable string, args []string, cpu time.Duration, memoryThreshold uintptr) ([]byte, error) {
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
 		return nil, probeWorkerError("worker_isolation_unavailable")
@@ -107,7 +108,7 @@ func runWindowsProbeProcess(ctx context.Context, req workflows.Request, executab
 	input.Close()
 	exited := make(chan error, 1)
 	go func() { exited <- cmd.Wait() }()
-	err, resource := waitForProbeJob(job, port, cpu, cancel, exited)
+	err, resource := waitForProbeJob(job, port, cpu, memoryThreshold, cancel, exited)
 	if resource != "" {
 		return nil, &workflows.Failure{Reason: workflows.ReasonBudgetExhausted, Detail: resource}
 	}
@@ -136,14 +137,21 @@ func runWindowsProbeProcess(ctx context.Context, req workflows.Request, executab
 
 // The kernel enforces the hard ceilings. Poll accounting as Windows checks
 // the CPU limit periodically, and use memory-limit notifications to report
-// denied allocations. A missing notification cannot lift the memory limit.
-func waitForProbeJob(job, port windows.Handle, cpu time.Duration, cancel context.CancelFunc, exited <-chan error) (error, string) {
+// denied allocations. Peak committed memory also triggers termination independently of notifications.
+func waitForProbeJob(job, port windows.Handle, cpu time.Duration, memoryThreshold uintptr, cancel context.CancelFunc, exited <-chan error) (error, string) {
 	const processMemoryLimitMessage = 9
 	for {
 		var msg uint32
 		var key uintptr
 		var overlapped *windows.Overlapped
-		if windows.GetQueuedCompletionStatus(port, &msg, &key, &overlapped, 50) == nil && key == 1 && msg == processMemoryLimitMessage {
+		if windows.GetQueuedCompletionStatus(port, &msg, &key, &overlapped, 50) == nil && memoryThreshold != 0 && key == 1 && msg == processMemoryLimitMessage {
+			cancel()
+			return <-exited, "memory_budget"
+		}
+		var memory windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+		if memoryThreshold != 0 && windows.QueryInformationJobObject(job, windows.JobObjectExtendedLimitInformation,
+			uintptr(unsafe.Pointer(&memory)), uint32(unsafe.Sizeof(memory)), nil) == nil &&
+			memory.PeakProcessMemoryUsed >= memoryThreshold {
 			cancel()
 			return <-exited, "memory_budget"
 		}
@@ -162,7 +170,7 @@ func waitForProbeJob(job, port windows.Handle, cpu time.Duration, cancel context
 			// Drain events posted before process exit, including a denied
 			// allocation the worker had time to handle.
 			for windows.GetQueuedCompletionStatus(port, &msg, &key, &overlapped, 0) == nil {
-				if key == 1 && msg == processMemoryLimitMessage {
+				if memoryThreshold != 0 && key == 1 && msg == processMemoryLimitMessage {
 					return err, "memory_budget"
 				}
 			}

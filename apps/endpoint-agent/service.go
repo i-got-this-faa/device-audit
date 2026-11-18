@@ -148,7 +148,16 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 		return err
 	}
 	defer sink.close()
+	if sink.recoveredTail {
+		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
+	}
 	unsigned, overflow := 0, 0
+	recordOverflow := func() {
+		overflow++
+		if overflow == 1 {
+			logf("%s", errEvidenceFull)
+		}
+	}
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
 		if err != nil {
@@ -157,6 +166,10 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			if unsigned++; unsigned == 1 {
 				logf("snapshot without any known metric was not signed")
 			}
+			return nil
+		}
+		if sink.full() {
+			recordOverflow()
 			return nil
 		}
 		data, err := json.Marshal(payload)
@@ -168,10 +181,7 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			return fmt.Errorf("sign evidence: %w", err)
 		}
 		if err := sink.append(envelope); errors.Is(err, errEvidenceFull) {
-			overflow++
-			if overflow == 1 {
-				logf("%s", errEvidenceFull)
-			}
+			recordOverflow()
 			return nil
 		} else {
 			return err

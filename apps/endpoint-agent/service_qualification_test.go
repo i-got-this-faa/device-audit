@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -68,13 +69,17 @@ func TestServiceQualificationHarness(t *testing.T) {
 	if err := db.QueryRow(`SELECT signing_key_id, public_key FROM device_enrollments WHERE device_id=$1`, device).Scan(&signingKeyID, &public); err != nil {
 		t.Fatal("the service did not commit an enrollment")
 	}
-	files, err := filepath.Glob(filepath.Join(dir, "evidence", "spool-*.json"))
+	evidence := filepath.Join(dir, "evidence")
+	files, err := os.ReadDir(evidence)
 	if err != nil {
 		t.Fatal(err)
 	}
 	result := qualificationVerification{DeploymentID: token.DeploymentID, SigningKeyID: signingKeyID}
-	for _, path := range files {
-		data, err := os.ReadFile(path)
+	for _, file := range files {
+		if !strings.HasPrefix(file.Name(), "spool-") || !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(evidence, file.Name()))
 		if err != nil {
 			t.Fatal(err)
 		}

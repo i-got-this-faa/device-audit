@@ -79,6 +79,11 @@ function Invoke-Sc([string[]]$Arguments) {
 function Get-EnvelopeCount {
     @(Get-ChildItem -LiteralPath $evidenceDir -Filter 'spool-*.json' -File).Count
 }
+function Get-EnvelopeHashes {
+    Get-ChildItem -LiteralPath $evidenceDir -Filter 'spool-*.json' -File | Sort-Object Name | ForEach-Object {
+        "$($_.Name) $((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash)"
+    }
+}
 function Start-AndExpectRefusal([string]$Step, [int]$ExitCode, [string]$Text) {
     $started = $true
     try { Start-Service -Name $name -ErrorAction Stop } catch { $started = $false }
@@ -144,16 +149,20 @@ try {
     $configPath = Join-Path $root 'service.json'
     $cfg = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
     $before = Get-EnvelopeCount
+    $beforeHashes = @(Get-EnvelopeHashes)
+    $logBefore = Get-Content -LiteralPath $serviceLog -Raw
     $cfg.max_evidence_records = $before
     $cfg | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $configPath -Encoding utf8NoBOM
     Start-Service -Name $name
     $null = Wait-State 'Running' 30
     Start-Sleep -Seconds 25
-    $retained = Get-EnvelopeCount
     Stop-Service -Name $name
     $s = Wait-State 'Stopped' 60
-    $full = (Get-Content -LiteralPath $serviceLog -Raw).Contains('signed evidence spool full')
-    Add-Result 'full_spool_retains_records' ($before -gt 0 -and $retained -eq $before -and $full -and $s.ExitCode -eq 0) @{ before = $before; retained = $retained; log_reports_full = $full }
+    $retained = Get-EnvelopeCount
+    $recordsUnchanged = (@(Get-EnvelopeHashes) -join '|') -ceq ($beforeHashes -join '|')
+    $logAfter = Get-Content -LiteralPath $serviceLog -Raw
+    $full = $logAfter.StartsWith($logBefore, [StringComparison]::Ordinal) -and $logAfter.Substring($logBefore.Length).Contains('signed evidence spool full')
+    Add-Result 'full_spool_retains_records' ($before -gt 0 -and $retained -eq $before -and $recordsUnchanged -and $full -and $s.ExitCode -eq 0) @{ before = $before; retained = $retained; log_reports_full = $full }
     $null = Invoke-Sc @('failureflag', $name, '0')
     # 6. Unsupported runtime; failureflag is already off, so no restarts.
     $null = Invoke-Sc @('config', $name, 'obj=', 'LocalSystem')
