@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -172,6 +175,136 @@ func TestServicePipelineRecoversAndRestarts(t *testing.T) {
 	}
 	if strings.Contains(log.String(), "enrolling") {
 		t.Fatal("an admitted identity was enrolled again")
+	}
+}
+
+func TestServiceSpoolOverflowMatchesSignedSequenceGap(t *testing.T) {
+	const retained, rejected = 3, 2
+	for _, tc := range []struct {
+		name       string
+		maxRecords int
+		freeBytes  int64
+	}{
+		{name: "records", maxRecords: retained},
+		{name: "exact_bytes"},
+		{name: "one_byte_remaining", freeBytes: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			store, stateDir, identity, receipt := admittedStore(t)
+			t.Cleanup(store.close)
+			cfg := testServiceConfig(t, stateDir)
+			cfg.MaxEvidenceRecords = tc.maxRecords
+			deviceKey := identity.signing.Public().(ed25519.PublicKey)
+			openSpool := func() *evidenceSpool {
+				t.Helper()
+				spool, err := openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, deviceKey, receipt)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(spool.close)
+				return spool
+			}
+			spool := openSpool()
+			var original [][]byte
+			var first, last contracts.EvidenceEnvelopeV1
+			for n := range retained {
+				envelope, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
+				if err != nil {
+					t.Fatal(err)
+				}
+				record, err := json.Marshal(envelope)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if tc.maxRecords == 0 {
+					targetSize := cfg.MaxEvidenceBytes - tc.freeBytes
+					size := targetSize / retained
+					if n == retained-1 {
+						size = targetSize - spool.size
+					}
+					record = append(record, bytes.Repeat([]byte(" "), int(size)-len(record)-1)...)
+				}
+				record = append(record, '\n')
+				if err := spool.appendBytes(record, envelope.Sequence); err != nil {
+					t.Fatal(err)
+				}
+				if n == 0 {
+					first = envelope
+				}
+				last = envelope
+				original = append(original, record)
+			}
+			initialSize := spool.size
+			if tc.maxRecords == 0 && initialSize != cfg.MaxEvidenceBytes-tc.freeBytes {
+				t.Fatalf("prefill left %d bytes free, want %d", cfg.MaxEvidenceBytes-initialSize, tc.freeBytes)
+			}
+			spool.close()
+			store.close()
+
+			log := &serviceLog{path: filepath.Join(cfg.EvidenceDir, serviceLogFile)}
+			previousLog := log.path + ".previous"
+			if err := os.WriteFile(previousLog, []byte("older log\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			fullLog := bytes.Repeat([]byte("old log\n"), maxServiceLogBytes/len("old log\n"))
+			if err := os.WriteFile(log.path, fullLog, 0600); err != nil {
+				t.Fatal(err)
+			}
+			synctest.Test(t, func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), 11*time.Second)
+				defer cancel()
+				if err := runServicePipeline(ctx, cfg, cpuSource(new(atomic.Bool), false), log.printf); err != nil {
+					t.Fatal(err)
+				}
+			})
+			if previous, err := os.ReadFile(previousLog); err != nil || !bytes.Equal(previous, fullLog) {
+				t.Fatalf("full log was not retained as the previous log: %v", err)
+			}
+			logs, err := os.ReadFile(log.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			summary := fmt.Sprintf("%d snapshots, 0 not signed, %d rejected by spool, last spool sequence %d", rejected, rejected, last.Sequence)
+			if len(logs) > maxServiceLogBytes || !bytes.Contains(logs, []byte(summary)) {
+				t.Fatalf("unexpected overflow accounting in rotated log: %s", logs)
+			}
+
+			spool = openSpool()
+			if len(spool.queue) != retained || spool.size != initialSize {
+				t.Fatalf("overflow changed spool usage: records=%d bytes=%d", len(spool.queue), spool.size)
+			}
+			for n, record := range spool.queue {
+				data, envelope, err := spool.read(recordName(record.sequence))
+				if err != nil || envelope.Sequence != first.Sequence+uint64(n) || !bytes.Equal(data, original[n]) {
+					t.Fatalf("overflow changed retained envelope %d: %v", n, err)
+				}
+			}
+			controller, key, err := ed25519.GenerateKey(nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := spool.acknowledge(controller, spoolTestAck(t, key, first)); err != nil {
+				t.Fatal(err)
+			}
+			spool.close()
+
+			// A new pipeline run uses the durable sequence state after space
+			// becomes available.
+			synctest.Test(t, func(t *testing.T) {
+				ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+				defer cancel()
+				if err := runServicePipeline(ctx, cfg, cpuSource(new(atomic.Bool), false), func(string, ...any) {}); err != nil {
+					t.Fatal(err)
+				}
+			})
+			envelopes := readEnvelopes(t, identity, receipt, cfg.EvidenceDir)
+			if len(envelopes) != retained {
+				t.Fatalf("after restart retained %d envelopes, want %d", len(envelopes), retained)
+			}
+			if next := envelopes[len(envelopes)-1].Sequence; next != last.Sequence+rejected+1 {
+				t.Fatalf("last retained sequence %d, next signed sequence %d, want %d missing sequences", last.Sequence, next, rejected)
+			}
+		})
 	}
 }
 

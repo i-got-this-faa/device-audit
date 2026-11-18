@@ -270,7 +270,9 @@ snapshot with a known metric becomes telemetry v2 for the admitted device ID
 and is signed with the crash-safe sequence. The spool stores the signed bytes
 in sequence order under the private evidence directory. Each clean stop writes
 a sampling report. The service log records starts, failures and the number of
-snapshots rejected by the spool. Stop and shutdown cancel the workers and wait
+snapshots rejected by the spool. Before a new entry would push `service.log`
+past 1 MiB, the service moves it to `service.log.previous`, replacing the
+previous log. Stop and shutdown cancel the workers and wait
 at most 25 s. A collector failure becomes a null with a reason and sampling
 continues.
 
@@ -287,9 +289,21 @@ The installer accepts `-MaxEvidenceBytes` (default 64 MiB) and
 `-MaxEvidenceRecords` (default 4096, range 1–65536). Old configurations
 without `max_evidence_records` use the default. When either limit is hit,
 the service keeps all queued records, visibly rejects the new snapshot and
-continues sampling. Sequence gaps are allowed. The queue uses one extra record
-of scratch space for a transaction and retains the last acknowledged envelope
-as its durable high-water mark.
+continues sampling. Each valid snapshot rejected at the configured limit has
+already reserved a sequence. After the queue has room again, the next retained
+envelope exposes those missing sequences. Sum the logged rejection counts from
+all service runs that contributed to the gap. The summary's `last spool sequence`
+is the highest sequence queued, acknowledged or archived. Interrupted writes
+can also leave gaps. If a run has no recorded total, its sequence gap alone
+cannot tell you how many snapshots the spool rejected. The queue uses one extra
+record of scratch space for a transaction and retains the last acknowledged
+envelope as its durable high-water mark.
+
+A storage error, including a disk-full write, stops the pipeline. After space
+is available, restart the service. Startup discards any uncommitted
+`spool.pending` file and verifies the signatures of committed records. If a
+committed record is truncated, startup reports corruption and leaves the file
+in place for investigation.
 
 Startup validates the committed records against the admitted public key and
 reports corruption without advancing the queue. Complete records from the old

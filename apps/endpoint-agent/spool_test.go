@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 	"testing"
 	"time"
 
@@ -340,21 +341,110 @@ func TestSpoolLegacyBatchArchiveAndSession(t *testing.T) {
 	}
 }
 
+func TestSpoolDiskFullDuringWrite(t *testing.T) {
+	store, stateDir, identity, receipt := admittedStore(t)
+	t.Cleanup(store.close)
+	cfg := testServiceConfig(t, stateDir)
+	configPath := filepath.Join(t.TempDir(), "service.json")
+	writeJSON(t, configPath, cfg)
+	deviceKey := identity.signing.Public().(ed25519.PublicKey)
+	spool, err := openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, deviceKey, receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(spool.close)
+	first, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := spool.append(first); err != nil {
+		t.Fatal(err)
+	}
+	original, _, err := spool.head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	lost, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	spool.writeRecord = func(file *os.File, data []byte) (int, error) {
+		n, err := file.Write(data[:len(data)/2])
+		if err != nil {
+			return n, err
+		}
+		return n, syscall.ENOSPC
+	}
+	if err := spool.append(lost); !errors.Is(err, syscall.ENOSPC) || errors.Is(err, errEvidenceFull) {
+		t.Fatalf("disk-full write returned %v", err)
+	}
+	pending := filepath.Join(cfg.EvidenceDir, spoolPending)
+	partial, err := os.ReadFile(pending)
+	if err != nil || len(partial) == 0 || json.Valid(partial) {
+		t.Fatalf("expected a truncated staging file, got %d bytes: %v", len(partial), err)
+	}
+	controller, key, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := spool.acknowledge(controller, spoolTestAck(t, key, first)); err == nil || spool.acknowledged != 0 {
+		t.Fatal("failed spool accepted an acknowledgement")
+	}
+	var out bytes.Buffer
+	if err := drainSpoolSession(spool, controller, bytes.NewReader(nil), &out); err == nil || out.Len() != 0 {
+		t.Fatal("failed spool returned a delivery record")
+	}
+	spool.close()
+	store.close()
+
+	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil || !bytes.Equal(out.Bytes(), original) {
+		t.Fatalf("recovery did not return the original signed head: %v", err)
+	}
+	if _, err := os.Stat(pending); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("uncommitted staging file after restart: %v", err)
+	}
+	spool, err = openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, deviceKey, receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer spool.close()
+	if len(spool.queue) != 1 || spool.size != int64(len(original)) || spool.acknowledged != 0 {
+		t.Fatalf("incorrect recovered spool state: records=%d bytes=%d acknowledged=%d", len(spool.queue), spool.size, spool.acknowledged)
+	}
+	if err := spool.acknowledge(controller, spoolTestAck(t, key, first)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := spool.head(); !errors.Is(err, io.EOF) {
+		t.Fatalf("failed append became visible after retiring the original head: %v", err)
+	}
+}
+
 func TestSpoolCommittedRecordRequiresNewline(t *testing.T) {
 	store, stateDir, i, receipt := admittedStore(t)
-	defer store.close()
-	dir := testServiceConfig(t, stateDir).EvidenceDir
+	t.Cleanup(store.close)
+	cfg := testServiceConfig(t, stateDir)
+	configPath := filepath.Join(t.TempDir(), "service.json")
+	writeJSON(t, configPath, cfg)
 	public := i.signing.Public().(ed25519.PublicKey)
 	e, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal(e)
-	if err := os.WriteFile(filepath.Join(dir, recordName(e.Sequence)), raw, 0600); err != nil {
+	path := filepath.Join(cfg.EvidenceDir, recordName(e.Sequence))
+	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)
 	}
-	if s, err := openEvidenceSpool(dir, minEvidenceCap, 3, public, receipt); err == nil {
+	if s, err := openEvidenceSpool(cfg.EvidenceDir, minEvidenceCap, 3, public, receipt); err == nil {
 		s.close()
 		t.Fatal("committed record with a truncated delimiter accepted")
+	}
+	store.close()
+	var out bytes.Buffer
+	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err == nil || errors.Is(err, errEmptySpool) || out.Len() != 0 {
+		t.Fatalf("truncated committed record was reported as delivered or empty: %v", err)
+	}
+	if stored, err := os.ReadFile(path); err != nil || !bytes.Equal(stored, raw) {
+		t.Fatalf("restart changed the truncated committed record: %v", err)
 	}
 }

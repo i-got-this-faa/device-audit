@@ -40,6 +40,7 @@ type spoolRecord struct {
 type evidenceSpool struct {
 	root                      *os.Root
 	lock                      *os.File
+	writeRecord               func(*os.File, []byte) (int, error)
 	key                       ed25519.PublicKey
 	receipt                   contracts.EnrollmentAcceptedV1
 	queue                     []spoolRecord
@@ -76,7 +77,7 @@ func openEvidenceSpool(dir string, maxBytes int64, maxRecords int, key ed25519.P
 	if err != nil {
 		return nil, errors.New("open evidence spool directory")
 	}
-	s := &evidenceSpool{root: root, key: key, receipt: receipt, maxBytes: maxBytes, maxRecords: maxRecords}
+	s := &evidenceSpool{root: root, writeRecord: (*os.File).Write, key: key, receipt: receipt, maxBytes: maxBytes, maxRecords: maxRecords}
 	s.lock, err = s.acquire()
 	if err != nil {
 		root.Close()
@@ -346,14 +347,10 @@ func (s *evidenceSpool) appendBytes(data []byte, seq uint64) error {
 	if len(data) > maxSpoolRecordBytes {
 		return errors.New("signed envelope exceeds spool record bound")
 	}
-	if s.full() || int64(len(data)) > s.maxBytes-s.size {
+	if s.legacyMore || len(s.queue) >= s.maxRecords || int64(len(data)) > s.maxBytes-s.size {
 		return errEvidenceFull
 	}
 	return s.commitRecord(data, seq)
-}
-
-func (s *evidenceSpool) full() bool {
-	return s.legacyMore || len(s.queue) >= s.maxRecords || s.size >= s.maxBytes
 }
 
 func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
@@ -366,7 +363,7 @@ func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
 	}
 	spoolStage("append-staged")
 	if err := commitSpoolRename(s.root, spoolPending, recordName(seq)); err != nil {
-		return errors.New("commit spool record")
+		return fmt.Errorf("commit spool record: %w", err)
 	}
 	spoolStage("append-committed")
 	s.queue = append(s.queue, spoolRecord{seq, int64(len(data))})
@@ -378,18 +375,18 @@ func (s *evidenceSpool) commitRecord(data []byte, seq uint64) error {
 func (s *evidenceSpool) stageRecord(data []byte) error {
 	file, err := s.root.OpenFile(spoolPending, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
-		return errors.New("stage spool record")
+		return fmt.Errorf("stage spool record: %w", err)
 	}
 	writeErr := validateSpoolFile(file)
 	if writeErr == nil {
-		_, writeErr = file.Write(data)
+		_, writeErr = s.writeRecord(file, data)
 	}
 	if writeErr == nil {
 		writeErr = file.Sync()
 	}
 	closeErr := file.Close()
-	if writeErr != nil || closeErr != nil {
-		return errors.New("flush staged spool record")
+	if err := errors.Join(writeErr, closeErr); err != nil {
+		return fmt.Errorf("flush staged spool record: %w", err)
 	}
 	return nil
 }
