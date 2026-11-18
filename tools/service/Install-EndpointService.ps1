@@ -33,6 +33,7 @@ param(
     [string]$BootstrapFile,
     [string]$SamplingConfig,
     [ValidateRange(1048576, 1073741824)][long]$MaxEvidenceBytes = 64MB,
+    [ValidateRange(1, 65536)][int]$MaxEvidenceRecords = 4096,
     [ValidateRange(1, 86400)][int]$RestartDelaySeconds = 60,
     [ValidateSet('Automatic', 'Manual')][string]$StartType = 'Automatic'
 )
@@ -97,9 +98,12 @@ try {
     $enrollment = Join-Path $Root 'enrollment'
     $null = New-Item -ItemType Directory -Force -Path $Root, $evidence, $enrollment
     Set-PrivateAcl $Root "(A;;0x1200ad;;;$sid)"
-    Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)"
+    Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)(A;OICI;RC;;;OW)"
     Set-PrivateAcl $enrollment "(A;OICI;0x1301bf;;;$sid)"
-    foreach ($existing in Get-ChildItem -LiteralPath $evidence, $enrollment -File -Force) {
+    foreach ($existing in Get-ChildItem -LiteralPath $evidence -File -Force) {
+        Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)(A;;RC;;;OW)"
+    }
+    foreach ($existing in Get-ChildItem -LiteralPath $enrollment -File -Force) {
         Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)"
     }
 
@@ -125,6 +129,7 @@ try {
         state_dir          = (Join-Path $Root 'identity')
         evidence_dir       = $evidence
         max_evidence_bytes = $MaxEvidenceBytes
+        max_evidence_records = $MaxEvidenceRecords
         sampling_config    = $samplingPath
         enrollment         = $enrollmentConfig
     } | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8NoBOM

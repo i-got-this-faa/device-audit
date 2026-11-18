@@ -91,21 +91,26 @@ func sendMeshEvidence(ctx context.Context, stateDir, serverKey string, controlle
 	return ack, nil
 }
 
-// loadControllerAckKey reads the pinned PKIX PEM public key that verifies
-// controller acknowledgements. It is distinct from the mesh server key.
-func loadControllerAckKey(path string) (ed25519.PublicKey, error) {
-	data, err := os.ReadFile(path)
+// loadControllerPublicKey reads a pinned Ed25519 key in PKIX PEM format.
+func loadControllerPublicKey(path string) (ed25519.PublicKey, error) {
+	const maxKey = 16 << 10
+	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.New("mesh requires a readable --controller-ack-key-file")
+		return nil, errors.New("controller key file is unreadable")
+	}
+	defer f.Close()
+	data, err := io.ReadAll(io.LimitReader(f, maxKey+1))
+	if err != nil || len(data) > maxKey {
+		return nil, errors.New("controller key file is unreadable or too large")
 	}
 	block, _ := pem.Decode(data)
 	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("--controller-ack-key-file must be a PEM public key")
+		return nil, errors.New("controller key file must be a PEM public key")
 	}
 	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
 	key, ok := parsed.(ed25519.PublicKey)
 	if err != nil || !ok {
-		return nil, errors.New("--controller-ack-key-file must hold an Ed25519 public key")
+		return nil, errors.New("controller key file must hold an Ed25519 public key")
 	}
 	return key, nil
 }

@@ -38,6 +38,8 @@ const (
 type FailureReason string
 
 const (
+	ReasonCancelled        FailureReason = "cancelled"
+	ReasonExpired          FailureReason = "expired"
 	ReasonProbeError       FailureReason = "probe_error"
 	ReasonBudgetExhausted  FailureReason = "budget_exhausted"
 	ReasonPermissionDenied FailureReason = "permission_denied"

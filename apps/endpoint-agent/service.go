@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,27 +21,18 @@ import (
 // TEL02 #26: the Windows service host for the real collector pipeline.
 //
 // The service loads the admitted identity, runs the TEL08 sampling schedule,
-// signs each snapshot with the crash-safe CT04 sequence and appends the signed
-// envelope to a size-capped local evidence file. Delivery and a retrying spool
-// are #27; this host never sends unsigned or fixture telemetry.
+// signs each snapshot with the CT04 sequence and queues it for delivery.
 
 const (
 	serviceConfigSchema = "device-audit.endpoint-service.v1"
 	// serviceName is the installed service and the per-service SID name.
 	serviceName        = "DeviceAuditEndpoint"
-	evidenceLogFile    = "signed-evidence.jsonl"
 	serviceLogFile     = "service.log"
 	maxServiceConfig   = 16 << 10
 	maxServiceLogBytes = 1 << 20
 	minEvidenceCap     = 1 << 20
 	maxEvidenceCap     = 1 << 30
-	// maxTornTail bounds how far back a torn final record is searched for.
-	// It is larger than any envelope a 256 KiB payload produces.
-	maxTornTail = 1 << 20
 )
-
-// errEvidenceFull stops the service instead of silently dropping evidence.
-var errEvidenceFull = errors.New("signed evidence file reached max_evidence_bytes; delivery and spooling (#27) are not implemented")
 
 // serviceEnrollment is the one-time first-start enrollment. The bootstrap file
 // holds a one-use bootstrap-token.v1 document and is deleted once read.
@@ -52,12 +44,13 @@ type serviceEnrollment struct {
 
 // serviceConfig is device-audit.endpoint-service.v1. Every path is absolute.
 type serviceConfig struct {
-	SchemaVersion    string             `json:"schema_version"`
-	StateDir         string             `json:"state_dir"`
-	EvidenceDir      string             `json:"evidence_dir"`
-	MaxEvidenceBytes int64              `json:"max_evidence_bytes"`
-	SamplingConfig   *string            `json:"sampling_config"`
-	Enrollment       *serviceEnrollment `json:"enrollment"`
+	SchemaVersion      string             `json:"schema_version"`
+	StateDir           string             `json:"state_dir"`
+	EvidenceDir        string             `json:"evidence_dir"`
+	MaxEvidenceBytes   int64              `json:"max_evidence_bytes"`
+	MaxEvidenceRecords int                `json:"max_evidence_records,omitempty"`
+	SamplingConfig     *string            `json:"sampling_config"`
+	Enrollment         *serviceEnrollment `json:"enrollment"`
 }
 
 // loadServiceConfig strictly decodes one bounded configuration file.
@@ -109,6 +102,9 @@ func (c serviceConfig) validate() error {
 			return errors.New("service config paths must be outside state_dir")
 		}
 	}
+	if c.MaxEvidenceRecords < 0 || c.MaxEvidenceRecords > maxSpoolRecords {
+		return fmt.Errorf("max_evidence_records must be between 1 and %d, or omitted for the default", maxSpoolRecords)
+	}
 	if c.MaxEvidenceBytes < minEvidenceCap || c.MaxEvidenceBytes > maxEvidenceCap {
 		return fmt.Errorf("max_evidence_bytes must be from %d to %d", minEvidenceCap, maxEvidenceCap)
 	}
@@ -143,15 +139,25 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 	if err != nil {
 		return fmt.Errorf("invalid sampling config: %w", err)
 	}
-	sink, err := openEvidenceSink(cfg.EvidenceDir, cfg.MaxEvidenceBytes)
+	i, err := store.load(false)
+	if err != nil {
+		return err
+	}
+	sink, err := openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, i.signing.Public().(ed25519.PublicKey), receipt)
 	if err != nil {
 		return err
 	}
 	defer sink.close()
-	if sink.repaired {
-		logf("removed a torn final record from %s", evidenceLogFile)
+	if sink.recoveredTail {
+		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
 	}
-	unsigned := 0
+	unsigned, overflow := 0, 0
+	recordOverflow := func() {
+		overflow++
+		if overflow == 1 {
+			logf("%s", errEvidenceFull)
+		}
+	}
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
 		if err != nil {
@@ -162,6 +168,10 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			}
 			return nil
 		}
+		if sink.full() {
+			recordOverflow()
+			return nil
+		}
 		data, err := json.Marshal(payload)
 		if err != nil {
 			return errors.New("encode sampled telemetry")
@@ -170,7 +180,12 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 		if err != nil {
 			return fmt.Errorf("sign evidence: %w", err)
 		}
-		return sink.append(envelope)
+		if err := sink.append(envelope); errors.Is(err, errEvidenceFull) {
+			recordOverflow()
+			return nil
+		} else {
+			return err
+		}
 	})
 	if err != nil {
 		return err
@@ -179,7 +194,7 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 	if err := writeSamplingReport(filepath.Join(cfg.EvidenceDir, name), report); err != nil {
 		return err
 	}
-	logf("%s; %d snapshots, %d not signed, last sequence %d", budgetSummary(report), report.Emits, unsigned, sink.lastSequence)
+	logf("%s; %d snapshots, %d not signed, %d rejected by spool, last sequence %d", budgetSummary(report), report.Emits, unsigned, overflow, sink.lastSequence())
 	return nil
 }
 
@@ -256,78 +271,6 @@ func removeBootstrap(path, stateDir string, logf func(string, ...any), why strin
 		logf("bootstrap file could not be removed (%s); remove it manually", why)
 	}
 }
-
-// evidenceSink appends one signed envelope per line and syncs each line.
-type evidenceSink struct {
-	f            *os.File
-	size, max    int64
-	lastSequence uint64
-	repaired     bool
-}
-
-// openEvidenceSink opens the evidence file for append. A final line without
-// its newline is a record torn by a crash; it is truncated, leaving a
-// sequence gap that CT04 allows.
-func openEvidenceSink(dir string, max int64) (*evidenceSink, error) {
-	f, err := os.OpenFile(filepath.Join(dir, evidenceLogFile), os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return nil, errors.New("open signed evidence file")
-	}
-	s := &evidenceSink{f: f, max: max}
-	info, err := f.Stat()
-	if err != nil {
-		f.Close()
-		return nil, errors.New("inspect signed evidence file")
-	}
-	s.size = info.Size()
-	if s.size > 0 {
-		tail := make([]byte, min(s.size, maxTornTail))
-		if _, err := f.ReadAt(tail, s.size-int64(len(tail))); err != nil {
-			f.Close()
-			return nil, errors.New("read signed evidence tail")
-		}
-		if tail[len(tail)-1] != '\n' {
-			keep := int64(bytes.LastIndexByte(tail, '\n') + 1)
-			if keep == 0 && s.size > int64(len(tail)) {
-				f.Close()
-				return nil, errors.New("signed evidence file ends in an unbounded torn record")
-			}
-			s.size -= int64(len(tail)) - keep
-			if f.Truncate(s.size) != nil || f.Sync() != nil {
-				f.Close()
-				return nil, errors.New("truncate torn signed evidence record")
-			}
-			s.repaired = true
-		}
-	}
-	if _, err := f.Seek(s.size, io.SeekStart); err != nil {
-		f.Close()
-		return nil, errors.New("seek signed evidence file")
-	}
-	return s, nil
-}
-
-func (s *evidenceSink) append(envelope contracts.EvidenceEnvelopeV1) error {
-	line, err := json.Marshal(envelope)
-	if err != nil {
-		return errors.New("encode signed evidence")
-	}
-	line = append(line, '\n')
-	if s.size+int64(len(line)) > s.max {
-		return errEvidenceFull
-	}
-	if _, err := s.f.Write(line); err != nil {
-		return errors.New("write signed evidence")
-	}
-	if err := s.f.Sync(); err != nil {
-		return errors.New("sync signed evidence")
-	}
-	s.size += int64(len(line))
-	s.lastSequence = envelope.Sequence
-	return nil
-}
-
-func (s *evidenceSink) close() { s.f.Close() }
 
 // serviceLog appends timestamped lines to service.log and stops at its cap.
 // Messages are fixed text and public identifiers, never keys or tokens.

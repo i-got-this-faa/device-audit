@@ -29,7 +29,7 @@ func TestEvidenceACLIsRestricted(t *testing.T) {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
-	setTestACL(t, dir, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;"+principal+")(D;OICI;WD;;;WD)")
+	setTestACL(t, dir, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;"+principal+")(A;OICI;RC;;;OW)(D;OICI;WD;;;WD)")
 	if err := checkEvidenceACL(dir); err != nil {
 		t.Fatalf("private evidence dir refused: %v", err)
 	}
@@ -61,6 +61,45 @@ func TestServiceCommandLine(t *testing.T) {
 		out, err := exec.Command(bin, strings.Fields(args)...).CombinedOutput()
 		if err == nil || !strings.Contains(string(out), want) {
 			t.Fatalf("%s: %v %s", args, err, out)
+		}
+	}
+}
+
+func makeTestEvidencePrivate(t *testing.T, path string) {
+	t.Helper()
+	principal, err := storagePrincipal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	setTestACL(t, path, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;"+principal+")(A;OICI;RC;;;OW)")
+}
+
+func TestSpoolFileRequiresOwnerRights(t *testing.T) {
+	dir := t.TempDir()
+	makeTestEvidencePrivate(t, dir)
+	path := filepath.Join(dir, "record")
+	if err := os.WriteFile(path, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	check := func() error {
+		f, err := os.Open(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		return validateSpoolFile(f)
+	}
+	if err := check(); err != nil {
+		t.Fatalf("inherited owner rights: %v", err)
+	}
+	principal, err := storagePrincipal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ace := range []string{"", "(A;;WD;;;OW)"} {
+		setTestACL(t, path, "D:P(A;;FA;;;"+principal+")"+ace)
+		if err := check(); err == nil {
+			t.Fatalf("unsafe owner rights accepted: %q", ace)
 		}
 	}
 }

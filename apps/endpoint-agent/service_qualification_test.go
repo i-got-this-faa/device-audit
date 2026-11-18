@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,19 +69,22 @@ func TestServiceQualificationHarness(t *testing.T) {
 	if err := db.QueryRow(`SELECT signing_key_id, public_key FROM device_enrollments WHERE device_id=$1`, device).Scan(&signingKeyID, &public); err != nil {
 		t.Fatal("the service did not commit an enrollment")
 	}
-	data, err := os.ReadFile(filepath.Join(dir, "evidence", evidenceLogFile))
+	evidence := filepath.Join(dir, "evidence")
+	files, err := os.ReadDir(evidence)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(data) > 0 && data[len(data)-1] != '\n' {
-		t.Fatal("evidence file ends in a torn record")
-	}
 	result := qualificationVerification{DeploymentID: token.DeploymentID, SigningKeyID: signingKeyID}
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	scanner.Buffer(nil, maxTornTail)
-	for scanner.Scan() {
+	for _, file := range files {
+		if !strings.HasPrefix(file.Name(), "spool-") || !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(evidence, file.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
 		var envelope contracts.EvidenceEnvelopeV1
-		if err := json.Unmarshal(scanner.Bytes(), &envelope); err != nil {
+		if err := json.Unmarshal(data, &envelope); err != nil {
 			t.Fatalf("envelope %d: %v", result.Envelopes+1, err)
 		}
 		if err := envelope.VerifySignature(ed25519.PublicKey(public)); err != nil {
@@ -104,9 +106,6 @@ func TestServiceQualificationHarness(t *testing.T) {
 		if cpuValue(t, envelope) != nil {
 			result.KnownCPUSnapshots++
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		t.Fatalf("evidence file could not be read to its end: %v", err)
 	}
 	if result.Envelopes == 0 {
 		t.Fatal(errors.New("the service signed no evidence"))
