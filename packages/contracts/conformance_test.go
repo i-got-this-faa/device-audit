@@ -75,6 +75,10 @@ func readContractWire(vector contractWireVector) (string, error) {
 		value = &AuditReceiptV1{}
 	case AuditVerificationV1Version:
 		value = &AuditVerificationV1{}
+	case FeatureWindowV1Version:
+		value = &FeatureWindowV1{}
+	case FeatureVectorV1Version:
+		value = &FeatureVectorV1{}
 	default:
 		return "", fmt.Errorf("unregistered reader %s", vector.ReaderVersion)
 	}

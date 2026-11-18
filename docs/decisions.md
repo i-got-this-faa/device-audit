@@ -851,3 +851,33 @@ The endpoint refuses to send evidence when that check fails. The controller logs
 the failure and keeps its HTTPS boundary running. Neither falls back to public
 relays, plaintext or weaker TLS. Evidence and remaining gaps are in
 [relay-fallback-88.md](validation/relay-fallback-88.md).
+
+## Frozen feature version, CT03 #32
+
+On 18 November 2026 the [feature contract](../packages/contracts/features-v1.md)
+froze `hdd-smart-7d.v1`, the only feature version. It takes three ML01 SMART
+counters, `smart_5_raw`, `smart_9_raw` and `smart_197_raw`, in that order.
+`smart_187_raw` and `smart_198_raw` are left out because every one of the
+5,091,501 Backblaze 2013 rows has them null. Telemetry v2 metrics and error
+events are left out because the selected study has no labels for them, so no
+model could be fitted or judged against ML05 on them.
+
+The window is the seven UTC days ending on the `as_of` day. Samples after
+`as_of` or before the window are ignored. Each day's value is that counter's
+latest non-null reading of the day; no other noise filter, clip or fitted
+scaler exists. A counter needs a value on all seven days, otherwise both of its
+features are null with `no_observation` or `incomplete_history` and the vector
+is `incomplete`. Only a `complete` vector may reach a model. Each counter
+yields `log1p(final)` and the signed `log1p` of `final − first`; decreases stay
+negative.
+
+Go and Python reference implementations agree within `1e-12` absolute plus
+`1e-12` relative on 29 shared vectors, which `make contract-check` runs.
+Readers reject any other feature version as `unsupported_feature_version`.
+
+No endpoint collector reads SMART counters, so the endpoint and controller
+produce `incomplete` vectors and `unknown` predictions under this version.
+This is a planning gap: #102 and #105 can implement the pipeline, but a known
+endpoint prediction needs a SMART collector, its Windows permission model and
+a decision on NVMe drives, none of which has an issue. The
+[validation notes](validation/features-32.md) record the checks.

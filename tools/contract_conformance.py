@@ -11,6 +11,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "models/tests"))
+# The feature reader test imports the Python reference preprocessing.
+sys.path.insert(0, str(ROOT / "models/src"))
 from test_contract_conformance import CONTRACTS, load_catalogue
 from test_envelope_contracts import strict_loads
 

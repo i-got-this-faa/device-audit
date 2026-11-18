@@ -418,6 +418,38 @@
       "expected_python": "unsupported_schema"
     },
     {
+      "name": "valid/device-audit.feature-window.v1",
+      "reader_version": "device-audit.feature-window.v1",
+      "wire": "{\"schema_version\":\"device-audit.feature-window.v1\",\"feature_version\":\"hdd-smart-7d.v1\",\"as_of\":\"2013-11-07T23:59:59Z\",\"samples\":[{\"observed_at\":\"2013-11-01T00:00:00Z\",\"smart_5_raw\":0,\"smart_9_raw\":11000,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-02T00:00:00Z\",\"smart_5_raw\":0,\"smart_9_raw\":11024,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-03T00:00:00Z\",\"smart_5_raw\":0,\"smart_9_raw\":11048,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-04T00:00:00Z\",\"smart_5_raw\":0,\"smart_9_raw\":11072,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-05T00:00:00Z\",\"smart_5_raw\":8,\"smart_9_raw\":11096,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-06T00:00:00Z\",\"smart_5_raw\":8,\"smart_9_raw\":11120,\"smart_197_raw\":0},{\"observed_at\":\"2013-11-07T00:00:00Z\",\"smart_5_raw\":16,\"smart_9_raw\":11144,\"smart_197_raw\":0}]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.feature-window.v1",
+      "reader_version": "device-audit.feature-window.v1",
+      "wire": "{\"schema_version\": \"device-audit.feature-window.v999\", \"feature_version\": \"hdd-smart-7d.v1\", \"as_of\": \"2013-11-07T23:59:59Z\", \"samples\": [{\"observed_at\": \"2013-11-01T00:00:00Z\", \"smart_5_raw\": 0, \"smart_9_raw\": 11000, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-02T00:00:00Z\", \"smart_5_raw\": 0, \"smart_9_raw\": 11024, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-03T00:00:00Z\", \"smart_5_raw\": 0, \"smart_9_raw\": 11048, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-04T00:00:00Z\", \"smart_5_raw\": 0, \"smart_9_raw\": 11072, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-05T00:00:00Z\", \"smart_5_raw\": 8, \"smart_9_raw\": 11096, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-06T00:00:00Z\", \"smart_5_raw\": 8, \"smart_9_raw\": 11120, \"smart_197_raw\": 0}, {\"observed_at\": \"2013-11-07T00:00:00Z\", \"smart_5_raw\": 16, \"smart_9_raw\": 11144, \"smart_197_raw\": 0}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
+      "name": "valid/device-audit.feature-vector.v1",
+      "reader_version": "device-audit.feature-vector.v1",
+      "wire": "{\"schema_version\":\"device-audit.feature-vector.v1\",\"feature_version\":\"hdd-smart-7d.v1\",\"as_of\":\"2013-11-07T23:59:59Z\",\"window_start\":\"2013-11-01\",\"window_end\":\"2013-11-07\",\"status\":\"complete\",\"features\":[{\"name\":\"smart_5_raw.last\",\"value\":2.833213344056216,\"unit\":\"log1p_count\"},{\"name\":\"smart_5_raw.delta\",\"value\":2.833213344056216,\"unit\":\"signed_log1p_count\"},{\"name\":\"smart_9_raw.last\",\"value\":9.31874624581997,\"unit\":\"log1p_hours\"},{\"name\":\"smart_9_raw.delta\",\"value\":4.976733742420574,\"unit\":\"signed_log1p_hours\"},{\"name\":\"smart_197_raw.last\",\"value\":0.0,\"unit\":\"log1p_count\"},{\"name\":\"smart_197_raw.delta\",\"value\":0.0,\"unit\":\"signed_log1p_count\"}]}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted"
+    },
+    {
+      "name": "unsupported/device-audit.feature-vector.v1",
+      "reader_version": "device-audit.feature-vector.v1",
+      "wire": "{\"schema_version\": \"device-audit.feature-vector.v999\", \"feature_version\": \"hdd-smart-7d.v1\", \"as_of\": \"2013-11-07T23:59:59Z\", \"window_start\": \"2013-11-01\", \"window_end\": \"2013-11-07\", \"status\": \"complete\", \"features\": [{\"name\": \"smart_5_raw.last\", \"value\": 2.833213344056216, \"unit\": \"log1p_count\"}, {\"name\": \"smart_5_raw.delta\", \"value\": 2.833213344056216, \"unit\": \"signed_log1p_count\"}, {\"name\": \"smart_9_raw.last\", \"value\": 9.31874624581997, \"unit\": \"log1p_hours\"}, {\"name\": \"smart_9_raw.delta\", \"value\": 4.976733742420574, \"unit\": \"signed_log1p_hours\"}, {\"name\": \"smart_197_raw.last\", \"value\": 0.0, \"unit\": \"log1p_count\"}, {\"name\": \"smart_197_raw.delta\", \"value\": 0.0, \"unit\": \"signed_log1p_count\"}]}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
       "name": "enrollment freshness sequence already consumed",
       "reader_version": "device-audit.enrollment.v1",
       "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",

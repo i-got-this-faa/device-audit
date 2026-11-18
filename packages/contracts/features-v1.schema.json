@@ -1,0 +1,486 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://device-audit.invalid/contracts/features-v1.schema.json",
+  "title": "Frozen feature windows and vectors v1 (CT03 #32)",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/window"
+    },
+    {
+      "$ref": "#/$defs/vector"
+    }
+  ],
+  "$defs": {
+    "window": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.feature-window.v1"
+        },
+        "feature_version": {
+          "const": "hdd-smart-7d.v1"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "samples": {
+          "type": "array",
+          "maxItems": 10080,
+          "items": {
+            "type": "object",
+            "properties": {
+              "observed_at": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              },
+              "smart_5_raw": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "smart_9_raw": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "smart_197_raw": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "observed_at",
+              "smart_5_raw",
+              "smart_9_raw",
+              "smart_197_raw"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "feature_version",
+        "as_of",
+        "samples"
+      ],
+      "additionalProperties": false
+    },
+    "vector": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.feature-vector.v1"
+        },
+        "feature_version": {
+          "const": "hdd-smart-7d.v1"
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "window_start": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "window_end": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "incomplete"
+          ]
+        },
+        "features": {
+          "type": "array",
+          "minItems": 6,
+          "items": false,
+          "prefixItems": [
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_5_raw.last"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "log1p_count"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_5_raw.delta"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "signed_log1p_count"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_9_raw.last"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "log1p_hours"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_9_raw.delta"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "signed_log1p_hours"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_197_raw.last"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "log1p_count"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "const": "smart_197_raw.delta"
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "unit": {
+                  "const": "signed_log1p_count"
+                },
+                "missing_reason": {
+                  "enum": [
+                    "no_observation",
+                    "incomplete_history"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value",
+                "unit"
+              ],
+              "oneOf": [
+                {
+                  "properties": {
+                    "value": {
+                      "type": "number"
+                    }
+                  },
+                  "not": {
+                    "required": [
+                      "missing_reason"
+                    ]
+                  }
+                },
+                {
+                  "properties": {
+                    "value": {
+                      "type": "null"
+                    },
+                    "missing_reason": {
+                      "enum": [
+                        "no_observation",
+                        "incomplete_history"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "missing_reason"
+                  ]
+                }
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "feature_version",
+        "as_of",
+        "window_start",
+        "window_end",
+        "status",
+        "features"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

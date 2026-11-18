@@ -24,3 +24,8 @@ ML05's [predeclared evaluation and resource thresholds](evaluation/README.md)
 fix the held-out procedure, baseline/false-positive/calibration/horizon gates
 and endpoint budgets before fitting. `evaluation.py` checks reports against
 them and returns pass, fail or blocked. It computes no metric.
+
+CT03's [frozen feature version](../packages/contracts/features-v1.md),
+`hdd-smart-7d.v1`, fixes the SMART counter order, seven-day window, `log1p`
+transform and missing-value rules. `features.py` is the Python reference; it
+matches the Go reference on the shared vectors within `1e-12`.
