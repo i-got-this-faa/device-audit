@@ -1,7 +1,7 @@
 # Windows service host, TEL02 #26
 
 Status on 18 November 2026: **the service host, its installer, failure-path
-tests and three qualification runs as `NT AUTHORITY\LocalService` on the HP
+tests and four qualification runs as `NT AUTHORITY\LocalService` on the HP
 Victus target are recorded. Delivery, a spool, a real collector failure inside
 the service, reboot and the second physical target are not.**
 
@@ -83,6 +83,10 @@ the endpoint's own entries.
   relative paths, an out-of-range cap, trailing data, and a bootstrap or
   evidence path inside `state_dir` (including a different letter case on
   Windows).
+- `TestBootstrapCleanupSparesIdentityAliases`: a bootstrap path that reaches
+  `admission.json` through a directory junction (a symlink off Windows) passes
+  the textual check. Cleanup compares the parent directory with `state_dir` by
+  file identity and keeps the receipt. With that check removed, the test fails.
 - `TestEvidenceSinkTornTailAndCap`: a torn final record is truncated, and the
   cap returns `errEvidenceFull` without writing.
 
@@ -121,18 +125,18 @@ a 5 s restart delay, `Manual` start and a 1 MiB evidence cap. Whatever happens,
 it copies the artifacts, then uninstalls and purges what it created. It exits 1
 if any step failed.
 
-### Run 3 (final code)
+### Run 4 (final code)
 
 Artifacts: [windows-service-26/](windows-service-26/).
 
 | Step | Result |
 | --- | --- |
 | Interactive `--service` | exit 1, "runs only under the Windows service control manager" |
-| First start | enrolled through the real handlers; bootstrap file deleted; 9 envelopes in 90 s; stopped in 551 ms with exit code 0 |
+| First start | enrolled through the real handlers; bootstrap file deleted; 9 envelopes in 90 s; stopped in 527 ms with exit code 0 |
 | Token at every start | `account=LocalService elevated=false service_sid=S-1-5-80-4292395088-… privileges=SeChangeNotifyPrivilege(enabled)` |
 | Restart | same signing key, no re-enrollment |
-| `Stop-Process -Force` | SCM started a new process after 5,509 ms; the evidence file grew from 12 to 15 envelopes in the next 30 s; clean stop, exit code 0 |
-| Evidence file filled to the cap | pipeline failed with "reached max_evidence_bytes", service exit code 3; SCM started a new process 5 s later (PIDs 19780 → 24024) without a reboot |
+| `Stop-Process -Force` | SCM started a new process after 6,127 ms; the evidence file grew from 12 to 15 envelopes in the next 30 s; clean stop, exit code 0 |
+| Evidence file filled to the cap | pipeline failed with "reached max_evidence_bytes", service exit code 3; SCM started a new process without a reboot (PIDs 18284 → 17688; run 3: 19780 → 24024, 5 s after the failure). Microsoft's `SERVICE_FAILURE_ACTIONS_FLAG` page says the flag takes effect at the next system start; on build 26200 it took effect immediately. Other builds are not measured |
 | Run as LocalSystem | refused, Win32 exit 1066, service exit 2, "refuses LocalSystem" |
 | Add `SeImpersonatePrivilege` | refused, service exit 2, "holds SeImpersonatePrivilege outside the documented privileges" |
 | Root and evidence DACLs | `D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)` plus the service SID with `0x1200ad` on the root and `0x1301bf` (OICI) on `evidence` |
@@ -146,13 +150,13 @@ restart and the kill, no gaps, and a CPU value in every snapshot.
 
 | Run phase | Snapshots | CPU (% of one core) | Peak RSS | Budget (2 %, 64 MiB) |
 | --- | ---: | ---: | ---: | --- |
-| First start, 90 s | 9 | 0.293 | 30.2 MB | within |
-| After the SCM restart, 30 s | 3 | 0.718 | 27.8 MB | within |
+| First start, 90 s | 9 | 0.585 | 30.0 MB | within |
+| After the SCM restart, 30 s | 3 | 0.855 | 27.5 MB | within |
 
 The killed run writes no report, as expected. The network source's two down
 interfaces were `sensor_unavailable`; every other source had a value.
 
-### Runs 1 and 2
+### Runs 1 to 3
 
 These used the code before review. Run 1's artifacts carry the `run1-` prefix.
 
@@ -169,8 +173,12 @@ These used the code before review. Run 1's artifacts carry the `run1-` prefix.
     service reports a budget overrun; it does not stop for one.
 - **Run 2.** All six steps then defined passed, 15 envelopes verified, peak
   RSS 30.0 MB and 26.0 MB. Review then added the evidence ACL check, the
-  admission ordering, the post-kill evidence requirement and the cap step,
-  which run 3 exercises.
+  admission ordering, the post-kill evidence requirement and the cap step.
+- **Run 3.** All eight steps passed with those changes and 15 envelopes
+  verified. A second review then made the installer move the bootstrap file
+  last (and back on rollback) and made cleanup refuse a bootstrap path whose
+  directory is identity storage under another name. Run 4 repeats every step
+  with that code.
 
 ## Not done
 

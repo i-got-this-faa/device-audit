@@ -191,7 +191,7 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	if statErr == nil {
 		receipt, err := store.status()
 		if err == nil && cfg.Enrollment != nil {
-			removeBootstrap(cfg.Enrollment.BootstrapFile, logf, "identity is already admitted")
+			removeBootstrap(cfg.Enrollment.BootstrapFile, cfg.StateDir, logf, "identity is already admitted")
 		}
 		return receipt, err
 	}
@@ -218,7 +218,7 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	}
 	token, err := readBootstrap(f)
 	f.Close()
-	removeBootstrap(cfg.Enrollment.BootstrapFile, logf, "bootstrap read")
+	removeBootstrap(cfg.Enrollment.BootstrapFile, cfg.StateDir, logf, "bootstrap read")
 	if err != nil {
 		return contracts.EnrollmentAcceptedV1{}, err
 	}
@@ -226,7 +226,17 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	return enroll(ctx, store, client, origin, token)
 }
 
-func removeBootstrap(path string, logf func(string, ...any), why string) {
+// removeBootstrap deletes the bootstrap file unless its directory is identity
+// storage under another name, such as a junction to state_dir. Identity
+// storage has no subdirectories, so comparing the parent directory by file
+// identity covers every alias.
+func removeBootstrap(path, stateDir string, logf func(string, ...any), why string) {
+	parent, perr := os.Stat(filepath.Dir(path))
+	state, serr := os.Stat(stateDir)
+	if perr != nil || serr != nil || os.SameFile(parent, state) {
+		logf("bootstrap file not removed (%s): its directory is identity storage or unreadable", why)
+		return
+	}
 	err := os.Remove(path)
 	switch {
 	case err == nil:

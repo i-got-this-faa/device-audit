@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -243,6 +244,47 @@ func TestServiceAdmission(t *testing.T) {
 	}
 	if _, err := os.Stat(bootstrap); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("unused bootstrap left on disk")
+	}
+}
+
+// linkDir makes link another name for the target directory: a junction on
+// Windows, which needs no privilege, and a symlink elsewhere.
+func linkDir(t *testing.T, link, target string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		if out, err := exec.Command("cmd", "/c", "mklink", "/J", link, target).CombinedOutput(); err != nil {
+			t.Fatalf("mklink /J: %v %s", err, out)
+		}
+		return
+	}
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A bootstrap path that reaches identity storage through a directory alias
+// passes the textual config check, so cleanup must refuse it by file identity.
+func TestBootstrapCleanupSparesIdentityAliases(t *testing.T) {
+	s, stateDir, _, receipt := admittedStore(t)
+	s.close()
+	alias := filepath.Join(t.TempDir(), "alias")
+	linkDir(t, alias, stateDir)
+	cfg := testServiceConfig(t, stateDir)
+	cfg.Enrollment = &serviceEnrollment{Origin: "https://controller.example.org", BootstrapFile: filepath.Join(alias, receiptFile)}
+	if err := cfg.validate(); err != nil {
+		t.Fatalf("alias path should reach the runtime check: %v", err)
+	}
+	store, err := openIdentityStore(stateDir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.close()
+	got, err := admitService(context.Background(), store, cfg, func(string, ...any) {})
+	if err != nil || got != receipt {
+		t.Fatalf("admission through alias config: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stateDir, receiptFile)); err != nil {
+		t.Fatal("bootstrap cleanup deleted the admission receipt through an alias")
 	}
 }
 

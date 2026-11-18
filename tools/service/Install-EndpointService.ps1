@@ -18,9 +18,10 @@ token to SeChangeNotifyPrivilege, configures restart-on-failure, and prepares:
 Every directory and file gets an exact protected DACL: SYSTEM and
 Administrators full, plus the service SID's own right. Existing access entries
 are replaced, not merged. -BootstrapFile is moved, not copied, into the
-enrollment directory; the service deletes it as soon as it reads it. Inputs are
-checked before the service is registered, and a failure after registration
-removes that registration and keeps any existing state.
+enrollment directory as the last step; the service deletes it as soon as it
+reads it. Inputs are checked before the service is registered. A failure after
+registration moves the credential back, removes that registration (warning if
+it cannot) and keeps any existing state.
 #>
 [CmdletBinding()]
 param(
@@ -63,6 +64,8 @@ foreach ($file in @($AgentPath, $CAFile, $BootstrapFile, $SamplingConfig) | Wher
 $exe = Join-Path $InstallDir 'endpoint-agent.exe'
 $config = Join-Path $Root 'service.json'
 $registered = $false
+$moved = $false
+$bootstrapPath = $null
 try {
     $null = New-Item -ItemType Directory -Force -Path $InstallDir
     Copy-Item -LiteralPath $AgentPath -Destination $exe -Force
@@ -102,9 +105,6 @@ try {
             Set-PrivateAcl $caPath "(A;;FR;;;$sid)"
         }
         $bootstrapPath = Join-Path $enrollment 'bootstrap.json'
-        Move-Item -LiteralPath $BootstrapFile -Destination $bootstrapPath -Force
-        # A moved file keeps its old DACL; replace it. Modify lets the service delete it.
-        Set-PrivateAcl $bootstrapPath "(A;;0x1301bf;;;$sid)"
         $enrollmentConfig = [ordered]@{ origin = $EnrollmentOrigin; ca_file = $caPath; bootstrap_file = $bootstrapPath }
     }
     $samplingPath = $null
@@ -122,9 +122,23 @@ try {
         enrollment         = $enrollmentConfig
     } | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8NoBOM
     Set-PrivateAcl $config "(A;;FR;;;$sid)"
+    # The credential moves last, so every earlier failure leaves it in place.
+    if ($EnrollmentOrigin) {
+        Move-Item -LiteralPath $BootstrapFile -Destination $bootstrapPath -Force
+        $moved = $true
+        # A moved file keeps its old DACL; replace it. Modify lets the service delete it.
+        Set-PrivateAcl $bootstrapPath "(A;;0x1301bf;;;$sid)"
+    }
 } catch {
-    # Roll back only this attempt's registration; identity and evidence stay.
-    if ($registered) { & sc.exe delete $name *> $null }
+    # Roll back only this attempt: the credential returns to its original
+    # path for a retry, and the registration is removed. State stays.
+    if ($moved) {
+        try { Move-Item -LiteralPath $bootstrapPath -Destination $BootstrapFile -Force } catch { Write-Warning "bootstrap file is still at ${bootstrapPath}: $_" }
+    }
+    if ($registered) {
+        $out = & sc.exe delete $name 2>&1
+        if ($LASTEXITCODE -ne 0) { Write-Warning "rollback could not delete $name; remove it with Uninstall-EndpointService.ps1: $out" }
+    }
     throw
 }
 Write-Host "Installed $name ($StartType) as NT AUTHORITY\LocalService; config $config"
