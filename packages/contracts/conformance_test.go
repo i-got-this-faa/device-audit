@@ -41,6 +41,10 @@ func readContractWire(vector contractWireVector) (string, error) {
 		value = &InventoryUpdateV1{}
 	case InventoryRecordV1Version:
 		value = &InventoryRecordV1{}
+	case DeviceRevocationRequestV1Version:
+		value = &DeviceRevocationRequestV1{}
+	case DeviceRevocationV1Version:
+		value = &DeviceRevocationV1{}
 	case BootstrapTokenRequestV1Version, BootstrapTokenV1Version, EnrollmentStartV1Version, EnrollmentChallengeV1Version, EnrollmentAdmissionV1Version, EnrollmentAcceptedV1Version, EnrollmentErrorV1Version:
 		value = bootstrapReader(vector.ReaderVersion)
 	case Version:

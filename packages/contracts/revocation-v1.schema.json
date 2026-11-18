@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Device revocation v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "device_id",
+        "reason_reference"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.device-revocation-request.v1"
+        },
+        "device_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason_reference": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "deployment_id",
+        "device_id",
+        "revoked_at",
+        "reason_reference",
+        "enrollment_sha256",
+        "actor_issuer",
+        "actor_subject"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "device-audit.device-revocation.v1"
+        },
+        "deployment_id": {
+          "$ref": "#/$defs/id"
+        },
+        "device_id": {
+          "$ref": "#/$defs/id"
+        },
+        "revoked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason_reference": {
+          "$ref": "#/$defs/id"
+        },
+        "enrollment_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$(?![\\s\\S])"
+        },
+        "actor_issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "pattern": "\\S"
+        },
+        "actor_subject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "\\S"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$(?![\\s\\S])"
+    }
+  }
+}

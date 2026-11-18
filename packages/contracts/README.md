@@ -256,3 +256,11 @@ in complete administrator updates and immutable records with enrollment/actor
 provenance. Empty component lists and omitted memberships preserve unknowns.
 Go rejects duplicate component identities in a revision. Shared schema, Go and
 Python fixtures run through `make contract-check` before storage consumers.
+
+## Device revocation v1, #90
+
+[Device revocation](revocation-v1.md) defines an administrator request with an
+opaque reason reference and the durable record the controller stores. Actor,
+deployment, receiver time and enrollment digest are server-controlled. Shared
+schema, Go and Python fixtures run through `make contract-check` before the
+controller consumer.

@@ -1,0 +1,154 @@
+{
+  "vectors": [
+    {
+      "name": "revocation request",
+      "payload": {
+        "schema_version": "device-audit.device-revocation-request.v1",
+        "device_id": "asset:fixture-01",
+        "reason_reference": "incident:fixture-1"
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "stored revocation provenance",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "2026-11-18T12:00:00Z",
+        "reason_reference": "incident:fixture-1",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": true,
+      "schema_valid": true
+    },
+    {
+      "name": "request without reason reference",
+      "payload": {
+        "schema_version": "device-audit.device-revocation-request.v1",
+        "device_id": "asset:fixture-01"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "request with free-text reason",
+      "payload": {
+        "schema_version": "device-audit.device-revocation-request.v1",
+        "device_id": "asset:fixture-01",
+        "reason_reference": "stolen laptop"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "request forging the actor",
+      "payload": {
+        "schema_version": "device-audit.device-revocation-request.v1",
+        "device_id": "asset:fixture-01",
+        "reason_reference": "incident:fixture-1",
+        "actor_subject": "admin:forged"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "request naming a deployment",
+      "payload": {
+        "schema_version": "device-audit.device-revocation-request.v1",
+        "device_id": "asset:fixture-01",
+        "reason_reference": "incident:fixture-1",
+        "deployment_id": "deployment:other"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "request with a reinstatement version",
+      "payload": {
+        "schema_version": "device-audit.device-reinstatement-request.v1",
+        "device_id": "asset:fixture-01",
+        "reason_reference": "incident:fixture-1"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "record without actor subject",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "2026-11-18T12:00:00Z",
+        "reason_reference": "incident:fixture-1",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "record with blank actor subject",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "2026-11-18T12:00:00Z",
+        "reason_reference": "incident:fixture-1",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "   "
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "record with short enrollment digest",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "2026-11-18T12:00:00Z",
+        "reason_reference": "incident:fixture-1",
+        "enrollment_sha256": "ababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "record with raw device identifier as reason",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "2026-11-18T12:00:00Z",
+        "reason_reference": "SN 12345/serial",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": false
+    },
+    {
+      "name": "record with zero revocation time",
+      "payload": {
+        "schema_version": "device-audit.device-revocation.v1",
+        "deployment_id": "deployment:fixture",
+        "device_id": "asset:fixture-01",
+        "revoked_at": "0001-01-01T00:00:00Z",
+        "reason_reference": "incident:fixture-1",
+        "enrollment_sha256": "abababababababababababababababababababababababababababababababab",
+        "actor_issuer": "https://id.example.test",
+        "actor_subject": "admin:fixture"
+      },
+      "valid": false,
+      "schema_valid": true
+    }
+  ]
+}
