@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,10 +102,24 @@ func (c serviceConfig) validate() error {
 			return errors.New("service config paths must be absolute")
 		}
 	}
+	// The service deletes the bootstrap file and writes evidence; no other
+	// path may name identity storage or anything inside it.
+	for _, p := range paths[1:] {
+		if within(c.StateDir, p) {
+			return errors.New("service config paths must be outside state_dir")
+		}
+	}
 	if c.MaxEvidenceBytes < minEvidenceCap || c.MaxEvidenceBytes > maxEvidenceCap {
 		return fmt.Errorf("max_evidence_bytes must be from %d to %d", minEvidenceCap, maxEvidenceCap)
 	}
 	return nil
+}
+
+// within reports whether p is dir or inside it. filepath.Rel compares Windows
+// paths case-insensitively.
+func within(dir, p string) bool {
+	rel, err := filepath.Rel(dir, p)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
 }
 
 // runServicePipeline runs until ctx ends or the pipeline fails. A clean stop
@@ -174,10 +189,11 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, logf func(string, ...any)) (contracts.EnrollmentAcceptedV1, error) {
 	_, statErr := store.root.Lstat(receiptFile)
 	if statErr == nil {
-		if cfg.Enrollment != nil {
+		receipt, err := store.status()
+		if err == nil && cfg.Enrollment != nil {
 			removeBootstrap(cfg.Enrollment.BootstrapFile, logf, "identity is already admitted")
 		}
-		return store.status()
+		return receipt, err
 	}
 	if !errors.Is(statErr, os.ErrNotExist) {
 		return contracts.EnrollmentAcceptedV1{}, errors.New("inspect admission receipt")
@@ -185,6 +201,17 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	if cfg.Enrollment == nil {
 		return contracts.EnrollmentAcceptedV1{}, errors.New("no admitted identity and no enrollment configured")
 	}
+	// Validate the local TLS configuration first, so a configuration mistake
+	// does not consume the one-use credential.
+	caFile := ""
+	if cfg.Enrollment.CAFile != nil {
+		caFile = *cfg.Enrollment.CAFile
+	}
+	client, origin, err := enrollmentClient(cfg.Enrollment.Origin, caFile)
+	if err != nil {
+		return contracts.EnrollmentAcceptedV1{}, err
+	}
+	defer client.CloseIdleConnections()
 	f, err := os.Open(cfg.Enrollment.BootstrapFile)
 	if err != nil {
 		return contracts.EnrollmentAcceptedV1{}, errors.New("no admitted identity and no readable bootstrap file")
@@ -195,15 +222,6 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	if err != nil {
 		return contracts.EnrollmentAcceptedV1{}, err
 	}
-	caFile := ""
-	if cfg.Enrollment.CAFile != nil {
-		caFile = *cfg.Enrollment.CAFile
-	}
-	client, origin, err := enrollmentClient(cfg.Enrollment.Origin, caFile)
-	if err != nil {
-		return contracts.EnrollmentAcceptedV1{}, err
-	}
-	defer client.CloseIdleConnections()
 	logf("enrolling with the provisioned bootstrap credential")
 	return enroll(ctx, store, client, origin, token)
 }

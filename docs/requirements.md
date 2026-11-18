@@ -157,7 +157,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Smart contract and anchoring runtime | RQ-07 | Unsupported | `packages/audit` has no anchorer | — |
 | Lifecycle recommendations, sustainability, longevity, fleet trends | RQ-08 | Contract | [lifecycle v2](#provisional-lifecycle-wire-contract-ct08-78) | Evaluator, calibrated model, aggregator |
 | External asset integration; independent network observer | RQ-11 | Unsupported | Blocked in [release-scope](roadmap/release-scope.md#conditional-scope-decisions) | — |
-| Endpoint Windows service host as LocalService (start, stop, restart, SCM recovery, refusals) | RQ-10, RQ-02 | Target hardware | [windows-service-26](validation/windows-service-26.md), 18 Nov, two runs; enrollment through the real controller handlers on PostgreSQL 18.1 | Delivery and spool (#27); reboot and power loss; a real collector failure in the service (tests only) |
+| Endpoint Windows service host as LocalService (start, stop, restart, SCM recovery, refusals) | RQ-10, RQ-02 | Target hardware | [windows-service-26](validation/windows-service-26.md), 18 Nov, three runs; enrollment through the real controller handlers on PostgreSQL 18.1; SCM restart after a kill and after a non-crash exit | Delivery and spool (#27); reboot and power loss; a real collector failure in the service (tests only) |
 | Endpoint packaging, signed install, upgrade, uninstall and release | RQ-10 | Unsupported | `tools/service` is a development install; no package (#57, #137, #68) | — |
 
 Open dependencies of this matrix (#138, #51, #130, #137) and later evidence must

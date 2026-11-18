@@ -60,6 +60,10 @@ func (h *endpointService) Execute(_ []string, requests <-chan svc.ChangeRequest,
 		log.printf("refusing to start: %s", err)
 		return true, exitAccount
 	}
+	if err := checkEvidenceACL(cfg.EvidenceDir); err != nil {
+		log.printf("refusing to start: %s", err)
+		return true, exitConfig
+	}
 	log.printf("starting: %s", token)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -88,7 +92,8 @@ func (h *endpointService) Execute(_ []string, requests <-chan svc.ChangeRequest,
 					log.printf("stopped cleanly")
 					return false, 0
 				case <-time.After(stopTimeout):
-					log.printf("workers did not stop within %s", stopTimeout)
+					// No log write here: a worker stuck in log I/O holds its
+					// lock. The SCM records the exit code.
 					return true, exitShutdown
 				}
 			}
@@ -141,6 +146,47 @@ func checkServiceToken() (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("account=LocalService elevated=false service_sid=%s privileges=%s", serviceSID, strings.Join(privileges, ",")), nil
+}
+
+// checkEvidenceACL refuses an evidence directory, or an existing evidence
+// file, whose DACL allows anyone but SYSTEM, Administrators and this service.
+// Signed telemetry is private device data and only the service appends to it.
+// Deny entries only narrow access and are accepted.
+func checkEvidenceACL(dir string) error {
+	serviceSID, err := storagePrincipal()
+	if err != nil {
+		return err
+	}
+	for _, path := range []string{dir, filepath.Join(dir, evidenceLogFile)} {
+		sd, err := windows.GetNamedSecurityInfo(path, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION)
+		if errors.Is(err, windows.ERROR_FILE_NOT_FOUND) && path != dir {
+			continue
+		}
+		if err != nil {
+			return errors.New("read evidence ACL")
+		}
+		dacl, _, err := sd.DACL()
+		if err != nil || dacl == nil {
+			return errors.New("evidence storage requires a DACL")
+		}
+		for i := range uint32(dacl.AceCount) {
+			var ace *windows.ACCESS_ALLOWED_ACE
+			if windows.GetAce(dacl, i, &ace) != nil {
+				return errors.New("read evidence ACL entry")
+			}
+			switch ace.Header.AceType {
+			case windows.ACCESS_DENIED_ACE_TYPE:
+				continue
+			case windows.ACCESS_ALLOWED_ACE_TYPE:
+				switch (*windows.SID)(unsafe.Pointer(&ace.SidStart)).String() {
+				case "S-1-5-18", "S-1-5-32-544", serviceSID:
+					continue
+				}
+			}
+			return errors.New("evidence storage grants access beyond SYSTEM, Administrators and the service; reinstall to reset it")
+		}
+	}
+	return nil
 }
 
 // tokenPrivileges lists each privilege as Name(enabled) or Name(disabled).

@@ -896,7 +896,7 @@ they cannot be provisioned interactively and handed over. The service enrolls
 under its own token on first start. The administrator places a one-use
 `bootstrap.json` in a directory that only SYSTEM, Administrators and the
 service SID can reach. The service deletes it as soon as it is read. A
-bootstrap file left beside an admitted identity is deleted unused.
+bootstrap file left beside an admitted identity is deleted unused. The TLS settings are validated before the credential is read, so a configuration mistake does not consume it.
 
 The hosted pipeline is the TEL08 scheduler. Every snapshot with a known metric
 is signed with the SEC07 sequence and appended to a synced, size-capped local
@@ -904,6 +904,6 @@ file. That file is local evidence, not a spool. On start, a torn final line is
 truncated, leaving a sequence gap. At the cap the service stops with an error;
 it does not rotate or drop evidence. Delivery and the bounded retrying spool
 stay with #27/#95. A non-zero service exit code triggers the SCM recovery
-actions (`failureflag 1`). `tools/service` is a development install, not the
+actions (`failureflag 1`). The installer replaces each state DACL instead of adding grants. The service refuses evidence storage open to anyone but SYSTEM, Administrators and itself, because signed telemetry is private device data. Run 3 showed that a non-zero exit is restarted without a reboot. `tools/service` is a development install, not the
 #57 package. Evidence is in
 [windows-service-26.md](validation/windows-service-26.md).

@@ -98,6 +98,9 @@ func TestServiceQualificationHarness(t *testing.T) {
 			result.KnownCPUSnapshots++
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("evidence file could not be read to its end: %v", err)
+	}
 	if result.Envelopes == 0 {
 		t.Fatal(errors.New("the service signed no evidence"))
 	}

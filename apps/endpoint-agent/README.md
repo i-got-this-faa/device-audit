@@ -224,13 +224,16 @@ failure, including a non-zero service exit code (`sc.exe failureflag 1`). At
 start the service refuses LocalSystem, NetworkService, any other account, an
 elevated token, a missing service SID and any privilege outside that set.
 
-Under `%ProgramData%\DeviceAudit\Endpoint` the installer grants the service
-SID read and create-folder access on the root, modify access on `evidence` and
-`enrollment`, and read access on `service.json`. The service creates
-`identity` itself with the private DACL described above, so provisioning and
-every later read use the same service token. On first start without an
-admission receipt, it reads `enrollment\bootstrap.json`, deletes it, and
-enrolls. A bootstrap file found beside an admitted identity is deleted unused.
+Under `%ProgramData%\DeviceAudit\Endpoint` the installer replaces every DACL
+with SYSTEM and Administrators full access plus the service SID's own right. The
+service SID gets read and create-folder access on the root, modify access on
+`evidence` and `enrollment`, and read access on the config files. The service
+refuses evidence storage open to anyone else. It creates `identity` itself
+with the private DACL described above, so provisioning and every later read use
+the same service token. On first start without an admission receipt, it
+validates the TLS settings, then reads `enrollment\bootstrap.json`, deletes it
+and enrolls. A bootstrap file found beside an admitted identity is deleted
+unused. No configured path may lie inside `state_dir`.
 
 The pipeline is the `--sample` schedule (default, or `sampling_config`). Each
 snapshot with a known metric becomes telemetry v2 for the admitted device ID
@@ -244,9 +247,10 @@ failures and budget summaries. Stop and shutdown cancel the workers and wait
 at most 25 s. A collector failure becomes a null with a reason and sampling
 continues.
 
-Exit codes: 1 configuration, 2 refused account or privilege, 3 pipeline
-failure, 4 workers did not stop. `Uninstall-EndpointService.ps1` keeps the
-state unless `-PurgeState` is given. This is a development install, not the
+Exit codes: 1 configuration or evidence ACL, 2 refused account or privilege,
+3 pipeline failure, 4 workers did not stop. `Uninstall-EndpointService.ps1`
+keeps the state unless `-PurgeState` is given, and refuses to purge a
+directory holding anything but the endpoint's own entries. This is a development install, not the
 signed release installer (#57). See
 [windows-service-26.md](../../docs/validation/windows-service-26.md).
 

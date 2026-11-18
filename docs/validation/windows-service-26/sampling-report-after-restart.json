@@ -63,8 +63,8 @@
       }
     ]
   },
-  "started_at": "2026-11-18T07:32:08.5744337Z",
-  "ended_at": "2026-11-18T07:32:39.5544901Z",
+  "started_at": "2026-11-18T08:32:50.1166167Z",
+  "ended_at": "2026-11-18T08:33:20.5961478Z",
   "emits": 3,
   "sources": [
     {
@@ -76,7 +76,7 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 250.9878,
+      "max_query_ms": 251.2349,
       "provider_busy_at_end": false
     },
     {
@@ -88,7 +88,7 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 0,
+      "max_query_ms": 0.5229,
       "provider_busy_at_end": false
     },
     {
@@ -100,7 +100,7 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 0.677,
+      "max_query_ms": 0.662,
       "provider_busy_at_end": false
     },
     {
@@ -118,7 +118,7 @@
       "details": {
         "interface_down": 8
       },
-      "max_query_ms": 253.9005,
+      "max_query_ms": 253.7168,
       "provider_busy_at_end": false
     },
     {
@@ -130,7 +130,7 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 0.677,
+      "max_query_ms": 0,
       "provider_busy_at_end": false
     },
     {
@@ -142,7 +142,7 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 192.8004,
+      "max_query_ms": 193.6908,
       "provider_busy_at_end": false
     },
     {
@@ -154,7 +154,7 @@
       "overruns": 0,
       "known_readings": 12,
       "null_readings": 0,
-      "max_query_ms": 441.8297,
+      "max_query_ms": 442.7417,
       "provider_busy_at_end": false
     },
     {
@@ -166,19 +166,19 @@
       "overruns": 0,
       "known_readings": 4,
       "null_readings": 0,
-      "max_query_ms": 72.1606,
+      "max_query_ms": 80.75,
       "provider_busy_at_end": false
     }
   ],
   "budget": {
-    "wall_ms": 30980.0564,
-    "cpu_ms": 421.875,
-    "cpu_percent_one_core": 1.3617631761315967,
-    "rss_peak_bytes": 25993216,
-    "os_peak_rss_bytes": 26140672,
+    "wall_ms": 30480.3387,
+    "cpu_ms": 218.75,
+    "cpu_percent_one_core": 0.717675752074238,
+    "rss_peak_bytes": 27848704,
+    "os_peak_rss_bytes": 27955200,
     "rss_samples": 35,
-    "rss_peak_after": "gpu_engine",
-    "rss_peak_at_ms": 30252.6991,
+    "rss_peak_after": "cpu",
+    "rss_peak_at_ms": 30251.7299,
     "cpu_within_budget": true,
     "rss_within_budget": true
   }

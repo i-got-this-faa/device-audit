@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -81,6 +82,9 @@ func readEnvelopes(t *testing.T, i *identity, receipt contracts.EnrollmentAccept
 	scanner.Buffer(nil, maxTornTail)
 	for scanner.Scan() {
 		out = append(out, verifyEnvelope(t, i, receipt, scanner.Bytes()))
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatal(err)
 	}
 	return out
 }
@@ -213,6 +217,16 @@ func TestServiceAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// A local TLS mistake is caught before the one-use credential is consumed.
+	missingCA := filepath.Join(t.TempDir(), "absent.pem")
+	broken := cfg
+	broken.Enrollment = &serviceEnrollment{Origin: server.URL, CAFile: &missingCA, BootstrapFile: bootstrap}
+	if _, err := admitService(context.Background(), store, broken, logf); err == nil {
+		t.Fatal("enrolled with a missing CA file")
+	}
+	if _, err := os.Stat(bootstrap); err != nil {
+		t.Fatal("a CA mistake consumed the bootstrap file")
+	}
 	receipt, err := admitService(context.Background(), store, cfg, logf)
 	if err != nil {
 		t.Fatal(err)
@@ -261,6 +275,24 @@ func TestServiceConfigIsStrict(t *testing.T) {
 		if _, err := loadServiceConfig(path); err == nil {
 			t.Fatalf("%s accepted", name)
 		}
+	}
+	// The bootstrap file is deleted after reading and evidence is written, so
+	// neither may point into identity storage. Windows paths ignore case.
+	inside := []string{filepath.Join(cfg.StateDir, receiptFile), cfg.StateDir}
+	if runtime.GOOS == "windows" {
+		inside = append(inside, strings.ToUpper(filepath.Join(cfg.StateDir, receiptFile)))
+	}
+	for _, p := range inside {
+		bad := cfg
+		bad.Enrollment = &serviceEnrollment{Origin: "https://controller.example.org", BootstrapFile: p}
+		if bad.validate() == nil {
+			t.Fatalf("bootstrap_file %s inside state_dir accepted", p)
+		}
+	}
+	bad := cfg
+	bad.EvidenceDir = filepath.Join(cfg.StateDir, "evidence")
+	if bad.validate() == nil {
+		t.Fatal("evidence_dir inside state_dir accepted")
 	}
 }
 

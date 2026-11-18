@@ -14,19 +14,22 @@
       "step": "first_start_enrolls_samples_and_stops",
       "passed": true,
       "detail": {
-        "bootstrap_removed": true,
-        "pid": 16484,
         "win32_exit_code": 0,
-        "stop_ms": 542
+        "envelopes": 9,
+        "stop_ms": 551,
+        "pid": 18560,
+        "bootstrap_removed": true
       }
     },
     {
-      "step": "killed_process_restarted_by_scm",
+      "step": "killed_process_restarted_by_scm_and_signs",
       "passed": true,
       "detail": {
-        "killed_pid": 7308,
-        "restart_ms": 6024,
-        "new_pid": 5560
+        "envelopes_after_30s": 15,
+        "envelopes_at_restart": 12,
+        "new_pid": 24460,
+        "restart_ms": 5509,
+        "killed_pid": 1916
       }
     },
     {
@@ -37,23 +40,35 @@
       }
     },
     {
+      "step": "full_evidence_exit_restarted_by_scm",
+      "passed": true,
+      "detail": {
+        "log_reports_full": true,
+        "service_exit_code": 3,
+        "process_ids": [
+          19780,
+          24024
+        ]
+      }
+    },
+    {
       "step": "local_system_refused",
       "passed": true,
       "detail": {
-        "log_contains": "refuses LocalSystem",
         "win32_exit_code": 1066,
-        "start_call_succeeded": false,
-        "service_exit_code": 2
+        "service_exit_code": 2,
+        "log_contains": "refuses LocalSystem",
+        "start_call_succeeded": false
       }
     },
     {
       "step": "extra_privilege_refused",
       "passed": true,
       "detail": {
-        "log_contains": "outside the documented privileges",
         "win32_exit_code": 1066,
-        "start_call_succeeded": false,
-        "service_exit_code": 2
+        "service_exit_code": 2,
+        "log_contains": "outside the documented privileges",
+        "start_call_succeeded": false
       }
     }
   ]

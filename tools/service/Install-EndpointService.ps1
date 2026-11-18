@@ -15,8 +15,12 @@ token to SeChangeNotifyPrivilege, configures restart-on-failure, and prepares:
   <Root>\enrollment     CA file and the one-use bootstrap file
   <Root>\identity       created by the service itself with its private DACL
 
--BootstrapFile is moved, not copied, into the protected enrollment directory.
-The service deletes it as soon as it reads it.
+Every directory and file gets an exact protected DACL: SYSTEM and
+Administrators full, plus the service SID's own right. Existing access entries
+are replaced, not merged. -BootstrapFile is moved, not copied, into the
+enrollment directory; the service deletes it as soon as it reads it. Inputs are
+checked before the service is registered, and a failure after registration
+removes that registration and keeps any existing state.
 #>
 [CmdletBinding()]
 param(
@@ -35,69 +39,92 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $name = 'DeviceAuditEndpoint'
-$sid = "NT SERVICE\$name"
 function Invoke-Native([string]$Program, [string[]]$Arguments) {
     $out = & $Program @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) { throw "$Program $($Arguments -join ' ') failed ($LASTEXITCODE): $out" }
+}
+# Replaces the whole DACL of Path with SYSTEM and Administrators full access
+# plus the service SID's entry, and blocks inheritance from the parent.
+function Set-PrivateAcl([string]$Path, [string]$ServiceAce) {
+    $inherit = if (Test-Path -LiteralPath $Path -PathType Container) { 'OICI' } else { '' }
+    $acl = Get-Acl -LiteralPath $Path
+    $acl.SetSecurityDescriptorSddlForm("D:P(A;$inherit;FA;;;SY)(A;$inherit;FA;;;BA)$ServiceAce", 'Access')
+    Set-Acl -LiteralPath $Path -AclObject $acl
 }
 
 $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this installer elevated.' }
 if (Get-Service -Name $name -ErrorAction SilentlyContinue) { throw "$name is already installed; run Uninstall-EndpointService.ps1 first." }
 if (($EnrollmentOrigin -or $BootstrapFile) -and -not ($EnrollmentOrigin -and $BootstrapFile)) { throw 'Enrollment needs both -EnrollmentOrigin and -BootstrapFile.' }
+foreach ($file in @($AgentPath, $CAFile, $BootstrapFile, $SamplingConfig) | Where-Object { $_ }) {
+    if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "input file $file does not exist" }
+}
 
-$null = New-Item -ItemType Directory -Force -Path $InstallDir
 $exe = Join-Path $InstallDir 'endpoint-agent.exe'
-Copy-Item -LiteralPath $AgentPath -Destination $exe -Force
-
-# The service SID only resolves once the service exists, so create it first.
 $config = Join-Path $Root 'service.json'
-$binPath = "`"$exe`" --service --service-config `"$config`""
-$start = if ($StartType -eq 'Automatic') { 'auto' } else { 'demand' }
-Invoke-Native sc.exe @('create', $name, 'binPath=', $binPath, 'obj=', 'NT AUTHORITY\LocalService', 'start=', $start, 'DisplayName=', 'Device Audit endpoint collector')
-Invoke-Native sc.exe @('description', $name, 'Samples endpoint telemetry and signs it with the admitted device identity (TEL02 #26).')
-Invoke-Native sc.exe @('sidtype', $name, 'unrestricted')
-Invoke-Native sc.exe @('privs', $name, 'SeChangeNotifyPrivilege')
-$delay = $RestartDelaySeconds * 1000
-Invoke-Native sc.exe @('failure', $name, 'reset=', '86400', 'actions=', "restart/$delay/restart/$delay/restart/$delay")
-# Treat a non-zero service exit code as a failure, so recovery actions run.
-Invoke-Native sc.exe @('failureflag', $name, '1')
+$registered = $false
+try {
+    $null = New-Item -ItemType Directory -Force -Path $InstallDir
+    Copy-Item -LiteralPath $AgentPath -Destination $exe -Force
 
-# Root: administrators and SYSTEM only, plus traverse/read and create-folder
-# on the root itself so the service can create its private identity directory.
-$evidence = Join-Path $Root 'evidence'
-$enrollment = Join-Path $Root 'enrollment'
-$null = New-Item -ItemType Directory -Force -Path $Root, $evidence, $enrollment
-Invoke-Native icacls.exe @($Root, '/inheritance:r', '/grant:r', 'SYSTEM:(OI)(CI)F', 'BUILTIN\Administrators:(OI)(CI)F', "${sid}:(RX,AD)")
-Invoke-Native icacls.exe @($evidence, '/grant', "${sid}:(OI)(CI)M")
-Invoke-Native icacls.exe @($enrollment, '/grant', "${sid}:(OI)(CI)M")
+    # The service SID only resolves once the service exists, so create it first.
+    $binPath = "`"$exe`" --service --service-config `"$config`""
+    $start = if ($StartType -eq 'Automatic') { 'auto' } else { 'demand' }
+    Invoke-Native sc.exe @('create', $name, 'binPath=', $binPath, 'obj=', 'NT AUTHORITY\LocalService', 'start=', $start, 'DisplayName=', 'Device Audit endpoint collector')
+    $registered = $true
+    Invoke-Native sc.exe @('description', $name, 'Samples endpoint telemetry and signs it with the admitted device identity (TEL02 #26).')
+    Invoke-Native sc.exe @('sidtype', $name, 'unrestricted')
+    Invoke-Native sc.exe @('privs', $name, 'SeChangeNotifyPrivilege')
+    $delay = $RestartDelaySeconds * 1000
+    Invoke-Native sc.exe @('failure', $name, 'reset=', '86400', 'actions=', "restart/$delay/restart/$delay/restart/$delay")
+    # Treat a non-zero service exit code as a failure, so recovery actions run.
+    Invoke-Native sc.exe @('failureflag', $name, '1')
+    $sid = ([Security.Principal.NTAccount]"NT SERVICE\$name").Translate([Security.Principal.SecurityIdentifier]).Value
 
-$enrollmentConfig = $null
-if ($EnrollmentOrigin) {
-    $caPath = $null
-    if ($CAFile) {
-        $caPath = Join-Path $enrollment 'ca.pem'
-        Copy-Item -LiteralPath $CAFile -Destination $caPath -Force
+    # Root: traverse, read and create-folder only, so the service can create
+    # its private identity directory. 0x1200ad = generic read/execute + add subdirectory.
+    $evidence = Join-Path $Root 'evidence'
+    $enrollment = Join-Path $Root 'enrollment'
+    $null = New-Item -ItemType Directory -Force -Path $Root, $evidence, $enrollment
+    Set-PrivateAcl $Root "(A;;0x1200ad;;;$sid)"
+    Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)"
+    Set-PrivateAcl $enrollment "(A;OICI;0x1301bf;;;$sid)"
+    foreach ($existing in Get-ChildItem -LiteralPath $evidence, $enrollment -File) {
+        Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)"
     }
-    $bootstrapPath = Join-Path $enrollment 'bootstrap.json'
-    Move-Item -LiteralPath $BootstrapFile -Destination $bootstrapPath -Force
-    # A moved file keeps its old DACL; reset it to the directory's.
-    Invoke-Native icacls.exe @($bootstrapPath, '/reset')
-    $enrollmentConfig = [ordered]@{ origin = $EnrollmentOrigin; ca_file = $caPath; bootstrap_file = $bootstrapPath }
+
+    $enrollmentConfig = $null
+    if ($EnrollmentOrigin) {
+        $caPath = $null
+        if ($CAFile) {
+            $caPath = Join-Path $enrollment 'ca.pem'
+            Copy-Item -LiteralPath $CAFile -Destination $caPath -Force
+            Set-PrivateAcl $caPath "(A;;FR;;;$sid)"
+        }
+        $bootstrapPath = Join-Path $enrollment 'bootstrap.json'
+        Move-Item -LiteralPath $BootstrapFile -Destination $bootstrapPath -Force
+        # A moved file keeps its old DACL; replace it. Modify lets the service delete it.
+        Set-PrivateAcl $bootstrapPath "(A;;0x1301bf;;;$sid)"
+        $enrollmentConfig = [ordered]@{ origin = $EnrollmentOrigin; ca_file = $caPath; bootstrap_file = $bootstrapPath }
+    }
+    $samplingPath = $null
+    if ($SamplingConfig) {
+        $samplingPath = Join-Path $Root 'sampling.json'
+        Copy-Item -LiteralPath $SamplingConfig -Destination $samplingPath -Force
+        Set-PrivateAcl $samplingPath "(A;;FR;;;$sid)"
+    }
+    [ordered]@{
+        schema_version     = 'device-audit.endpoint-service.v1'
+        state_dir          = (Join-Path $Root 'identity')
+        evidence_dir       = $evidence
+        max_evidence_bytes = $MaxEvidenceBytes
+        sampling_config    = $samplingPath
+        enrollment         = $enrollmentConfig
+    } | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8NoBOM
+    Set-PrivateAcl $config "(A;;FR;;;$sid)"
+} catch {
+    # Roll back only this attempt's registration; identity and evidence stay.
+    if ($registered) { & sc.exe delete $name *> $null }
+    throw
 }
-$samplingPath = $null
-if ($SamplingConfig) {
-    $samplingPath = Join-Path $Root 'sampling.json'
-    Copy-Item -LiteralPath $SamplingConfig -Destination $samplingPath -Force
-    Invoke-Native icacls.exe @($samplingPath, '/grant', "${sid}:R")
-}
-[ordered]@{
-    schema_version     = 'device-audit.endpoint-service.v1'
-    state_dir          = (Join-Path $Root 'identity')
-    evidence_dir       = $evidence
-    max_evidence_bytes = $MaxEvidenceBytes
-    sampling_config    = $samplingPath
-    enrollment         = $enrollmentConfig
-} | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8NoBOM
-Invoke-Native icacls.exe @($config, '/grant', "${sid}:R")
 Write-Host "Installed $name ($StartType) as NT AUTHORITY\LocalService; config $config"
