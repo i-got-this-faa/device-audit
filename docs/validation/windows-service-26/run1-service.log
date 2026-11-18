@@ -1,0 +1,14 @@
+2026-11-18T07:25:38Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T07:25:38Z bootstrap file removed (bootstrap read)
+2026-11-18T07:25:38Z enrolling with the provisioned bootstrap credential
+2026-11-18T07:25:38Z identity admitted: signing key ed25519:7087d69edd446fdbb7f76fc813e30d39c255533e6c6a8d1ccdcad9111958b3c3, last receipt sequence 1
+2026-11-18T07:27:09Z sampling budget: cpu 0.223% of one core (limit 2.000%), rss peak 85975040 bytes (limit 67108864), within=false; 9 snapshots, 0 not signed, last sequence 10
+2026-11-18T07:27:09Z stopped cleanly
+2026-11-18T07:27:10Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T07:27:10Z identity admitted: signing key ed25519:7087d69edd446fdbb7f76fc813e30d39c255533e6c6a8d1ccdcad9111958b3c3, last receipt sequence 1
+2026-11-18T07:27:46Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T07:27:46Z identity admitted: signing key ed25519:7087d69edd446fdbb7f76fc813e30d39c255533e6c6a8d1ccdcad9111958b3c3, last receipt sequence 1
+2026-11-18T07:28:16Z sampling budget: cpu 1.187% of one core (limit 2.000%), rss peak 26275840 bytes (limit 67108864), within=true; 3 snapshots, 0 not signed, last sequence 16
+2026-11-18T07:28:16Z stopped cleanly
+2026-11-18T07:28:17Z refusing to start: service mode refuses LocalSystem; run as NT AUTHORITY\LocalService
+2026-11-18T07:28:19Z refusing to start: service mode refuses an elevated token

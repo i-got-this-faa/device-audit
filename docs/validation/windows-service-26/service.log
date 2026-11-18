@@ -1,0 +1,20 @@
+2026-11-18T08:43:06Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T08:43:06Z bootstrap file removed (bootstrap read)
+2026-11-18T08:43:06Z enrolling with the provisioned bootstrap credential
+2026-11-18T08:43:06Z identity admitted: signing key ed25519:368bde8d6d027f38015c32f1999df83544e68c801dfd52541f806ad283624db5, last receipt sequence 1
+2026-11-18T08:44:37Z sampling budget: cpu 0.585% of one core (limit 2.000%), rss peak 30035968 bytes (limit 67108864), within=true; 9 snapshots, 0 not signed, last sequence 10
+2026-11-18T08:44:37Z stopped cleanly
+2026-11-18T08:44:37Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T08:44:37Z identity admitted: signing key ed25519:368bde8d6d027f38015c32f1999df83544e68c801dfd52541f806ad283624db5, last receipt sequence 1
+2026-11-18T08:45:13Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T08:45:13Z identity admitted: signing key ed25519:368bde8d6d027f38015c32f1999df83544e68c801dfd52541f806ad283624db5, last receipt sequence 1
+2026-11-18T08:45:44Z sampling budget: cpu 0.855% of one core (limit 2.000%), rss peak 27521024 bytes (limit 67108864), within=true; 3 snapshots, 0 not signed, last sequence 16
+2026-11-18T08:45:44Z stopped cleanly
+2026-11-18T08:45:44Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T08:45:44Z identity admitted: signing key ed25519:368bde8d6d027f38015c32f1999df83544e68c801dfd52541f806ad283624db5, last receipt sequence 1
+2026-11-18T08:45:54Z pipeline failed: signed evidence file reached max_evidence_bytes; delivery and spooling (#27) are not implemented
+2026-11-18T08:46:00Z starting: account=LocalService elevated=false service_sid=S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432 privileges=SeChangeNotifyPrivilege(enabled)
+2026-11-18T08:46:00Z identity admitted: signing key ed25519:368bde8d6d027f38015c32f1999df83544e68c801dfd52541f806ad283624db5, last receipt sequence 1
+2026-11-18T08:46:10Z pipeline failed: signed evidence file reached max_evidence_bytes; delivery and spooling (#27) are not implemented
+2026-11-18T08:46:30Z refusing to start: service mode refuses LocalSystem; run as NT AUTHORITY\LocalService
+2026-11-18T08:46:32Z refusing to start: service token holds SeImpersonatePrivilege outside the documented privileges; reinstall with sc.exe privs

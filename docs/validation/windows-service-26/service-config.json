@@ -1,0 +1,7 @@
+{
+  "qc": "[SC] QueryServiceConfig SUCCESS\r\n\r\nSERVICE_NAME: DeviceAuditEndpoint\r\n        TYPE               : 10  WIN32_OWN_PROCESS \r\n        START_TYPE         : 3   DEMAND_START\r\n        ERROR_CONTROL      : 1   NORMAL\r\n        BINARY_PATH_NAME   : \"C:\\Program Files\\DeviceAudit\\endpoint-agent.exe\" --service --service-config \"C:\\ProgramData\\DeviceAudit\\Endpoint\\service.json\"\r\n        LOAD_ORDER_GROUP   : \r\n        TAG                : 0\r\n        DISPLAY_NAME       : Device Audit endpoint collector\r\n        DEPENDENCIES       : \r\n        SERVICE_START_NAME : NT AUTHORITY\\LocalService",
+  "qsidtype": "[SC] QueryServiceConfig2 SUCCESS\r\n\r\nSERVICE_NAME: DeviceAuditEndpoint\r\nSERVICE_SID_TYPE:  UNRESTRICTED",
+  "qprivs": "[SC] QueryServiceConfig2 SUCCESS\r\n\r\nSERVICE_NAME: DeviceAuditEndpoint\r\n        PRIVILEGES       : SeChangeNotifyPrivilege",
+  "qfailure": "[SC] QueryServiceConfig2 SUCCESS\r\n\r\nSERVICE_NAME: DeviceAuditEndpoint\r\n        RESET_PERIOD (in seconds)    : 86400\r\n        REBOOT_MESSAGE               : \r\n        COMMAND_LINE                 : \r\n        FAILURE_ACTIONS              : RESTART -- Delay = 5000 milliseconds.\r\n                                       RESTART -- Delay = 5000 milliseconds.\r\n                                       RESTART -- Delay = 5000 milliseconds.",
+  "qfailureflag": "[SC] QueryServiceConfig2 SUCCESS\r\n\r\nSERVICE_NAME: DeviceAuditEndpoint\r\nFAILURE_ACTIONS_ON_NONCRASH_FAILURES:  TRUE"
+}
