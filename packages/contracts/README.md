@@ -266,5 +266,6 @@ selected model. `device-audit.feature-window.v1` is the input and
 `features-v1.schema.json`. `FeatureWindowV1.Features()` in Go and
 `device_audit_models.features.compute` in Python are the references, and the
 30 shared vectors hold them within `1e-12 + 1e-12·abs(expected)`. Any other
-feature version is rejected with `ErrUnsupportedFeatureVersion`. No endpoint collector reads SMART
-counters, so the endpoint vector is `incomplete` and the prediction `unknown`.
+feature version is rejected: Go returns an error matching
+`ErrUnsupportedFeatureVersion` and Python raises `UnsupportedFeatureVersion`.
+No endpoint collector reads SMART counters, so the endpoint vector is `incomplete` and the prediction `unknown`.
