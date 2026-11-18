@@ -2,6 +2,7 @@ package contracts
 
 import (
 	"crypto/ed25519"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,6 +11,10 @@ import (
 const (
 	DiagnosticAssignmentV1Version = "device-audit.diagnostic-assignment.v1"
 	DiagnosticResultV1Version     = "device-audit.diagnostic-result.v1"
+
+	// The only allowlisted read-only probes.
+	DiagnosticProbeStorageHealthV1 = "storage_health.v1"
+	DiagnosticProbeSystemErrorsV1  = "system_errors.v1"
 )
 
 type DiagnosticArgumentsV1 struct {
@@ -118,17 +123,26 @@ func (a DiagnosticAssignmentV1) validateBody() error {
 	if issued.Add(time.Duration(a.Budget.WallSeconds) * time.Second).After(deadline) {
 		return fmt.Errorf("wall budget exceeds assignment lifetime")
 	}
-	switch a.ProbeID {
-	case "storage_health.v1":
-		if a.Arguments.ComponentID == nil || !opaqueIDPattern.MatchString(*a.Arguments.ComponentID) || a.Arguments.LookbackSeconds != nil || a.Arguments.MaxEntries != nil {
+	return a.Arguments.ValidateFor(a.ProbeID)
+}
+
+// ErrDiagnosticProbeNotAllowlisted rejects any probe ID outside the CT06 list.
+var ErrDiagnosticProbeNotAllowlisted = errors.New("probe is not allowlisted")
+
+// ValidateFor checks that the arguments have exactly the shape probeID needs.
+// It is the only argument check; assignments and the endpoint catalog share it.
+func (a DiagnosticArgumentsV1) ValidateFor(probeID string) error {
+	switch probeID {
+	case DiagnosticProbeStorageHealthV1:
+		if a.ComponentID == nil || !opaqueIDPattern.MatchString(*a.ComponentID) || a.LookbackSeconds != nil || a.MaxEntries != nil {
 			return fmt.Errorf("storage health requires only component_id")
 		}
-	case "system_errors.v1":
-		if a.Arguments.ComponentID != nil || a.Arguments.LookbackSeconds == nil || *a.Arguments.LookbackSeconds < 1 || *a.Arguments.LookbackSeconds > 86400 || a.Arguments.MaxEntries == nil || *a.Arguments.MaxEntries < 1 || *a.Arguments.MaxEntries > 256 {
+	case DiagnosticProbeSystemErrorsV1:
+		if a.ComponentID != nil || a.LookbackSeconds == nil || *a.LookbackSeconds < 1 || *a.LookbackSeconds > 86400 || a.MaxEntries == nil || *a.MaxEntries < 1 || *a.MaxEntries > 256 {
 			return fmt.Errorf("system errors requires bounded lookback and entry count")
 		}
 	default:
-		return fmt.Errorf("probe is not allowlisted")
+		return ErrDiagnosticProbeNotAllowlisted
 	}
 	return nil
 }

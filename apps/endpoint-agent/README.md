@@ -189,6 +189,24 @@ failed write repeats records on the next poll instead of losing them. Damaged
 position state fails closed. See
 [error-evidence-93.md](../../docs/validation/error-evidence-93.md).
 
+## Read-only diagnostic probes, DIA01 #36
+
+```sh
+echo '{"probe_id":"storage_health.v1","arguments":{"component_id":"storage:disk-0","lookback_seconds":null,"max_entries":null},"budget":{"wall_seconds":30,"max_output_bytes":4096}}' \
+  | endpoint-agent --run-probe
+```
+
+Runs one CT06 probe from the catalog in `packages/workflows` and prints a
+`device-audit.probe-evidence.v1` document. Only `storage_health.v1`
+(`component_id` `storage:disk-<n>`, an OS disk number) and `system_errors.v1`
+(`lookback_seconds`, `max_entries` per log) exist. The request is strict JSON;
+unknown keys, paths and other probe names are rejected with exit 2 before
+anything runs. A probe that runs and fails prints a
+`device-audit.probe-failure.v1` record with a CT06 reason and exits 1.
+Error evidence carries message digests, never message text. This is a local
+operator check: assignment signature, target and expiry checks are DIA03 #38.
+See [probe-catalog-36.md](../../docs/validation/probe-catalog-36.md).
+
 ## Verification
 
 ```sh

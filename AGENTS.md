@@ -9,6 +9,7 @@ scaffold implements the claims, patent conformance, or legal coverage.
 - `apps/controller` and `internal/controller`: Go controller and ingestion.
 - `apps/endpoint-agent`: Go endpoint process. `--sample`, `--collect-telemetry`
   and `--collect-errors` read the Windows collectors in `packages/telemetry`.
+  `--run-probe` runs one allowlisted read-only probe from `packages/workflows`.
   Synthetic loopback telemetry requires `--fixture`; there is no default mode.
 - `packages/contracts`: versioned telemetry, prediction, workflow, and audit types.
 - `packages/health`, `packages/federated`, `packages/lifecycle`, `packages/audit`:

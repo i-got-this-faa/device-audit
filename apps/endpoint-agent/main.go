@@ -15,6 +15,7 @@ import (
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/telemetry"
+	"github.com/i-got-this-faa/device-audit/packages/workflows"
 )
 
 func main() {
@@ -37,7 +38,14 @@ func main() {
 	samplingDuration := flag.Duration("sampling-duration", 5*time.Minute, "how long --sample runs, from 1s to 24h")
 	samplingReport := flag.String("sampling-report", "", "new file for the sampling budget report")
 	fixture := flag.Bool("fixture", false, "send synthetic fixture telemetry to a loopback development controller")
+	runProbe := flag.Bool("run-probe", false, "run one allowlisted read-only diagnostic probe from a JSON request on stdin")
 	flag.Parse()
+	if *runProbe {
+		if flag.NFlag() != 1 {
+			fail(fmt.Errorf("--run-probe runs alone"))
+		}
+		os.Exit(runProbeRequest(context.Background(), workflows.NewCatalog(), os.Stdin, os.Stdout, os.Stderr))
+	}
 	modes := 0
 	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence, *collectErrors} {
 		if selected {
