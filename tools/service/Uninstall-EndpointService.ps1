@@ -40,8 +40,10 @@ if ($PurgeState -and (Test-Path -LiteralPath $Root)) {
     # ownership so an administrator can remove it.
     $out = & takeown.exe /F $Root /R /A /D Y 2>&1
     if ($LASTEXITCODE -ne 0) { throw "takeown failed ($LASTEXITCODE): $out" }
-    $out = & icacls.exe $Root /reset /T /C /Q 2>&1
-    if ($LASTEXITCODE -ne 0) { throw "icacls reset failed ($LASTEXITCODE): $out" }
+    # Add Administrators instead of resetting: /reset would restore inherited
+    # access from the parent and expose evidence if the delete then failed.
+    $out = & icacls.exe $Root /grant:r "*S-1-5-32-544:(OI)(CI)F" /T /C /Q 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "icacls grant failed ($LASTEXITCODE): $out" }
     Remove-Item -LiteralPath $Root -Recurse -Force
 }
 Write-Host "Removed $name$(if ($PurgeState) { ' and purged its state' } else { '; state kept' })"
