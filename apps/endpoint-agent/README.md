@@ -203,9 +203,33 @@ Runs one CT06 probe from the catalog in `packages/workflows` and prints a
 unknown keys, paths and other probe names are rejected with exit 2 before
 anything runs. A probe that runs and fails prints a
 `device-audit.probe-failure.v1` record with a CT06 reason and exits 1.
-Error evidence carries message digests, never message text. This is a local
-operator check: assignment signature, target and expiry checks are DIA03 #38.
-See [probe-catalog-36.md](../../docs/validation/probe-catalog-36.md).
+Error evidence carries message digests instead of message text. See
+[probe-catalog-36.md](../../docs/validation/probe-catalog-36.md).
+
+On Windows the probe runs in a worker process. The runner allows one active
+worker per runner instance. A second request returns a concurrency failure
+immediately. The worker has a 64 MiB committed-memory cap, five seconds of
+CPU time, below-normal priority and room for one process. The parent kills
+and reaps it on cancellation or overrun. The output cap applies to evidence,
+including any partial evidence. The small structured failure wrapper is
+separate. Successful and partial evidence keep the existing schema.
+
+Use the following command for a local signed CT06 assignment check with the
+same worker limits:
+
+```powershell
+Get-Content -Raw assignment.json | endpoint-agent --run-assigned-probe `
+  --state-dir C:\private\identity --diagnostic-controller-key-file controller.pem
+```
+
+The runner verifies the signature under the pinned diagnostic controller key,
+matches the deployment and device against local admission, and requires the
+signed wall budget to fit before expiry. The expiry and any caller deadline
+also constrain execution. Cancellation, expiry, and wall, CPU, memory,
+concurrency or output exhaustion are reported separately when observed.
+Durable assignment deduplication and signed remote result delivery are tracked
+in the diagnostic workflow issues. The sampler runs independently of the
+diagnostic worker.
 
 ## Windows service host, TEL02 #26
 
@@ -238,13 +262,10 @@ unused. No configured path may lie inside `state_dir`.
 
 The pipeline is the `--sample` schedule (default, or `sampling_config`). Each
 snapshot with a known metric becomes telemetry v2 for the admitted device ID
-and is signed with the crash-safe sequence. The signed envelopes are appended,
-one per line and synced, to `evidence\signed-evidence.jsonl`. A crash can tear
-the final line; the next start truncates it, leaving a sequence gap. When the
-file would exceed `max_evidence_bytes` the service stops with an error instead
-of dropping evidence. Delivery and a retrying spool are #27. Each clean stop
-writes a `sampling-report-*.json`; `service.log` records starts, the token,
-failures and budget summaries. Stop and shutdown cancel the workers and wait
+and is signed with the crash-safe sequence. The spool stores the signed bytes
+in sequence order under the private evidence directory. Each clean stop writes
+a sampling report. The service log records starts, failures and the number of
+snapshots rejected by the spool. Stop and shutdown cancel the workers and wait
 at most 25 s. A collector failure becomes a null with a reason and sampling
 continues.
 
@@ -254,6 +275,39 @@ keeps the state unless `-PurgeState` is given, and refuses to purge a
 directory holding anything but the endpoint's own entries. This is a development install, not the
 signed release installer (#57). See
 [windows-service-26.md](../../docs/validation/windows-service-26.md).
+
+## Signed evidence spool, TEL03 #27
+
+The installer accepts `-MaxEvidenceBytes` (default 64 MiB) and
+`-MaxEvidenceRecords` (default 4096, range 1–65536). Old configurations
+without `max_evidence_records` use the default. When either limit is hit,
+the service keeps all queued records, visibly rejects the new snapshot and
+continues sampling. Sequence gaps are allowed. The queue uses one extra record
+of scratch space for a transaction and retains the last acknowledged envelope
+as its durable high-water mark.
+
+Startup validates the committed records against the admitted public key and
+reports corruption without advancing the queue. Complete records from the
+older JSONL file are imported byte for byte. If that file ends with a torn
+record or contains invalid data, the service stops and preserves the source
+for review. A crash during migration resumes from the original file. A migrated backlog above a configured limit
+is retained and blocks new appends until the backlog shrinks.
+
+For a development installation, stop its writer and run these maintenance
+commands under the same account that owns the admitted identity.
+
+```text
+endpoint-agent --spool-next --service-config <config>
+endpoint-agent --spool-ack --service-config <config> --controller-ack-key-file <pinned-key.pem>
+```
+
+The first command reads the head without dequeuing it. The second
+reads a signed acknowledgement from stdin and retires only the head and only
+on a matching accepted response verified with the configured controller key.
+A timeout, replay rejection or other unverified outcome leaves the envelope
+queued. Keep the exact saved bytes on retry. The installed LocalService uses
+its own identity boundary. Its automated delivery, reconnect and backoff are
+tracked in [#96](https://github.com/i-got-this-faa/device-audit/issues/96).
 
 ## Verification
 

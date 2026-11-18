@@ -64,3 +64,12 @@ func TestServiceCommandLine(t *testing.T) {
 		}
 	}
 }
+
+func makeTestEvidencePrivate(t *testing.T, path string) {
+	t.Helper()
+	principal, err := storagePrincipal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	setTestACL(t, path, "D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;FA;;;"+principal+")")
+}

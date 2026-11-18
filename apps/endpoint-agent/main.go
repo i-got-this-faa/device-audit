@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -41,12 +42,48 @@ func main() {
 	runProbe := flag.Bool("run-probe", false, "run one allowlisted read-only diagnostic probe from a JSON request on stdin")
 	service := flag.Bool("service", false, "run the signed sampling pipeline as the installed Windows service")
 	serviceConfigPath := flag.String("service-config", "", "service configuration JSON, required with --service")
+	spoolNext := flag.Bool("spool-next", false, "write the oldest queued envelope without dequeuing it")
+	spoolAck := flag.Bool("spool-ack", false, "retire the oldest queued envelope after verifying the accepted acknowledgement on stdin")
+	signedProbe := flag.Bool("run-assigned-probe", false, "run one signed diagnostic assignment from stdin for the admitted identity")
+	diagnosticKey := flag.String("diagnostic-controller-key-file", "", "pinned controller Ed25519 diagnostic assignment public key PEM")
+	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
 	flag.Parse()
+	if *probeWorker {
+		if flag.NFlag() != 1 || flag.NArg() != 0 {
+			fail(fmt.Errorf("invalid probe worker arguments"))
+		}
+		os.Exit(runProbeWorker(os.Stdin, os.Stdout, os.Stderr))
+	}
+	if *signedProbe {
+		if *stateDir == "" || *diagnosticKey == "" || flag.NFlag() != 3 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--run-assigned-probe requires --state-dir and --diagnostic-controller-key-file"))
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		code := runAssignedProbe(ctx, *stateDir, *diagnosticKey, os.Stdin, os.Stdout, os.Stderr)
+		stop()
+		os.Exit(code)
+	}
+	if *spoolNext || *spoolAck {
+		expected := 2
+		if *spoolAck {
+			expected++
+		}
+		if *spoolNext == *spoolAck || *serviceConfigPath == "" || *spoolAck != (*controllerAckKeyFile != "") || flag.NFlag() != expected || flag.NArg() != 0 {
+			fail(fmt.Errorf("choose --spool-next or --spool-ack, supply --service-config and pin the controller acknowledgement key for --spool-ack"))
+		}
+		if err := runSpoolCommand(*serviceConfigPath, *controllerAckKeyFile, *spoolAck, os.Stdin, os.Stdout); err != nil {
+			fail(err)
+		}
+		return
+	}
 	if *runProbe {
-		if flag.NFlag() != 1 {
+		if flag.NFlag() != 1 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--run-probe runs alone"))
 		}
-		os.Exit(runProbeRequest(context.Background(), workflows.NewCatalog(), os.Stdin, os.Stdout, os.Stderr))
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		code := runProbeRequest(ctx, workflows.NewProbeRunner(executeProbeWorker), os.Stdin, os.Stdout, os.Stderr)
+		stop()
+		os.Exit(code)
 	}
 	if *service || *serviceConfigPath != "" {
 		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
@@ -173,7 +210,7 @@ func main() {
 		return
 	}
 	if *transport == "mesh" {
-		controllerKey, err := loadControllerAckKey(*controllerAckKeyFile)
+		controllerKey, err := loadControllerPublicKey(*controllerAckKeyFile)
 		if err != nil {
 			fail(err)
 		}

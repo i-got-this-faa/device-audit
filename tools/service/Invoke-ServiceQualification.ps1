@@ -14,8 +14,7 @@ created. It installs the service with the harness's bootstrap file, then:
   3. starts it again on the same identity;
   4. kills the process, waits for the SCM recovery restart, and requires a new
      signed envelope from the replacement process;
-  5. fills the evidence file to its cap so the pipeline fails with exit code 3,
-     and requires the SCM to restart it (non-crash recovery, no reboot);
+  5. lowers the spool record limit and verifies retention at capacity;
   6. checks that LocalSystem and an extra privilege are refused;
   7. copies the evidence, service log and identity ACL to <HarnessDir>\evidence,
      uninstalls the service and purges its test identity.
@@ -35,7 +34,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $name = 'DeviceAuditEndpoint'
 $root = Join-Path $env:ProgramData 'DeviceAudit\Endpoint'
-$evidenceFile = Join-Path $root 'evidence\signed-evidence.jsonl'
+$evidenceDir = Join-Path $root 'evidence'
 $serviceLog = Join-Path $root 'evidence\service.log'
 $out = Join-Path $HarnessDir 'evidence'
 $steps = [Collections.Generic.List[object]]::new()
@@ -78,8 +77,7 @@ function Invoke-Sc([string[]]$Arguments) {
     ($text | Out-String).Trim()
 }
 function Get-EnvelopeCount {
-    if (-not (Test-Path -LiteralPath $evidenceFile)) { return 0 }
-    @(Get-Content -LiteralPath $evidenceFile).Count
+    @(Get-ChildItem -LiteralPath $evidenceDir -Filter 'spool-*.json' -File).Count
 }
 function Start-AndExpectRefusal([string]$Step, [int]$ExitCode, [string]$Text) {
     $started = $true
@@ -142,39 +140,21 @@ try {
     $stopped = Wait-State 'Stopped' 60
     Add-Result 'restarted_service_stops_cleanly' ($stopped.ExitCode -eq 0) @{ win32_exit_code = $stopped.ExitCode }
 
-    # 5. Non-crash failure: a full evidence file makes the pipeline exit with
-    # service code 3, which failureflag 1 must turn into an SCM restart.
-    $size = (Get-Item -LiteralPath $evidenceFile).Length
-    $pad = 1MB - $size - 256
-    [IO.File]::AppendAllText($evidenceFile, ('x' * $pad) + "`n")
-    try {
-        Start-Service -Name $name
-        $pids = [Collections.Generic.HashSet[int]]::new()
-        $deadline = [DateTime]::UtcNow.AddSeconds(90)
-        do {
-            $s = Get-State
-            if ($s.ProcessId -ne 0) { $null = $pids.Add($s.ProcessId) }
-            Start-Sleep -Milliseconds 250
-        } while ($pids.Count -lt 2 -and [DateTime]::UtcNow -lt $deadline)
-        $null = Invoke-Sc @('failureflag', $name, '0')
-        # A restart already scheduled can still fire: settle only once the
-        # service has stayed stopped longer than the delay plus one emit.
-        $deadline = [DateTime]::UtcNow.AddSeconds(120)
-        $since = [DateTime]::UtcNow
-        do {
-            Start-Sleep -Milliseconds 500
-            $s = Get-State
-            if ($s.State -ne 'Stopped') { $since = [DateTime]::UtcNow }
-        } while (([DateTime]::UtcNow - $since).TotalSeconds -lt 20 -and [DateTime]::UtcNow -lt $deadline)
-        if ($s.State -ne 'Stopped') { throw 'service kept restarting after failureflag 0' }
-        $full = (Get-Content -LiteralPath $serviceLog -Raw).Contains('reached max_evidence_bytes')
-        Add-Result 'full_evidence_exit_restarted_by_scm' ($pids.Count -ge 2 -and $full -and $s.ServiceExitCode -eq 3) @{ process_ids = @($pids); service_exit_code = $s.ServiceExitCode; log_reports_full = $full }
-    } finally {
-        # Remove the padding so the harness verifies only signed envelopes.
-        $stream = [IO.File]::Open($evidenceFile, 'Open', 'Write')
-        try { $stream.SetLength($size) } finally { $stream.Dispose() }
-    }
-
+    # 5. Lower the record cap while stopped. The next sample must retain the queue.
+    $configPath = Join-Path $root 'service.json'
+    $cfg = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    $before = Get-EnvelopeCount
+    $cfg.max_evidence_records = $before
+    $cfg | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $configPath -Encoding utf8NoBOM
+    Start-Service -Name $name
+    $null = Wait-State 'Running' 30
+    Start-Sleep -Seconds 25
+    $retained = Get-EnvelopeCount
+    Stop-Service -Name $name
+    $s = Wait-State 'Stopped' 60
+    $full = (Get-Content -LiteralPath $serviceLog -Raw).Contains('signed evidence spool full')
+    Add-Result 'full_spool_retains_records' ($before -gt 0 -and $retained -eq $before -and $full -and $s.ExitCode -eq 0) @{ before = $before; retained = $retained; log_reports_full = $full }
+    $null = Invoke-Sc @('failureflag', $name, '0')
     # 6. Unsupported runtime; failureflag is already off, so no restarts.
     $null = Invoke-Sc @('config', $name, 'obj=', 'LocalSystem')
     Start-AndExpectRefusal 'local_system_refused' 2 'refuses LocalSystem'

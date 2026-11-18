@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -45,6 +44,7 @@ func testServiceConfig(t *testing.T, stateDir string) serviceConfig {
 	if err := os.Mkdir(evidence, 0o700); err != nil {
 		t.Fatal(err)
 	}
+	makeTestEvidencePrivate(t, evidence)
 	return serviceConfig{SchemaVersion: serviceConfigSchema, StateDir: stateDir, EvidenceDir: evidence, MaxEvidenceBytes: minEvidenceCap, SamplingConfig: &sampling}
 }
 
@@ -74,18 +74,17 @@ func cpuSource(broken *atomic.Bool, hang bool) func(telemetry.SamplingConfig) te
 
 func readEnvelopes(t *testing.T, i *identity, receipt contracts.EnrollmentAcceptedV1, dir string) []contracts.EvidenceEnvelopeV1 {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(dir, evidenceLogFile))
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
+	files, err := filepath.Glob(filepath.Join(dir, "spool-*.json"))
+	if err != nil {
 		t.Fatal(err)
 	}
 	var out []contracts.EvidenceEnvelopeV1
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	scanner.Buffer(nil, maxTornTail)
-	for scanner.Scan() {
-		out = append(out, verifyEnvelope(t, i, receipt, scanner.Bytes()))
-	}
-	if err := scanner.Err(); err != nil {
-		t.Fatal(err)
+	for _, path := range files {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, verifyEnvelope(t, i, receipt, data))
 	}
 	return out
 }
@@ -347,28 +346,5 @@ func TestServiceConfigIsStrict(t *testing.T) {
 	bad.EvidenceDir = filepath.Join(cfg.StateDir, "evidence")
 	if bad.validate() == nil {
 		t.Fatal("evidence_dir inside state_dir accepted")
-	}
-}
-
-// A torn final record from a crash is truncated; a full file stops the
-// pipeline instead of dropping evidence.
-func TestEvidenceSinkTornTailAndCap(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, evidenceLogFile)
-	if err := os.WriteFile(path, []byte("{\"sequence\":2}\n{\"seq"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	sink, err := openEvidenceSink(dir, 200)
-	if err != nil || !sink.repaired || sink.size != int64(len("{\"sequence\":2}\n")) {
-		t.Fatalf("torn tail: %v %+v", err, sink)
-	}
-	envelope := contracts.EvidenceEnvelopeV1{PayloadBase64: strings.Repeat("A", 300)}
-	if err := sink.append(envelope); !errors.Is(err, errEvidenceFull) {
-		t.Fatalf("over cap = %v", err)
-	}
-	sink.close()
-	data, _ := os.ReadFile(path)
-	if string(data) != "{\"sequence\":2}\n" {
-		t.Fatalf("file after cap = %q", data)
 	}
 }

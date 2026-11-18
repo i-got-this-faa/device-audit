@@ -33,6 +33,7 @@ param(
     [string]$BootstrapFile,
     [string]$SamplingConfig,
     [ValidateRange(1048576, 1073741824)][long]$MaxEvidenceBytes = 64MB,
+    [ValidateRange(1, 65536)][int]$MaxEvidenceRecords = 4096,
     [ValidateRange(1, 86400)][int]$RestartDelaySeconds = 60,
     [ValidateSet('Automatic', 'Manual')][string]$StartType = 'Automatic'
 )
@@ -125,6 +126,7 @@ try {
         state_dir          = (Join-Path $Root 'identity')
         evidence_dir       = $evidence
         max_evidence_bytes = $MaxEvidenceBytes
+        max_evidence_records = $MaxEvidenceRecords
         sampling_config    = $samplingPath
         enrollment         = $enrollmentConfig
     } | ConvertTo-Json | Set-Content -LiteralPath $config -Encoding utf8NoBOM
