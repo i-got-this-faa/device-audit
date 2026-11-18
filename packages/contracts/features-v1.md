@@ -142,8 +142,8 @@ both languages, so only the `log1p` implementations can differ.
 ## Shared vectors
 
 [`fixtures/features/v1-vectors.json`](fixtures/features/v1-vectors.json) has
-29 cases: 10 valid windows with expected vectors, 9 rejected windows, 2 valid
-vectors and 8 rejected vectors. The expected values come from hand-written
+30 cases: 10 valid windows with expected vectors, 9 rejected windows, 2 valid
+vectors and 9 rejected vectors. The expected values come from hand-written
 first/final day values in [`generate.py`](fixtures/features/generate.py), not
 from either implementation:
 

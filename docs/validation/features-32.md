@@ -10,7 +10,7 @@ endpoint collector, controller pipeline or training run was added.
 | --- | --- |
 | Feature ordering, windows, normalization, noise filter and null handling encoded from collectors and dataset decisions | `features-v1.md`, `features-v1.schema.json`, `FeatureWindowV1.Features()` and `features.compute`. Counter selection is tested against ML01's committed null counts. The collector mapping records that no endpoint collector reads SMART. |
 | Cross-language fixtures reject incompatible feature versions | `hdd-smart-7d.v2` windows and vectors give `unsupported_feature_version` in Go (`ErrUnsupportedFeatureVersion`) and Python (`UnsupportedFeatureVersion`). Reordered features, a missing feature and an excluded counter are rejected. |
-| Equal preprocessing results within recorded tolerance | All 10 valid windows produce the expected vector in both languages within `1e-12 + 1e-12·|expected|`. The expected values come from hand-written day values, not from either implementation. |
+| Equal preprocessing results within recorded tolerance | All 10 valid windows produce the expected vector in both languages within `1e-12 + 1e-12·abs(expected)`. The expected values come from hand-written day values, not from either implementation. |
 | Other owner approves before consumers merge | **Open.** The PR is the review boundary for #101, #102 and #105. |
 
 ## Fault checks
@@ -39,7 +39,7 @@ git diff --check
 
 - `make check`: `go vet`, `go test -race ./...`, 55 Python tests including
   the 4 new feature tests, controller fake scenarios and `go fmt`. Passed.
-- `make contract-check`: 318 golden vectors (29 new), 75 wire cases (4 new)
+- `make contract-check`: 319 golden vectors (30 new), 75 wire cases (4 new)
   and 27 reader versions (2 new). Passed.
 - `make cross-build` built Windows amd64, then failed the Darwin arm64 build in
   `runtime/cgo` (`gcc: unrecognized option '-arch'`). The Nix shell sets

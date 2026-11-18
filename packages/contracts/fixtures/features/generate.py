@@ -147,6 +147,7 @@ invalid("complete status with a missing value", vmutated(lambda v: [v["features"
                                                                      v["features"][5].update(value=None, missing_reason="no_observation")]), True)
 invalid("last and delta disagree", vmutated(lambda v: v.update(status="incomplete") or v["features"][0].update(value=None, missing_reason="no_observation")), True)
 invalid("window not ending on the as_of day", vmutated(lambda v: v.update(window_start="2013-10-31", window_end="2013-11-06")), True)
+invalid("known value with an empty missing reason", vmutated(lambda v: v["features"][0].update(missing_reason="")), False)
 invalid("known value with a missing reason", vmutated(lambda v: v["features"][0].update(missing_reason="no_observation")), False)
 invalid("negative last value", vmutated(lambda v: v["features"][0].update(value=-0.5)), True)
 invalid("missing feature", vmutated(lambda v: v["features"].pop()), False)

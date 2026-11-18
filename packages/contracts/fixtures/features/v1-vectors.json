@@ -1805,6 +1805,54 @@
    "expected": null
   },
   {
+   "name": "known value with an empty missing reason",
+   "payload": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 2.833213344056216,
+      "unit": "log1p_count",
+      "missing_reason": ""
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 2.833213344056216,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": 0.0,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   },
+   "schema_valid": false,
+   "valid": false,
+   "rejection": "invalid_contract",
+   "expected": null
+  },
+  {
    "name": "known value with a missing reason",
    "payload": {
     "schema_version": "device-audit.feature-vector.v1",

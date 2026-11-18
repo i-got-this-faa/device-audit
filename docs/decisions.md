@@ -872,7 +872,7 @@ yields `log1p(final)` and the signed `log1p` of `final − first`; decreases sta
 negative.
 
 Go and Python reference implementations agree within `1e-12` absolute plus
-`1e-12` relative on 29 shared vectors, which `make contract-check` runs.
+`1e-12` relative on 30 shared vectors, which `make contract-check` runs.
 Readers reject any other feature version as `unsupported_feature_version`.
 
 No endpoint collector reads SMART counters, so the endpoint and controller

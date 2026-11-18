@@ -6,8 +6,8 @@ reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
 Follow-up: [CT03 frozen feature version, 18 November 2026](validation/features-32.md)
 fixes the SMART counter order, seven-day window, `log1p` transform and
-missing-value rules, with Go and Python references held to `1e-12` on shared
-vectors. No endpoint collector reads SMART counters.
+missing-value rules, with Go and Python references held to `1e-12 + 1e-12·abs(expected)`
+on shared vectors. No endpoint collector reads SMART counters.
 
 Follow-up: [TEL08 bounded configurable sampling, 17 November 2026](validation/sampling-94.md)
 records the per-source scheduler, its isolation tests, the explicit fixture

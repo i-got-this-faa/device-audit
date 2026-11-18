@@ -121,7 +121,11 @@ func (f *FeatureValueV1) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	required := []string{"name", "value", "unit"}
-	if _, ok := fields["missing_reason"]; ok {
+	if reason, ok := fields["missing_reason"]; ok {
+		// Present means non-empty; "" must not read as an absent reason.
+		if string(reason) == `""` {
+			return fmt.Errorf("missing_reason cannot be empty")
+		}
 		required = append(required, "missing_reason")
 	}
 	type wire FeatureValueV1

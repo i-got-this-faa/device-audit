@@ -172,6 +172,10 @@ def close(actual: dict, expected: dict) -> bool:
     for a, e in zip(actual["features"], expected["features"]):
         if (a["value"] is None) != (e["value"] is None):
             return False
-        if a["value"] is not None and abs(a["value"] - e["value"]) > TOLERANCE + TOLERANCE * abs(e["value"]):
+        if a["value"] is None:
+            continue
+        if not (math.isfinite(a["value"]) and math.isfinite(e["value"])):
+            return False
+        if abs(a["value"] - e["value"]) > TOLERANCE + TOLERANCE * abs(e["value"]):
             return False
     return True

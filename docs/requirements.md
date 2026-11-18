@@ -117,7 +117,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | --- | --- | --- | --- | --- |
 | Backblaze 2013 dataset, labels and partitions | RQ-04 | Local lab | [verification](../models/datasets/backblaze-2013/verification.md); `dataset-reproduction` job | Laptop or NVMe representativeness; validation split has 4 events |
 | Predeclared evaluation and resource thresholds | RQ-04 | Contract | [model-thresholds-86](validation/model-thresholds-86.md), 17 Nov | Any computed metric, trained model or measured cost |
-| Frozen feature version `hdd-smart-7d.v1` | RQ-04 | Contract | [features-32](validation/features-32.md), 18 Nov; Go/Python agree on 29 shared vectors | Real telemetry or archive runs; no SMART collector, so endpoint vectors are `incomplete` |
+| Frozen feature version `hdd-smart-7d.v1` | RQ-04 | Fixture | [features-32](validation/features-32.md), 18 Nov; Go/Python agree on 30 shared vectors | Real telemetry or archive runs; no SMART collector, so endpoint vectors are `incomplete` |
 | Trained model, inference and health prediction | RQ-04 | Unsupported | [models/README](../models/README.md); demo health is `unknown` | — |
 | Federated aggregation | RQ-06 | Fixture | Weighted-average primitive in `models` | Two-endpoint training, validated updates, promotion |
 
