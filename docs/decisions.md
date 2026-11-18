@@ -879,3 +879,35 @@ The endpoint refuses to send evidence when that check fails. The controller logs
 the failure and keeps its HTTPS boundary running. Neither falls back to public
 relays, plaintext or weaker TLS. Evidence and remaining gaps are in
 [relay-fallback-88.md](validation/relay-fallback-88.md).
+
+## Windows service host, TEL02 #26
+
+On 18 November 2026 the endpoint gained `--service`, hosted by the Windows
+service control manager as `NT AUTHORITY\LocalService` with an unrestricted
+per-service SID (`NT SERVICE\DeviceAuditEndpoint`). The installer restricts
+the token to `SeChangeNotifyPrivilege`. The service itself refuses any other
+account or privilege, an elevated token or a missing service SID, so a
+misconfigured install fails with a reason instead of running wider. A
+LocalService token alone is not accepted: SEC02 storage binds keys to the
+service SID.
+
+SEC02 keys are bound to the service SID and the LocalService DPAPI profile, so
+they cannot be provisioned interactively and handed over. The service enrolls
+under its own token on first start. The administrator places a one-use
+`bootstrap.json` in a directory that only SYSTEM, Administrators and the
+service SID can reach. The service deletes it once admission is confirmed, or at
+once when it is invalid or expired. After a failed enrollment, such as an
+unreachable controller, it stays for the SCM retry; the controller rejects a
+consumed token and the token expires in ten minutes. A bootstrap file left beside
+an admitted identity is deleted unused. The TLS settings are validated before the
+credential is read.
+
+The hosted pipeline is the TEL08 scheduler. Every snapshot with a known metric
+is signed with the SEC07 sequence and appended to a synced, size-capped local
+file. That file is local evidence, not a spool. On start, a torn final line is
+truncated, leaving a sequence gap. At the cap the service stops with an error;
+it does not rotate or drop evidence. Delivery and the bounded retrying spool
+stay with #27/#95. A non-zero service exit code triggers the SCM recovery
+actions (`failureflag 1`). The installer replaces each state DACL instead of adding grants. The service refuses evidence storage open to anyone but SYSTEM, Administrators and itself, because signed telemetry is private device data. Run 3 showed that a non-zero exit is restarted without a reboot. `tools/service` is a development install, not the
+#57 package. Evidence is in
+[windows-service-26.md](validation/windows-service-26.md).

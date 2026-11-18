@@ -1,0 +1,75 @@
+{
+  "schema": "device-audit.service-qualification.v1",
+  "passed": true,
+  "steps": [
+    {
+      "step": "interactive_service_refused",
+      "passed": true,
+      "detail": {
+        "exit_code": 1,
+        "stderr": "--service runs only under the Windows service control manager; install it with tools/service/Install-EndpointService.ps1"
+      }
+    },
+    {
+      "step": "first_start_enrolls_samples_and_stops",
+      "passed": true,
+      "detail": {
+        "pid": 15412,
+        "envelopes": 9,
+        "win32_exit_code": 0,
+        "bootstrap_removed": true,
+        "stop_ms": 527
+      }
+    },
+    {
+      "step": "killed_process_restarted_by_scm_and_signs",
+      "passed": true,
+      "detail": {
+        "restart_ms": 6127,
+        "envelopes_at_restart": 12,
+        "new_pid": 1616,
+        "killed_pid": 8796,
+        "envelopes_after_30s": 15
+      }
+    },
+    {
+      "step": "restarted_service_stops_cleanly",
+      "passed": true,
+      "detail": {
+        "win32_exit_code": 0
+      }
+    },
+    {
+      "step": "full_evidence_exit_restarted_by_scm",
+      "passed": true,
+      "detail": {
+        "log_reports_full": true,
+        "process_ids": [
+          18284,
+          17688
+        ],
+        "service_exit_code": 3
+      }
+    },
+    {
+      "step": "local_system_refused",
+      "passed": true,
+      "detail": {
+        "start_call_succeeded": false,
+        "win32_exit_code": 1066,
+        "log_contains": "refuses LocalSystem",
+        "service_exit_code": 2
+      }
+    },
+    {
+      "step": "extra_privilege_refused",
+      "passed": true,
+      "detail": {
+        "start_call_succeeded": false,
+        "win32_exit_code": 1066,
+        "log_contains": "outside the documented privileges",
+        "service_exit_code": 2
+      }
+    }
+  ]
+}
