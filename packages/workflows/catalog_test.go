@@ -54,10 +54,16 @@ type fakeEvents struct {
 	*recorder
 	events map[string][]telemetry.RawEvent
 	denied map[string]bool
+	// stall, when set, blocks Bounds until closed and ignores ctx, like an
+	// event-log call without its own timeout.
+	stall chan struct{}
 }
 
 func (f fakeEvents) Bounds(_ context.Context, log string) (telemetry.LogBounds, error) {
 	f.add("bounds:" + log)
+	if f.stall != nil {
+		<-f.stall
+	}
 	if f.denied[log] {
 		return telemetry.LogBounds{}, telemetry.ErrPermissionDenied
 	}
@@ -179,6 +185,8 @@ func TestSystemErrorsOmitsCommandLikeLogContent(t *testing.T) {
 		},
 		telemetry.LogApplication: {
 			{RecordID: 5, Provider: "Application Error", EventID: 1000, Level: 2, TimeCreated: at, Message: hostile[2], MessageStatus: telemetry.MessageComplete},
+			// Publisher-shaped but unregistered: anyone can log under this name.
+			{RecordID: 6, Provider: "powershell -enc ZQBjAGgAbwAg", EventID: 0, Level: 2, TimeCreated: at, MessageStatus: telemetry.MessageUnavailable},
 		},
 	}}
 	rec := &recorder{}
@@ -186,7 +194,7 @@ func TestSystemErrorsOmitsCommandLikeLogContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, text := range append(hostile, "powershell", "cmd.exe", "whoami", "curl", "rm -rf", "System32") {
+	for _, text := range append(hostile, "powershell", "ZQBjAGgAbwAg", "cmd.exe", "whoami", "curl", "rm -rf", "System32") {
 		if strings.Contains(string(encoded), text) {
 			t.Fatalf("evidence carries log text %q: %s", text, encoded)
 		}
@@ -204,6 +212,10 @@ func TestSystemErrorsOmitsCommandLikeLogContent(t *testing.T) {
 	}
 	if system[1].ProviderSHA256 != digest("cmd.exe /c whoami") || system[0].MessageSHA256 != digest(hostile[0]) || system[0].MessageBytes != len(hostile[0]) {
 		t.Fatalf("digests = %+v", system)
+	}
+	application := evidence.Body.Logs[1].Records
+	if len(application) != 2 || application[0].Provider == nil || application[1].Provider != nil || application[1].ProviderSHA256 != digest("powershell -enc ZQBjAGgAbwAg") {
+		t.Fatalf("unregistered provider handling = %+v", application)
 	}
 }
 
@@ -304,6 +316,31 @@ func TestBudgetsBoundTheProbe(t *testing.T) {
 	cancel()
 	if _, err := testCatalog(&recorder{}, fakeDisks{block: true}, fakeEvents{}).Run(ctx, storageRequest("storage:disk-0")); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled run = %v", err)
+	}
+
+	// A stalled event-log call that ignores its context cannot hold the probe,
+	// and no later log read starts after the deadline.
+	stall := make(chan struct{})
+	defer close(stall)
+	rec := &recorder{}
+	events := errorsRequest(60, 8)
+	events.Budget.WallSeconds = 1
+	start = time.Now()
+	_, err = testCatalog(rec, fakeDisks{}, fakeEvents{stall: stall}).Run(context.Background(), events)
+	if !errors.As(err, &failure) || failure.Detail != "wall_budget" || time.Since(start) > 5*time.Second {
+		t.Fatalf("stalled event log = %v after %s", err, time.Since(start))
+	}
+	if got := rec.list(); len(got) != 1 || got[0] != "bounds:System" {
+		t.Fatalf("calls after the deadline = %v", got)
+	}
+
+	// A result completed after the wall budget is not a success.
+	late := testCatalog(&recorder{}, fakeDisks{health: StorageHealth{BusType: "nvme"}}, fakeEvents{})
+	late.Now = func() time.Time { time.Sleep(1100 * time.Millisecond); return fixedNow }
+	req = storageRequest("storage:disk-0")
+	req.Budget.WallSeconds = 1
+	if _, err := late.Run(context.Background(), req); !errors.As(err, &failure) || failure.Detail != "wall_budget" {
+		t.Fatalf("late success = %v", err)
 	}
 }
 

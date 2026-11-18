@@ -190,10 +190,11 @@ local IDs is not done.
 `system_errors.v1` reuses the TEL07 reader with the assignment's lookback and
 per-log entry limit. It never moves the `--collect-errors` read positions.
 Event messages are reduced to a SHA-256 digest. Any process can log under an
-unregistered source name, so a provider name is kept only when it looks like a
-publisher name and is reduced to its digest otherwise. A denied log or disk is a
-`permission_denied` failure without retry, elevation or state change. A probe
-that fails after its wall budget is `budget_exhausted`, and evidence larger than
+arbitrary unregistered source name, so a provider name is kept only when its
+publisher is registered and the name is publisher-shaped. Otherwise it is reduced
+to its digest. A denied log or disk is a `permission_denied` failure without
+retry, elevation or state change. Each OS call is abandoned at the wall budget,
+and any outcome observed after it is `budget_exhausted`. Evidence larger than
 `max_output_bytes` is never returned. Assignment signature and target checks
 and signed results remain DIA03 #38. Evidence is in
 [probe-catalog-36.md](validation/probe-catalog-36.md).

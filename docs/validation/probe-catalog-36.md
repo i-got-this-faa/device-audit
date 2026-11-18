@@ -32,9 +32,12 @@ Every success is a `device-audit.probe-evidence.v1` document. It carries
   not_applicable`.
 - **No raw log content.** Event messages never appear in probe output, only the
   SHA-256 of the TEL07-bounded message, its size and status. Any process can
-  write an event under an unregistered source name, so a provider name is kept
-  only when it matches `^[A-Za-z0-9][A-Za-z0-9 ._-]{0,127}$`; otherwise
-  `provider` is null and only `provider_sha256` remains.
+  write an event under an arbitrary unregistered source name, such as
+  `powershell -enc …`, but registering a publisher needs administrator rights.
+  A provider name is therefore kept only when its publisher is registered (the
+  message status is not `unavailable`) and the name matches
+  `^[A-Za-z0-9][A-Za-z0-9 ._-]{0,127}$`. Otherwise `provider` is null and only
+  `provider_sha256` remains.
 - **No side effects.** The error probe passes no saved positions, so it never
   moves `--collect-errors` state. No probe writes files, changes ACLs, elevates
   or retries with more access.
@@ -45,11 +48,14 @@ Every success is a `device-audit.probe-evidence.v1` document. It carries
   | Disk open or query denied | `permission_denied` / `storage_access_denied` |
   | Any event log denied | `permission_denied` / `event_log_access_denied`, with the other log as partial evidence |
   | Absent or failed log | `probe_error` / `event_log_<outcome>` |
-  | Failure after `wall_seconds` | `budget_exhausted` / `wall_budget` |
+  | Any outcome observed after `wall_seconds` | `budget_exhausted` / `wall_budget` |
   | Evidence larger than `max_output_bytes` | `budget_exhausted` / `output_budget`; no evidence returned |
 
-  Partial evidence is dropped when it exceeds the output budget. A cancelled
-  parent context returns the cancellation, for the runner to report.
+  Each provider call, the disk query and each event log separately, runs in a
+  goroutine the probe abandons at the deadline, so a call blocked in the OS
+  cannot hold it; no log read starts after the deadline. Partial evidence is
+  dropped when it exceeds the output budget. A cancelled parent context returns
+  the cancellation, for the runner to report.
 
 `endpoint-agent --run-probe` reads one strict request on standard input. It
 exits 0 with evidence, 1 with a `device-audit.probe-failure.v1` record, or 2
@@ -70,16 +76,19 @@ does not verify an assignment signature, target or expiry.
   called for any of them.
 - `TestSystemErrorsOmitsCommandLikeLogContent`: events whose messages contain
   an encoded PowerShell command, `cmd.exe /c del … && curl … | sh` and `$(rm
-  -rf /)`, plus a provider named `cmd.exe /c whoami`. None of that text appears
-  in the evidence; the digests match.
+  -rf /)`, a provider named `cmd.exe /c whoami`, and an unregistered,
+  publisher-shaped provider `powershell -enc ZQBjAGgAbwAg`. None of that text
+  appears in the evidence; the digests match.
 - `TestSystemErrorsHonoursLookbackAndMaxEntries`: lookback and the per-log cap
   apply and the cut sets `more`.
 - `TestDeniedProbePermissionsFailWithoutSideEffects`: a denied System log gives
   `permission_denied` with Application as partial evidence; the call log is
   exactly `bounds:System, bounds:Application, read:Application`. A denied disk
   is read once and not retried.
-- `TestStorageHealthEvidence`, `TestBudgetsBoundTheProbe` (output budget, a
-  provider that blocks past a 1-second wall budget, parent cancellation),
+- `TestStorageHealthEvidence`, `TestBudgetsBoundTheProbe` (output budget; a
+  disk provider and an event-log call that each block past a 1-second wall
+  budget, with no Application read started afterwards; a result completed
+  after the budget; parent cancellation),
   `TestParseNVMeHealthLog` (field offsets, null temperature, a counter above 64
   bits, a short page).
 

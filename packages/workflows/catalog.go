@@ -154,9 +154,9 @@ type SystemErrorLog struct {
 
 // ErrorDigest is one error event without free log text. MessageSHA256 is the
 // digest of the TEL07-bounded message, so it matches a --collect-errors record
-// without copying the text; it is empty when no message was read. Any process
-// can log under an unregistered source name, so Provider is kept only when it
-// looks like a publisher name and is null otherwise; ProviderSHA256 is always set.
+// without copying the text; it is empty when no message was read. Provider is
+// null unless its publisher is registered and the name is publisher-shaped
+// (see digestRecord); ProviderSHA256 is always set.
 type ErrorDigest struct {
 	RecordID       uint64    `json:"record_id"`
 	Provider       *string   `json:"provider"`
@@ -212,15 +212,13 @@ func (c Catalog) Run(ctx context.Context, req Request) ([]byte, error) {
 		// Validate already rejected it; keep the switch exhaustive.
 		return nil, contracts.ErrDiagnosticProbeNotAllowlisted
 	}
-	// The event-log collector records a timeout per log rather than returning
-	// it, so any failure once the wall budget is gone is budget exhaustion.
-	if err != nil {
-		if parentErr := context.Cause(ctx); errors.Is(parentErr, context.Canceled) {
-			return nil, parentErr
-		}
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			return nil, &Failure{Reason: ReasonBudgetExhausted, Detail: "wall_budget"}
-		}
+	if err != nil && errors.Is(context.Cause(ctx), context.Canceled) {
+		return nil, context.Canceled
+	}
+	// Any outcome observed after the wall budget is budget exhaustion,
+	// including a per-log timeout the event-log collector records as data.
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return nil, &Failure{Reason: ReasonBudgetExhausted, Detail: "wall_budget"}
 	}
 	var failure *Failure
 	if errors.As(err, &failure) {
@@ -279,19 +277,26 @@ func (c Catalog) storageHealth(ctx context.Context, req Request, now func() time
 
 func (c Catalog) systemErrors(ctx context.Context, req Request, now func() time.Time) ([]byte, error) {
 	lookback, limit := *req.Arguments.LookbackSeconds, *req.Arguments.MaxEntries
-	collector := telemetry.ErrorCollector{
-		Reader: c.Events, Logs: []string{telemetry.LogSystem, telemetry.LogApplication},
-		Limit: int(limit), Lookback: time.Duration(lookback) * time.Second, Now: now,
+	observedAt := now().UTC()
+	// One bounded read per log: an event-log call blocked past the wall budget
+	// cannot hold the probe, and no log read starts after the deadline. No
+	// saved positions are passed, so --collect-errors positions never move.
+	var logs []telemetry.LogResult
+	for _, log := range []string{telemetry.LogSystem, telemetry.LogApplication} {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		collector := telemetry.ErrorCollector{Reader: c.Events, Logs: []string{log}, Limit: int(limit),
+			Lookback: time.Duration(lookback) * time.Second, Now: func() time.Time { return observedAt }}
+		batch, err := readBounded(ctx, func(ctx context.Context) (telemetry.ErrorBatch, error) { return collector.Collect(ctx, nil) })
+		if err != nil {
+			return nil, err
+		}
+		logs = append(logs, batch.Logs...)
 	}
-	// No saved positions: the probe reads its lookback window and never moves
-	// the --collect-errors read positions.
-	batch, err := collector.Collect(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	body := SystemErrors{LookbackSeconds: lookback, MaxEntries: limit, Logs: make([]SystemErrorLog, 0, len(batch.Logs))}
+	body := SystemErrors{LookbackSeconds: lookback, MaxEntries: limit, Logs: make([]SystemErrorLog, 0, len(logs))}
 	var failed *Failure
-	for _, l := range batch.Logs {
+	for _, l := range logs {
 		entry := SystemErrorLog{Log: l.Log, Outcome: l.Outcome, Detail: l.Detail, Records: make([]ErrorDigest, 0, len(l.Records)), Skipped: l.Skipped, More: l.More}
 		for _, r := range l.Records {
 			entry.Records = append(entry.Records, digestRecord(r))
@@ -305,8 +310,8 @@ func (c Catalog) systemErrors(ctx context.Context, req Request, now func() time.
 		}
 	}
 	encoded, err := json.Marshal(Evidence[SystemErrors]{
-		Schema: ProbeEvidenceSchema, ProbeID: req.ProbeID, Source: batch.Provenance,
-		ObservedAt: batch.CollectedAt, Arguments: req.Arguments, Body: body,
+		Schema: ProbeEvidenceSchema, ProbeID: req.ProbeID, Source: telemetry.ProvenanceEndpointEventLog,
+		ObservedAt: observedAt, Arguments: req.Arguments, Body: body,
 	})
 	if err != nil {
 		return nil, err
@@ -322,10 +327,15 @@ func (c Catalog) systemErrors(ctx context.Context, req Request, now func() time.
 // "Microsoft-Windows-Kernel-Power" and no shell metacharacters or path syntax.
 var providerPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 ._-]{0,127}$`)
 
+// digestRecord keeps a provider name only when it is publisher-shaped and its
+// publisher is registered on this host. Any process can log under an arbitrary
+// unregistered source name, such as "powershell -enc ...", but registering a
+// publisher needs administrator rights. TEL07 reports an unregistered
+// publisher as message status "unavailable", so that status drops the name.
 func digestRecord(r telemetry.ErrorRecord) ErrorDigest {
 	d := ErrorDigest{RecordID: r.RecordID, ProviderSHA256: digest(r.Provider), EventID: r.EventID, Level: r.Level,
 		TimeCreated: r.TimeCreated, MessageBytes: r.MessageBytes, MessageStatus: r.MessageStatus}
-	if providerPattern.MatchString(r.Provider) {
+	if r.MessageStatus != telemetry.MessageUnavailable && providerPattern.MatchString(r.Provider) {
 		d.Provider = &r.Provider
 	}
 	if r.MessageStatus != telemetry.MessageOversized && r.MessageStatus != telemetry.MessageUnavailable {
