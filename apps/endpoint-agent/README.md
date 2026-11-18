@@ -287,9 +287,18 @@ The installer accepts `-MaxEvidenceBytes` (default 64 MiB) and
 `-MaxEvidenceRecords` (default 4096, range 1–65536). Old configurations
 without `max_evidence_records` use the default. When either limit is hit,
 the service keeps all queued records, visibly rejects the new snapshot and
-continues sampling. Sequence gaps are allowed. The queue uses one extra record
-of scratch space for a transaction and retains the last acknowledged envelope
-as its durable high-water mark.
+continues sampling. Each valid snapshot rejected at the configured limit has
+already reserved a sequence. After the queue has room again, the next retained
+envelope exposes those missing sequences. Compare the gap with the service's
+rejection count. Interrupted writes can also leave gaps. The queue uses one
+extra record of scratch space for a transaction and retains the last
+acknowledged envelope as its durable high-water mark.
+
+A storage error, including a disk-full write, stops the pipeline. After space
+is available, restart the service. Startup discards any uncommitted
+`spool.pending` file and verifies the signatures of committed records. If a
+committed record is truncated, startup reports corruption and leaves the file
+in place for investigation.
 
 Startup validates the committed records against the admitted public key and
 reports corruption without advancing the queue. Complete records from the old

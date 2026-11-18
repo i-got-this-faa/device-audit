@@ -152,12 +152,6 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
 	}
 	unsigned, overflow := 0, 0
-	recordOverflow := func() {
-		overflow++
-		if overflow == 1 {
-			logf("%s", errEvidenceFull)
-		}
-	}
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
 		if err != nil {
@@ -166,10 +160,6 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			if unsigned++; unsigned == 1 {
 				logf("snapshot without any known metric was not signed")
 			}
-			return nil
-		}
-		if sink.full() {
-			recordOverflow()
 			return nil
 		}
 		data, err := json.Marshal(payload)
@@ -181,21 +171,23 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			return fmt.Errorf("sign evidence: %w", err)
 		}
 		if err := sink.append(envelope); errors.Is(err, errEvidenceFull) {
-			recordOverflow()
+			if overflow++; overflow == 1 {
+				logf("%s", errEvidenceFull)
+			}
 			return nil
 		} else {
 			return err
 		}
 	})
 	if err != nil {
-		return err
-	}
-	name := "sampling-report-" + report.EndedAt.Format("20060102T150405.000000000Z") + ".json"
-	if err := writeSamplingReport(filepath.Join(cfg.EvidenceDir, name), report); err != nil {
+		if overflow > 0 {
+			logf("%d snapshots rejected by spool before sampling failed", overflow)
+		}
 		return err
 	}
 	logf("%s; %d snapshots, %d not signed, %d rejected by spool, last sequence %d", budgetSummary(report), report.Emits, unsigned, overflow, sink.lastSequence())
-	return nil
+	name := "sampling-report-" + report.EndedAt.Format("20060102T150405.000000000Z") + ".json"
+	return writeSamplingReport(filepath.Join(cfg.EvidenceDir, name), report)
 }
 
 // admitService returns the stored admission, enrolling first when none exists

@@ -37,3 +37,22 @@ Probe tests distinguish the hard memory ceiling from reporting an observed
 memory budget termination. The updated qualification harness checks that the
 service retains the exact spool contents at capacity and reports a fresh
 rejection. Elevated execution of that harness remains unverified.
+
+## Overflow and disk-full recovery, TEL10 #95
+
+- `TestServiceSpoolOverflowMatchesSignedSequenceGap` runs the sampling
+  pipeline against each configured limit. It checks two reported rejections,
+  exact retention of the original records, and two missing sequences between
+  the last retained envelope and the next one signed after space is released
+  and the pipeline restarts.
+- `TestSpoolDiskFullDuringWrite` writes a partial staging file before
+  injecting a disk-full error. The failed spool refuses delivery and
+  acknowledgement. Reopening it through the maintenance command discards the
+  partial staging file and returns the original signed envelope byte for byte.
+- `TestSpoolCommittedRecordRequiresNewline` verifies that a truncated
+  committed file stays in place and the maintenance command returns an error
+  with no evidence output.
+
+The disk-full check uses an injected write error and real temporary files.
+Volume exhaustion, physical power loss and the installed LocalService
+token remain outside this run.
