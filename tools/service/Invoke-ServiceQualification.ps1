@@ -1,4 +1,4 @@
-#requires -Version 7.0
+#requires -Version 7.3
 <#
 .SYNOPSIS
 Qualifies the DeviceAuditEndpoint service on this machine (TEL02 #26).
@@ -28,7 +28,8 @@ failed.
 param(
     [Parameter(Mandatory)][string]$AgentPath,
     [Parameter(Mandatory)][string]$HarnessDir,
-    [ValidateRange(30, 3600)][int]$RunSeconds = 90
+    # Bounded so the whole run fits inside the harness's 45-minute wait.
+    [ValidateRange(30, 600)][int]$RunSeconds = 90
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -91,6 +92,8 @@ function Start-AndExpectRefusal([string]$Step, [int]$ExitCode, [string]$Text) {
 Write-Step "qualification started on Windows $([Environment]::OSVersion.Version)"
 try {
     # 1. Interactive refusal, before anything is installed.
+    # Exit code 1 is the expected result; keep it from becoming a script error.
+    $PSNativeCommandUseErrorActionPreference = $false
     $text = & $AgentPath --service --service-config (Join-Path $root 'service.json') 2>&1
     Add-Result 'interactive_service_refused' ($LASTEXITCODE -eq 1 -and "$text".Contains('service control manager')) @{ exit_code = $LASTEXITCODE; stderr = "$text" }
 

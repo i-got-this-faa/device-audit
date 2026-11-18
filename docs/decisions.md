@@ -895,8 +895,12 @@ SEC02 keys are bound to the service SID and the LocalService DPAPI profile, so
 they cannot be provisioned interactively and handed over. The service enrolls
 under its own token on first start. The administrator places a one-use
 `bootstrap.json` in a directory that only SYSTEM, Administrators and the
-service SID can reach. The service deletes it as soon as it is read. A
-bootstrap file left beside an admitted identity is deleted unused. The TLS settings are validated before the credential is read, so a configuration mistake does not consume it.
+service SID can reach. The service deletes it once admission is confirmed, or at
+once when it is invalid or expired. After a failed enrollment, such as an
+unreachable controller, it stays for the SCM retry; the controller rejects a
+consumed token and the token expires in ten minutes. A bootstrap file left beside
+an admitted identity is deleted unused. The TLS settings are validated before the
+credential is read.
 
 The hosted pipeline is the TEL08 scheduler. Every snapshot with a known metric
 is signed with the SEC07 sequence and appended to a synced, size-capped local

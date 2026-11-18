@@ -1,4 +1,4 @@
-#requires -Version 7.0
+#requires -Version 7.3
 <#
 .SYNOPSIS
 Installs endpoint-agent as the DeviceAuditEndpoint Windows service (TEL02 #26).
@@ -40,6 +40,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $name = 'DeviceAuditEndpoint'
+# 7.3+ passes native arguments, including binPath's embedded quotes, verbatim.
+# The SCM and the service config need absolute paths.
+$Root = [IO.Path]::GetFullPath($Root)
+$InstallDir = [IO.Path]::GetFullPath($InstallDir)
 function Invoke-Native([string]$Program, [string[]]$Arguments) {
     $out = & $Program @Arguments 2>&1
     if ($LASTEXITCODE -ne 0) { throw "$Program $($Arguments -join ' ') failed ($LASTEXITCODE): $out" }
@@ -57,6 +61,9 @@ $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIde
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Run this installer elevated.' }
 if (Get-Service -Name $name -ErrorAction SilentlyContinue) { throw "$name is already installed; run Uninstall-EndpointService.ps1 first." }
 if (($EnrollmentOrigin -or $BootstrapFile) -and -not ($EnrollmentOrigin -and $BootstrapFile)) { throw 'Enrollment needs both -EnrollmentOrigin and -BootstrapFile.' }
+# Only Program Files keeps ordinary users from replacing the service image.
+$programFiles = [IO.Path]::GetFullPath($env:ProgramFiles).TrimEnd('\') + '\'
+if (-not ($InstallDir + '\').StartsWith($programFiles, [StringComparison]::OrdinalIgnoreCase)) { throw "-InstallDir must be under $programFiles" }
 foreach ($file in @($AgentPath, $CAFile, $BootstrapFile, $SamplingConfig) | Where-Object { $_ }) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "input file $file does not exist" }
 }
@@ -92,7 +99,7 @@ try {
     Set-PrivateAcl $Root "(A;;0x1200ad;;;$sid)"
     Set-PrivateAcl $evidence "(A;OICI;0x1301bf;;;$sid)"
     Set-PrivateAcl $enrollment "(A;OICI;0x1301bf;;;$sid)"
-    foreach ($existing in Get-ChildItem -LiteralPath $evidence, $enrollment -File) {
+    foreach ($existing in Get-ChildItem -LiteralPath $evidence, $enrollment -File -Force) {
         Set-PrivateAcl $existing.FullName "(A;;0x1301bf;;;$sid)"
     }
 

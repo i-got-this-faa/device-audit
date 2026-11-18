@@ -49,7 +49,7 @@ func main() {
 		os.Exit(runProbeRequest(context.Background(), workflows.NewCatalog(), os.Stdin, os.Stdout, os.Stderr))
 	}
 	if *service || *serviceConfigPath != "" {
-		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 {
+		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--service runs alone and requires --service-config"))
 		}
 		if err := runService(*serviceConfigPath); err != nil {

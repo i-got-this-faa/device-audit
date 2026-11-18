@@ -231,8 +231,9 @@ service SID gets read and create-folder access on the root, modify access on
 refuses evidence storage open to anyone else. It creates `identity` itself
 with the private DACL described above, so provisioning and every later read use
 the same service token. On first start without an admission receipt, it
-validates the TLS settings, then reads `enrollment\bootstrap.json`, deletes it
-and enrolls. A bootstrap file found beside an admitted identity is deleted
+validates the TLS settings, then reads `enrollment\bootstrap.json` and enrolls.
+The file is deleted once admission is confirmed, or at once when invalid or
+expired; after a failed enrollment it stays in place for the SCM retry. A bootstrap file found beside an admitted identity is deleted
 unused. No configured path may lie inside `state_dir`.
 
 The pipeline is the `--sample` schedule (default, or `sampling_config`). Each

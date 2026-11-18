@@ -20,8 +20,10 @@ control manager (`golang.org/x/sys/windows/svc`). In order, it:
 3. **Loads the admitted identity** from `identity`, which the service creates
    itself with the SEC02 DACL and user-scoped DPAPI under its own token. With no
    admission receipt, it first validates the enrollment TLS settings, then
-   reads the one-use `enrollment\bootstrap.json`, deletes it and enrolls. A
-   CA mistake therefore leaves the credential in place. A bootstrap file found
+   reads the one-use `enrollment\bootstrap.json` and enrolls. The file is
+   deleted once admission is confirmed, or at once when it is invalid or
+   expired. A CA mistake or an unreachable controller leaves it in place for
+   the SCM retry; a consumed token is rejected by the controller. A bootstrap file found
    beside a verified admission is deleted without being redeemed. The
    configuration rejects any bootstrap, CA, sampling or evidence path inside
    `state_dir`, compared case-insensitively on Windows.
@@ -76,7 +78,8 @@ the endpoint's own entries.
 - `TestServiceAdmission`:
   - with no identity and no enrollment, start fails;
   - with a missing bootstrap file, start fails;
-  - a missing CA file fails without consuming the bootstrap file;
+  - a missing CA file and a stopped controller both fail and keep the
+    bootstrap file, and the retry then enrolls with it;
   - a bootstrap enrolls against the TLS protocol fixture and is deleted;
   - a second bootstrap beside the admitted identity is deleted without a request.
 - `TestServiceConfigIsStrict`: rejects unknown keys, the wrong schema,
@@ -180,6 +183,17 @@ These used the code before review. Run 1's artifacts carry the `run1-` prefix.
   directory is identity storage under another name. Run 4 repeats every step
   with that code.
 
+### After run 4
+
+A third review round changed code that run 4 did not exercise:
+- `--service` now also rejects stray positional arguments.
+- The bootstrap file is now kept after a failed enrollment.
+- The harness rejects a torn final record and a stale completion marker.
+- The installer resolves absolute paths, requires `-InstallDir` under Program Files, resets hidden files, and needs PowerShell 7.3+ for verbatim native arguments.
+- Uninstall purges a partial install.
+- The qualification run time is capped at 600 s, and its expected exit code 1 is isolated from native-command error handling.
+
+These changes have unit tests or parse checks only. They were not re-run in a live qualification: the local PostgreSQL was stopped when the PC ran low on memory.
 ## Not done
 
 - **Collector failure in the service.** No real source failed during the runs.

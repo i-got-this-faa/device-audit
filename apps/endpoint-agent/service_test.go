@@ -228,6 +228,18 @@ func TestServiceAdmission(t *testing.T) {
 	if _, err := os.Stat(bootstrap); err != nil {
 		t.Fatal("a CA mistake consumed the bootstrap file")
 	}
+	// An unreachable controller fails before redemption; the credential stays
+	// for the SCM retry, and the retry below enrolls with it.
+	down, downCA, _ := fixtureEnrollmentServer(t)
+	down.Close()
+	offline := cfg
+	offline.Enrollment = &serviceEnrollment{Origin: down.URL, CAFile: &downCA, BootstrapFile: bootstrap}
+	if _, err := admitService(context.Background(), store, offline, logf); err == nil {
+		t.Fatal("enrolled against a stopped controller")
+	}
+	if _, err := os.Stat(bootstrap); err != nil {
+		t.Fatal("a transport failure consumed the bootstrap file")
+	}
 	receipt, err := admitService(context.Background(), store, cfg, logf)
 	if err != nil {
 		t.Fatal(err)

@@ -184,8 +184,9 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 }
 
 // admitService returns the stored admission, enrolling first when none exists
-// and a bootstrap file was provisioned. The bootstrap file is deleted as soon
-// as it is read: the token is one-use and must not stay on disk.
+// and a bootstrap file was provisioned. The one-use bootstrap file is deleted
+// once admission is confirmed, or at once when it is invalid or expired; after
+// a failed enrollment it stays in its protected directory for the retry.
 func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, logf func(string, ...any)) (contracts.EnrollmentAcceptedV1, error) {
 	_, statErr := store.root.Lstat(receiptFile)
 	if statErr == nil {
@@ -218,12 +219,22 @@ func admitService(ctx context.Context, store *identityStore, cfg serviceConfig, 
 	}
 	token, err := readBootstrap(f)
 	f.Close()
-	removeBootstrap(cfg.Enrollment.BootstrapFile, cfg.StateDir, logf, "bootstrap read")
 	if err != nil {
+		// Invalid or expired: it can never be redeemed.
+		removeBootstrap(cfg.Enrollment.BootstrapFile, cfg.StateDir, logf, "bootstrap unusable")
 		return contracts.EnrollmentAcceptedV1{}, err
 	}
 	logf("enrolling with the provisioned bootstrap credential")
-	return enroll(ctx, store, client, origin, token)
+	receipt, err := enroll(ctx, store, client, origin, token)
+	if err != nil {
+		// A failure before redemption, such as an unreachable controller, must
+		// stay retryable after an SCM restart. A consumed token is rejected by
+		// the controller, and the token expires on its own.
+		logf("bootstrap file kept for retry after a failed enrollment")
+		return receipt, err
+	}
+	removeBootstrap(cfg.Enrollment.BootstrapFile, cfg.StateDir, logf, "identity admitted")
+	return receipt, nil
 }
 
 // removeBootstrap deletes the bootstrap file unless its directory is identity

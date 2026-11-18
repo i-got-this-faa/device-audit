@@ -41,6 +41,11 @@ func TestServiceQualificationHarness(t *testing.T) {
 		t.Skip("DEVICE_AUDIT_SERVICE_QUALIFICATION_DIR and TEST_DATABASE_URL are not set")
 	}
 	const device = "device:service-qualification"
+	done := filepath.Join(dir, "evidence", "qualification-done")
+	// A marker left by an earlier run would release the wait at once.
+	if _, err := os.Stat(done); !errors.Is(err, os.ErrNotExist) {
+		t.Fatal("the harness directory holds a previous run; use an empty directory")
+	}
 	server, ca, repo, db := postgresEnrollment(t, configured, "deployment:service-qualification")
 	token, err := repo.IssueBootstrapToken(context.Background(), contracts.BootstrapTokenRequestV1{SchemaVersion: contracts.BootstrapTokenRequestV1Version, DeviceID: device}, "https://id.example.test", "admin:service-qualification")
 	if err != nil {
@@ -55,7 +60,6 @@ func TestServiceQualificationHarness(t *testing.T) {
 		t.Fatal("write harness files")
 	}
 	t.Logf("enrollment ready at %s; bootstrap expires %s", server.URL, token.ExpiresAt)
-	done := filepath.Join(dir, "evidence", "qualification-done")
 	waitFor(t, "the elevated qualification script", 45*time.Minute, func() bool {
 		_, err := os.Stat(done)
 		return err == nil
@@ -69,6 +73,9 @@ func TestServiceQualificationHarness(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join(dir, "evidence", evidenceLogFile))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(data) > 0 && data[len(data)-1] != '\n' {
+		t.Fatal("evidence file ends in a torn record")
 	}
 	result := qualificationVerification{DeploymentID: token.DeploymentID, SigningKeyID: signingKeyID}
 	scanner := bufio.NewScanner(bytes.NewReader(data))

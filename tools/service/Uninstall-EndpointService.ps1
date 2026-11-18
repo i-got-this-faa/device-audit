@@ -1,4 +1,4 @@
-#requires -Version 7.0
+#requires -Version 7.3
 <#
 .SYNOPSIS
 Stops and removes the DeviceAuditEndpoint service (TEL02 #26).
@@ -7,7 +7,7 @@ Stops and removes the DeviceAuditEndpoint service (TEL02 #26).
 Keeps <Root>, including the admitted identity and signed evidence, unless
 -PurgeState is given. Purging deletes the identity keys; a later install must
 enroll again with a new bootstrap credential. Purge refuses a directory that
-holds anything but the endpoint's own entries, so a mistyped -Root cannot
+holds anything but the endpoint's own entries (a partial install is fine), so a mistyped -Root cannot
 delete unrelated files.
 #>
 [CmdletBinding()]
@@ -22,7 +22,8 @@ $name = 'DeviceAuditEndpoint'
 $owned = 'service.json', 'sampling.json', 'evidence', 'enrollment', 'identity'
 if ($PurgeState -and (Test-Path -LiteralPath $Root)) {
     $foreign = @(Get-ChildItem -LiteralPath $Root -Force -Name | Where-Object { $_ -notin $owned })
-    if ($foreign.Count -gt 0 -or -not (Test-Path -LiteralPath (Join-Path $Root 'service.json'))) {
+    # A partial install may lack service.json; only foreign entries block the purge.
+    if ($foreign.Count -gt 0) {
         throw "refusing to purge ${Root}: it is not a dedicated endpoint state directory"
     }
 }
