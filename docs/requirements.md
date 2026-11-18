@@ -129,13 +129,14 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Admitted mesh adapter | RQ-03, RQ-02 | Local lab | [mesh-adapters-25](validation/mesh-adapters-25.md), 16 Nov, Linux, PostgreSQL 16.15 | NAT/WAN; deployed DERP; the target; LocalService |
 | Scoped relay and UDP-blocked fallback | RQ-03 | Local lab | [relay-fallback-88](validation/relay-fallback-88.md), 17 Nov; `relay-fallback` job | Public relay host, DNS, CA; NAT/WAN; the target |
 | Deployed relay, NAT/WAN, two machines | RQ-03 | Unsupported | [networking/README](../networking/README.md) | — |
-| Bootstrap enrollment over TLS | RQ-02 | Local lab | [enrollment README](../infra/enrollment/README.md), PostgreSQL 17 | Real IdP and proxy; rotation, revocation, rate limits |
+| Bootstrap enrollment over TLS | RQ-02 | Local lab | [enrollment README](../infra/enrollment/README.md), PostgreSQL 17 | Real IdP and proxy; rotation, rate limits |
 | Endpoint identity storage, Windows DPAPI and DACL | RQ-02 | Hosted CI OS | [endpoint-keys-23](validation/endpoint-keys-23.md), CI account | LocalService on the target; power loss |
 | Signed evidence and crash-safe sequence | RQ-02 | Local lab | [evidence-sequence-87](validation/evidence-sequence-87.md), 13 Nov, an unidentified Windows 11 host | Attribution to the target; power loss; spool |
 | Controller verification before ingestion | RQ-02 | Local lab | [evidence-verification-24](validation/evidence-verification-24.md), 17 Nov, Linux, PostgreSQL 17.11 | Rejections over a real tunnel; durable audit table |
 | Replay rejection and signed acknowledgements | RQ-02 | Local lab | [replay-acknowledgements-89](validation/replay-acknowledgements-89.md), Linux, PostgreSQL 17.11 | Acknowledgement-key rotation; Windows controller; deployed database |
-| Durable signed spool, retry and revocation authority | RQ-02 | Unsupported | [database README](../infra/database/README.md) | — |
-| Identity rotation and revocation | RQ-02 | Unsupported | Open in #130 | — |
+| Device revocation authority and audit record | RQ-02 | Local lab | [device-revocation-90](validation/device-revocation-90.md), 18 Nov, Linux, PostgreSQL 17.11 | Real IdP; rejection over a real tunnel; relay admission export; Windows controller |
+| Durable signed spool and retry | RQ-02 | Unsupported | [database README](../infra/database/README.md) | — |
+| Identity rotation and re-enrollment | RQ-02 | Unsupported | Open in #130 | — |
 
 ### Controller, storage and console
 

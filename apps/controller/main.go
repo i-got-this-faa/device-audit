@@ -177,6 +177,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 
 	var enrollment *controller.EnrollmentService
 	var inventory *controller.InventoryService
+	var revocation *controller.RevocationService
 	var repository *controller.PostgresRepository
 	if *deploymentID != "" {
 		if db == nil || consoleAuth == nil {
@@ -195,6 +196,10 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		if err != nil {
 			return err
 		}
+		revocation, err = controller.NewRevocationService(repository, consoleAuth)
+		if err != nil {
+			return err
+		}
 	}
 	listener, err := mesh.ListenLocal(*address)
 	if err != nil {
@@ -208,6 +213,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		AuthStatus:     authStatus,
 		Enrollment:     enrollment,
 		Inventory:      inventory,
+		Revocation:     revocation,
 		MeshStatus:     *transport,
 	})
 	if tlsConfig != nil {

@@ -112,11 +112,12 @@ restore automation and recovery qualification are not implemented by #19.
 
 ## Still open
 
-- Revocation authority and its races with ingestion (#90). Mesh device traffic
-  already reaches the repository with signed acknowledgements (#24, #89).
+- Exporting revocations to the relay admission file, key rotation and
+  re-enrollment after revocation. #90 implements revocation authority and its
+  ordering against ingestion; see the [repository guide](../../internal/controller/repository.md).
 - Retention, authenticated receipt lookup and reconciliation after an uncertain
   commit. Replay is rejection, never proof that a particular payload was stored.
-- Durable audit events, session/login-row cleanup and IdP revocation. Fresh
+- Durable audit events beyond device revocation, session/login-row cleanup and IdP revocation. Fresh
   authentication is enforced for role changes and bootstrap-token issuance;
   future sensitive administrator
   actions must apply the same policy.

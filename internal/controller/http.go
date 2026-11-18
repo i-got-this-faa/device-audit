@@ -30,6 +30,7 @@ type Config struct {
 	AuthStatus     string
 	Enrollment     *EnrollmentService
 	Inventory      *InventoryService
+	Revocation     *RevocationService
 	MeshStatus     string
 }
 
@@ -43,6 +44,7 @@ type API struct {
 	authStatus string
 	enrollment *EnrollmentService
 	inventory  *InventoryService
+	revocation *RevocationService
 	meshStatus string
 }
 
@@ -68,6 +70,7 @@ func NewAPI(cfg Config) *API {
 		authStatus: cfg.AuthStatus,
 		enrollment: cfg.Enrollment,
 		inventory:  cfg.Inventory,
+		revocation: cfg.Revocation,
 		meshStatus: cfg.MeshStatus,
 	}
 }
@@ -100,6 +103,9 @@ func (a *API) Handler() http.Handler {
 	}
 	if a.inventory != nil {
 		a.inventory.Register(mux)
+	}
+	if a.revocation != nil {
+		a.revocation.Register(mux)
 	}
 	return mux
 }
