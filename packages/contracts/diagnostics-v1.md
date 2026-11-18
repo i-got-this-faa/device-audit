@@ -22,8 +22,10 @@ Two read-only probes are provisionally allowlisted:
 | `storage_health.v1` | Opaque inventory `component_id` | `lookback_seconds` and `max_entries` null |
 | `system_errors.v1` | `lookback_seconds` in 1..86400, `max_entries` in 1..256 | `component_id` null |
 
-All argument keys are required. These probes reserve contracts; no OS collector
-or permission capability is implied. Component IDs must resolve locally to an
+All argument keys are required. `DiagnosticArgumentsV1.ValidateFor` is the
+single argument check, shared by assignments and the endpoint probe catalog
+(DIA01 #36, `packages/workflows`). The contract itself grants no OS permission
+capability. Component IDs must resolve locally to an
 eligible storage component, never an arbitrary path. Error evidence is structured
 and bounded, with references to off-chain content, never an inline raw-log upload.
 Unknown fields, including `command`, `shell`, script, executable and URL arguments,

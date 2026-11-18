@@ -53,9 +53,9 @@ unreadable ACLs fail without repairing permissions or replacing keys.
 LocalService without an enabled per-service SID fails. Interactive development
 uses the process user SID instead. Run provisioning and later reads under the
 same account and service token. Interactive provisioning does not qualify or
-initialize the LocalService installation. Service registration, SID activation,
-private parent provisioning and running this operation under the service token
-belong to installation/service work #26/#57/#64. Administrators and SYSTEM can
+initialize the LocalService installation. The service host below (#26)
+enrolls under its own token; the release installer and operator walkthrough
+remain #57/#64. Administrators and SYSTEM can
 override filesystem protection; this does not defend against a compromised
 administrator, the endpoint process or its authorized principal. DPAPI backup,
 profile loss and account migration require an explicit recovery design.
@@ -189,6 +189,160 @@ failed write repeats records on the next poll instead of losing them. Damaged
 position state fails closed. See
 [error-evidence-93.md](../../docs/validation/error-evidence-93.md).
 
+## Read-only diagnostic probes, DIA01 #36
+
+```sh
+echo '{"probe_id":"storage_health.v1","arguments":{"component_id":"storage:disk-0","lookback_seconds":null,"max_entries":null},"budget":{"wall_seconds":30,"max_output_bytes":4096}}' \
+  | endpoint-agent --run-probe
+```
+
+Runs one CT06 probe from the catalog in `packages/workflows` and prints a
+`device-audit.probe-evidence.v1` document. Only `storage_health.v1`
+(`component_id` `storage:disk-<n>`, an OS disk number) and `system_errors.v1`
+(`lookback_seconds`, `max_entries` per log) exist. The request is strict JSON;
+unknown keys, paths and other probe names are rejected with exit 2 before
+anything runs. A probe that runs and fails prints a
+`device-audit.probe-failure.v1` record with a CT06 reason and exits 1.
+Error evidence carries message digests instead of message text. See
+[probe-catalog-36.md](../../docs/validation/probe-catalog-36.md).
+
+Probe commands require Windows and run in a worker process. The runner allows one active
+worker per runner instance. A second request returns a concurrency failure
+immediately. The worker has a 64 MiB hard committed-memory cap, a 56 MiB termination
+threshold, five seconds of CPU time, below-normal priority and room for one process. The parent kills
+and reaps it on cancellation or overrun. The output cap applies to evidence,
+including any partial evidence. The small structured failure wrapper is
+separate. Successful and partial evidence keep the existing schema.
+
+Use the following command for a local signed CT06 assignment check with the
+same worker limits:
+
+```powershell
+Get-Content -Raw assignment.json | endpoint-agent --run-assigned-probe `
+  --state-dir C:\private\identity --diagnostic-controller-key-file controller.pem
+```
+
+The runner verifies the signature under the pinned diagnostic controller key,
+matches the deployment and device against local admission, and requires the
+signed wall budget to fit before expiry. The expiry and any caller deadline
+also constrain execution. Cancellation, expiry, and wall, CPU, memory,
+concurrency or output exhaustion are reported separately when observed.
+The local assignment command requires the identity lock. Stop the installed
+service before using it with that installation and run it under the same
+authorized identity. The service does not run assigned diagnostics while
+sampling. Assignment intake, deduplication and signed remote result delivery
+remain part of the diagnostic workflow.
+
+## Windows service host, TEL02 #26
+
+```powershell
+# elevated
+tools/service/Install-EndpointService.ps1 -AgentPath bin/endpoint-agent.exe `
+  -EnrollmentOrigin https://controller.example.org -CAFile ca.pem -BootstrapFile bootstrap.json
+Start-Service DeviceAuditEndpoint
+```
+
+`--service --service-config <file>` runs only under the service control
+manager. The installer creates `DeviceAuditEndpoint` as
+`NT AUTHORITY\LocalService` with an unrestricted per-service SID, restricts its
+token to `SeChangeNotifyPrivilege` (`sc.exe privs`), and restarts it on
+failure, including a non-zero service exit code (`sc.exe failureflag 1`). At
+start the service refuses LocalSystem, NetworkService, any other account, an
+elevated token, a missing service SID and any privilege outside that set.
+
+Under `%ProgramData%\DeviceAudit\Endpoint` the installer replaces every DACL
+with SYSTEM and Administrators full access plus the service SID's own right. The
+service SID gets read and create-folder access on the root, modify access on
+`evidence` and `enrollment`, and read access on the config files. The service
+requires an OWNER RIGHTS entry on evidence directories and files. This keeps
+another LocalService process from changing their ACL through implicit owner
+rights. When upgrading an installation that predates the entry, reinstall
+with the updated script and keep the existing state. It creates `identity` itself
+with the private DACL described above, so provisioning and every later read use
+the same service token. On first start without an admission receipt, it
+validates the TLS settings, then reads `enrollment\bootstrap.json` and enrolls.
+The file is deleted once admission is confirmed, or at once when invalid or
+expired; after a failed enrollment it stays in place for the SCM retry. A bootstrap file found beside an admitted identity is deleted
+unused. No configured path may lie inside `state_dir`.
+
+The pipeline is the `--sample` schedule (default, or `sampling_config`). Each
+snapshot with a known metric becomes telemetry v2 for the admitted device ID
+and is signed with the crash-safe sequence. The spool stores the signed bytes
+in sequence order under the private evidence directory. Each clean stop writes
+a sampling report. The service log records starts, failures and the number of
+snapshots rejected by the spool. Before a new entry would push `service.log`
+past 1 MiB, the service moves it to `service.log.previous`, replacing the
+previous log. Stop and shutdown cancel the workers and wait
+at most 25 s. A collector failure becomes a null with a reason and sampling
+continues.
+
+Exit codes: 1 configuration or evidence ACL, 2 refused account or privilege,
+3 pipeline failure, 4 workers did not stop. `Uninstall-EndpointService.ps1`
+keeps the state unless `-PurgeState` is given, and refuses to purge a
+directory holding anything but the endpoint's own entries. This is a development install, not the
+signed release installer (#57). See
+[windows-service-26.md](../../docs/validation/windows-service-26.md).
+
+## Signed evidence spool, TEL03 #27
+
+The installer accepts `-MaxEvidenceBytes` (default 64 MiB) and
+`-MaxEvidenceRecords` (default 4096, range 1–65536). Old configurations
+without `max_evidence_records` use the default. When either limit is hit,
+the service keeps all queued records, visibly rejects the new snapshot and
+continues sampling. Each valid snapshot rejected at the configured limit has
+already reserved a sequence. After the queue has room again, the next retained
+envelope exposes those missing sequences. Sum the logged rejection counts from
+all service runs that contributed to the gap. The summary's `last spool sequence`
+is the highest sequence queued, acknowledged or archived. Interrupted writes
+can also leave gaps. If a run has no recorded total, its sequence gap alone
+cannot tell you how many snapshots the spool rejected. The queue uses one extra
+record of scratch space for a transaction and retains the last acknowledged
+envelope as its durable high-water mark.
+
+A storage error, including a disk-full write, stops the pipeline. After space
+is available, restart the service. Startup discards any uncommitted
+`spool.pending` file and verifies the signatures of committed records. If a
+committed record is truncated, startup reports corruption and leaves the file
+in place for investigation.
+
+Startup validates the committed records against the admitted public key and
+reports corruption without advancing the queue. Complete records from the old
+JSONL file are imported byte for byte in batches bounded by the configured
+limits. While migration has more records to import, new snapshots are rejected
+so they cannot pass the older records. Draining or archiving one batch lets the
+next batch load. The original file stays in place until migration finishes and
+can be used to resume after a crash. A bounded torn final line is saved in
+`spool.legacy-tail` and reported. An oversized record or a corrupt complete
+line stops migration and preserves the source for review.
+
+For a development installation, stop its writer and run maintenance under
+the same account that owns the admitted identity.
+
+```text
+endpoint-agent --spool-next --service-config <config>
+endpoint-agent --spool-ack --service-config <config> --controller-ack-key-file <pinned-key.pem>
+endpoint-agent --spool-session --service-config <config> --controller-ack-key-file <pinned-key.pem>
+endpoint-agent --spool-archive-expired --service-config <config>
+```
+
+`--spool-next` reads the head without dequeuing it. `--spool-ack` retires it
+only after verifying a matching accepted acknowledgement from stdin. For
+bulk maintenance, `--spool-session` validates the backlog once, then writes
+one exact envelope line and waits for one newline-terminated signed
+acknowledgement at a time. Ending input leaves the current head queued. The
+session holds the storage locks until it exits.
+
+A timeout, replay rejection or other unverified outcome leaves the envelope
+queued. Recovery of an accepted receipt after a lost response, automatic
+delivery and reconnect are tracked in
+[#96](https://github.com/i-got-this-faa/device-audit/issues/96).
+
+`--spool-archive-expired` moves the expired head to a protected
+`expired-<sequence>.json` file and prints its filename. This preserves its
+original bytes and does not acknowledge it. The archive is capped separately
+at 65,536 records and 1 GiB. If full, export older archived files to equally
+protected storage while the writer is stopped. Keep the highest numbered
+archive in place to prevent reimport after restart.
 ## Verification
 
 ```sh

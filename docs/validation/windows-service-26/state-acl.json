@@ -1,0 +1,5 @@
+{
+  "evidence_dacl": "D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301bf;;;S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432)",
+  "root_dacl": "D:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;;0x1200ad;;;S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432)",
+  "note": "owner and group omitted: the group is the installing administrator account SID"
+}

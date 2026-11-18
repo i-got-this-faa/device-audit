@@ -11,10 +11,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/telemetry"
+	"github.com/i-got-this-faa/device-audit/packages/workflows"
 )
 
 func main() {
@@ -37,7 +39,80 @@ func main() {
 	samplingDuration := flag.Duration("sampling-duration", 5*time.Minute, "how long --sample runs, from 1s to 24h")
 	samplingReport := flag.String("sampling-report", "", "new file for the sampling budget report")
 	fixture := flag.Bool("fixture", false, "send synthetic fixture telemetry to a loopback development controller")
+	runProbe := flag.Bool("run-probe", false, "run one allowlisted read-only diagnostic probe from a JSON request on stdin")
+	service := flag.Bool("service", false, "run the signed sampling pipeline as the installed Windows service")
+	serviceConfigPath := flag.String("service-config", "", "service configuration JSON, required with --service")
+	spoolNext := flag.Bool("spool-next", false, "write the oldest queued envelope without dequeuing it")
+	spoolAck := flag.Bool("spool-ack", false, "retire the oldest queued envelope after verifying the accepted acknowledgement on stdin")
+	spoolArchive := flag.Bool("spool-archive-expired", false, "preserve an expired head without acknowledging it")
+	spoolMaintain := flag.Bool("spool-session", false, "emit heads and accept signed acknowledgements in one maintenance session")
+	signedProbe := flag.Bool("run-assigned-probe", false, "run one signed diagnostic assignment from stdin for the admitted identity")
+	diagnosticKey := flag.String("diagnostic-controller-key-file", "", "pinned controller Ed25519 diagnostic assignment public key PEM")
+	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
 	flag.Parse()
+	if *probeWorker {
+		if flag.NFlag() != 1 || flag.NArg() != 0 {
+			fail(fmt.Errorf("invalid probe worker arguments"))
+		}
+		os.Exit(runProbeWorker(os.Stdin, os.Stdout, os.Stderr))
+	}
+	if *signedProbe {
+		if *stateDir == "" || *diagnosticKey == "" || flag.NFlag() != 3 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--run-assigned-probe requires --state-dir and --diagnostic-controller-key-file"))
+		}
+		os.Exit(runAssignedProbe(*stateDir, *diagnosticKey, os.Stdin, os.Stdout, os.Stderr))
+	}
+	var operation spoolOperation
+	spoolModes := 0
+	for _, mode := range []struct {
+		active    bool
+		operation spoolOperation
+	}{
+		{*spoolNext, spoolShowHead}, {*spoolAck, spoolAcceptHead}, {*spoolArchive, spoolArchiveHead}, {*spoolMaintain, spoolSession},
+	} {
+		if mode.active {
+			operation = mode.operation
+			spoolModes++
+		}
+	}
+	if spoolModes > 0 {
+		wantsKey := operation == spoolAcceptHead || operation == spoolSession
+		expected := 2
+		if wantsKey {
+			expected++
+		}
+		if spoolModes != 1 || *serviceConfigPath == "" || wantsKey != (*controllerAckKeyFile != "") || flag.NFlag() != expected || flag.NArg() != 0 {
+			fail(fmt.Errorf("choose one spool mode with --service-config; acknowledgement modes require --controller-ack-key-file"))
+		}
+		if err := runSpoolCommand(*serviceConfigPath, *controllerAckKeyFile, operation, os.Stdin, os.Stdout, os.Stderr); err != nil {
+			fail(err)
+		}
+		return
+	}
+	if *runProbe {
+		if flag.NFlag() != 1 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--run-probe runs alone"))
+		}
+		req, err := workflows.ParseRequest(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "probe request rejected: %s\n", err)
+			os.Exit(2)
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		data, err := workflows.NewProbeRunner(executeProbeWorker).Run(ctx, req)
+		code := writeProbeOutcome(data, err, os.Stdout, os.Stderr)
+		stop()
+		os.Exit(code)
+	}
+	if *service || *serviceConfigPath != "" {
+		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--service runs alone and requires --service-config"))
+		}
+		if err := runService(*serviceConfigPath); err != nil {
+			fail(err)
+		}
+		return
+	}
 	modes := 0
 	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence, *collectErrors} {
 		if selected {
@@ -154,7 +229,7 @@ func main() {
 		return
 	}
 	if *transport == "mesh" {
-		controllerKey, err := loadControllerAckKey(*controllerAckKeyFile)
+		controllerKey, err := loadControllerPublicKey(*controllerAckKeyFile)
 		if err != nil {
 			fail(err)
 		}

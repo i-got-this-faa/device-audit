@@ -59,7 +59,7 @@ measured, not that the capability is supported:
 
 | Class | Meaning | Not evidence of |
 | --- | --- | --- |
-| **Target hardware** | Real OS calls on the selected HP Victus 15-fb0xxx, Windows 11 Home SL 25H2 build 26200, as the interactive standard user | Other hardware or builds, LocalService, a second machine |
+| **Target hardware** | Real OS calls on the selected HP Victus 15-fb0xxx, Windows 11 Home SL 25H2 build 26200, as the interactive standard user, or as LocalService where the row cites the service run | Other hardware or builds, a second machine |
 | **Hosted CI OS** | Real OS calls on a GitHub-hosted `windows-2025` VM (build 26100) or Ubuntu runner | The 26200 target, a physical machine, a service token unless stated |
 | **Local lab** | Real binaries on a Linux development host, loopback or network namespaces | NAT/WAN, Windows endpoints, deployed infrastructure |
 | **Fixture** | Fixtures, fakes, synthetic harnesses, in-memory stores | Any device or production behavior |
@@ -86,21 +86,21 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 
 | Capability | RQ | Class | Evidence (date, environment) | Not shown |
 | --- | --- | --- | --- | --- |
-| CPU utilization | RQ-01 | Target hardware | [telemetry-91](validation/telemetry-91.md#hp-victus-run-17-november-2026), 17 Nov, Go 1.27.4 | LocalService; observed counter reset (tests only); multi-processor-group hosts (null by design) |
-| Memory in use | RQ-01 | Target hardware | telemetry-91, 17 Nov | LocalService |
+| CPU utilization | RQ-01 | Target hardware | [telemetry-91](validation/telemetry-91.md#hp-victus-run-17-november-2026), 17 Nov, Go 1.27.4; LocalService in [windows-service-26](validation/windows-service-26.md), 18 Nov | Observed counter reset (tests only); multi-processor-group hosts (null by design) |
+| Memory in use | RQ-01 | Target hardware | telemetry-91, 17 Nov; LocalService, windows-service-26 | — |
 | Fixed-volume space used | RQ-01 | Target hardware | telemetry-91, 17 Nov (90.518 % vs `Get-Volume` 90.516 %) | Disk health, SMART or I/O; observed volume denial (tests only) |
-| Disk health / SMART | RQ-01, RQ-04 | Unsupported | No collector ([Backblaze mapping](../models/datasets/backblaze-2013/README.md)) | — |
+| Disk health / SMART | RQ-01, RQ-04 | Target hardware | NVMe health log read on demand by the `storage_health.v1` probe, [probe-catalog-36](validation/probe-catalog-36.md), 18 Nov | Not a scheduled telemetry source; SATA/ATA SMART; [Backblaze mapping](../models/datasets/backblaze-2013/README.md) features |
 | Network receive/send rate | RQ-01 | Target hardware | telemetry-91, 17 Nov; down interface reported `interface_down` | Not on the telemetry v2 wire; interface removal and counter reset (tests only) |
 | Network latency | RQ-01 | Unsupported | No collector | — |
-| Battery charge | RQ-01 | Target hardware | telemetry-91 and [sensors-92](validation/sensors-92.md), 17 Nov | Battery health/life; LocalService |
-| ACPI thermal zone (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov (65.85–67.85 °C); the CIM class was `permission_denied` on [19 Oct](validation/windows-2026-10-19.md) | Observed PDH denial (tests only); LocalService |
-| GPU engine utilization (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov, three adapters | LocalService |
-| NVIDIA utilization and temperature (`nvidia-smi`) | RQ-01 | Target hardware | telemetry-91, 17 Nov | Child-process cost in the budget; LocalService |
+| Battery charge | RQ-01 | Target hardware | telemetry-91 and [sensors-92](validation/sensors-92.md), 17 Nov; LocalService, windows-service-26 | Battery health/life |
+| ACPI thermal zone (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov (65.85–67.85 °C); the CIM class was `permission_denied` on [19 Oct](validation/windows-2026-10-19.md); LocalService, windows-service-26 | Observed PDH denial (tests only) |
+| GPU engine utilization (PDH) | RQ-01 | Target hardware | telemetry-91, 17 Nov, three adapters; LocalService, windows-service-26 | — |
+| NVIDIA utilization and temperature (`nvidia-smi`) | RQ-01 | Target hardware | telemetry-91, 17 Nov; LocalService, windows-service-26 | Child-process cost in the budget |
 | Missing-reason isolation per source | RQ-01 | Fixture | [sensors-92](validation/sensors-92.md#tests), [telemetry-91](validation/telemetry-91.md#tests); real APIs also run in `windows-check` | An observed sensor denial on the target |
 | Endpoint telemetry v2 payload (`--collect-telemetry`) | RQ-01 | Target hardware | telemetry-91, 17 Nov | Delivery; network rates and providers on the wire |
 | System/Application error records with persistent read positions (`--collect-errors`) | RQ-01 | Target hardware | [error-evidence-93](validation/error-evidence-93.md#hp-victus-run-17-november-2026), 17 Nov: IDs match `Get-WinEvent`, repeat poll returns none, Security log `permission_denied` observed | LocalService read of System/Application; observed rollover, clear or oversized message (tests only); delivery |
-| Scheduled sampling with declared CPU/RSS budget (`--sample`) | RQ-01, RQ-10 | Target hardware | [sampling-94](validation/sampling-94.md#hp-victus-runs-17-november-2026), 17 Nov: four 10-minute runs, three within 2 % / 64 MiB, run 1 exceeded RSS (unattributed) | Root cause of run 1; child-process cost; LocalService; error collection on the scheduler |
-| Source access under LocalService and a denied account | RQ-01, RQ-10 | Hosted CI OS | [collector-budget-85](validation/collector-budget-85.md) run 43859814735, `windows-2025`, PowerShell probe and harness only | The Go collectors (#91–#94) under a service token; the target |
+| Scheduled sampling with declared CPU/RSS budget (`--sample`) | RQ-01, RQ-10 | Target hardware | [sampling-94](validation/sampling-94.md#hp-victus-runs-17-november-2026), 17 Nov: four 10-minute runs, three within 2 % / 64 MiB, run 1 exceeded RSS (unattributed); hosted by the LocalService service in [windows-service-26](validation/windows-service-26.md), 18 Nov, where one first start also peaked at 86 MB | Root cause of the RSS peaks; child-process cost; error collection on the scheduler |
+| Source access under LocalService and a denied account | RQ-01, RQ-10 | Hosted CI OS | [collector-budget-85](validation/collector-budget-85.md) run 43859814735, `windows-2025`, PowerShell probe and harness only; the Go collectors under LocalService on the target in [windows-service-26](validation/windows-service-26.md) | A denied account on the target |
 | Collector cost harness and cadence candidates | RQ-10 | Fixture | collector-budget-85, 16 Nov, Linux and hosted Windows | `production_budget_approved` is always false |
 | Loopback fixture telemetry demo (`--fixture`) | — | Fixture | `tools/demo.py` in `check` and `windows-check`; requires `--fixture` and prints `provenance=fixture` | Any device measurement |
 
@@ -110,6 +110,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | --- | --- | --- | --- | --- |
 | Telemetry, prediction, lifecycle, envelope, bootstrap, inventory, federated, diagnostic and audit wire contracts | RQ-01–RQ-09 | Contract | [validation.md](validation.md#shared-contract-conformance-ct05-80) and `make contract-check` in `check` | Live collectors, authorization, training, chain behavior |
 | Read-only typed diagnostic assignments and results | RQ-05 | Contract | [diagnostics-v1](../packages/contracts/diagnostics-v1.md) | Scheduler, executor, cancellation, result storage |
+| Typed read-only probe catalog (`storage_health.v1`, `system_errors.v1`, `--run-probe`) | RQ-05, RQ-01 | Target hardware | [probe-catalog-36](validation/probe-catalog-36.md), 18 Nov: NVMe health log and System/Application errors as the standard user | Assignment verification and signed results (#38); an observed OS denial (tests only); LocalService; non-NVMe health |
 
 ### Models
 
@@ -131,8 +132,8 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Scoped relay and UDP-blocked fallback | RQ-03 | Local lab | [relay-fallback-88](validation/relay-fallback-88.md), 17 Nov; `relay-fallback` job | Public relay host, DNS, CA; NAT/WAN; the target |
 | Deployed relay, NAT/WAN, two machines | RQ-03 | Unsupported | [networking/README](../networking/README.md) | — |
 | Bootstrap enrollment over TLS | RQ-02 | Local lab | [enrollment README](../infra/enrollment/README.md), PostgreSQL 17 | Real IdP and proxy; rotation, revocation, rate limits |
-| Endpoint identity storage, Windows DPAPI and DACL | RQ-02 | Hosted CI OS | [endpoint-keys-23](validation/endpoint-keys-23.md), CI account | LocalService on the target; power loss |
-| Signed evidence and crash-safe sequence | RQ-02 | Local lab | [evidence-sequence-87](validation/evidence-sequence-87.md), 13 Nov, an unidentified Windows 11 host | Attribution to the target; power loss; spool |
+| Endpoint identity storage, Windows DPAPI and DACL | RQ-02 | Target hardware | [endpoint-keys-23](validation/endpoint-keys-23.md), CI account; created and reused by the LocalService service under its per-service SID in [windows-service-26](validation/windows-service-26.md), 18 Nov | Power loss |
+| Signed evidence and crash-safe sequence | RQ-02 | Local lab | [evidence-sequence-87](validation/evidence-sequence-87.md), 13 Nov, an unidentified Windows 11 host; 15 envelopes across stop, restart and kill under LocalService in [windows-service-26](validation/windows-service-26.md) | Power loss; spool |
 | Controller verification before ingestion | RQ-02 | Local lab | [evidence-verification-24](validation/evidence-verification-24.md), 17 Nov, Linux, PostgreSQL 17.11 | Rejections over a real tunnel; durable audit table |
 | Replay rejection and signed acknowledgements | RQ-02 | Local lab | [replay-acknowledgements-89](validation/replay-acknowledgements-89.md), Linux, PostgreSQL 17.11 | Acknowledgement-key rotation; Windows controller; deployed database |
 | Durable signed spool, retry and revocation authority | RQ-02 | Unsupported | [database README](../infra/database/README.md) | — |
@@ -157,7 +158,8 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Smart contract and anchoring runtime | RQ-07 | Unsupported | `packages/audit` has no anchorer | — |
 | Lifecycle recommendations, sustainability, longevity, fleet trends | RQ-08 | Contract | [lifecycle v2](#provisional-lifecycle-wire-contract-ct08-78) | Evaluator, calibrated model, aggregator |
 | External asset integration; independent network observer | RQ-11 | Unsupported | Blocked in [release-scope](roadmap/release-scope.md#conditional-scope-decisions) | — |
-| Endpoint Windows service, packaging, uninstall and release | RQ-10 | Unsupported | No service registration or package (#26, #57, #137, #68) | — |
+| Endpoint Windows service host as LocalService (start, stop, restart, SCM recovery, refusals) | RQ-10, RQ-02 | Target hardware | [windows-service-26](validation/windows-service-26.md), 18 Nov, four runs; enrollment through the real controller handlers on PostgreSQL 18.1; SCM restart after a kill and after a non-crash exit | Delivery and spool (#27); reboot and power loss; a real collector failure in the service (tests only) |
+| Endpoint packaging, signed install, upgrade, uninstall and release | RQ-10 | Unsupported | `tools/service` is a development install; no package (#57, #137, #68) | — |
 
 Open dependencies of this matrix (#138, #51, #130, #137) and later evidence must
 update the affected rows. A row moves class only when a dated record with its
@@ -171,7 +173,7 @@ Source claim numbers below identify text, not a completion or coverage claim.
 
 | Planned capability / requirement | Printed claim(s) | Current evidence and acceptance still needed |
 | --- | --- | --- |
-| Real telemetry and structured errors / RQ-01 | 1, 8 | Windows collectors (TEL05 #91–TEL08 #94) were measured on the target as the interactive user; see the [matrix](#telemetry-and-error-evidence). LocalService runs and delivery remain open. TEL01 #21/TEL04 #85 must distinguish disk utilization from disk health/I/O, battery charge from health/life, and latency from throughput before CT03 #32 freezes features. Unavailable sensors remain missing with reasons. |
+| Real telemetry and structured errors / RQ-01 | 1, 8 | Windows collectors (TEL05 #91–TEL08 #94) were measured on the target as the interactive user; see the [matrix](#telemetry-and-error-evidence). The LocalService service run is in [windows-service-26](validation/windows-service-26.md); delivery remains open. TEL01 #21/TEL04 #85 must distinguish disk utilization from disk health/I/O, battery charge from health/life, and latency from throughput before CT03 #32 freezes features. Unavailable sensors remain missing with reasons. |
 | Preprocessing, faults, predictions and health / RQ-04 | 1, 2, 8, 9 | Versioned wire contracts and model interfaces exist. ML09 #105/ML10 #106 must implement controller normalization/filtering and historical type/count/recurrence comparisons; ML06 #103 must supply held-out evaluation. Health thresholds and warning/degraded terminology remain explicit versioned choices. |
 | Health-specific local analysis / RQ-05 | 1, 8 | Typed runner/task boundaries are scaffolds. DIA02 #37/DIA05 #109 must demonstrate authenticated health-specific assignments; the source's general agent replacement is an unmatched broader mechanism. No shell or remediation executor is selected. |
 | Local learning and central aggregation / RQ-06 | 1, 4, 8 | Training interfaces and weighted averaging do not demonstrate federation. FED02 #42/FED03 #43/FED10 #115 require compatible training on two endpoints, validated updates and evaluated promotion. FED12 #117 must document data flows and privacy limits. |
