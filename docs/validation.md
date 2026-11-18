@@ -423,6 +423,11 @@ with the real Windows collector, event-log and DPAPI tests, and uploads
 probe and harness under LocalService and a denied account. Both are build 26100
 VMs, not the 26200 target.
 
+**Target hardware as LocalService.** The 18 November service record runs
+`TestServiceQualificationHarness` against a local PostgreSQL and, elevated,
+`tools/service/Invoke-ServiceQualification.ps1`, as described in
+[windows-service-26](validation/windows-service-26.md#hp-victus-runs-18-november-2026).
+
 **Local lab.** On Linux: `make database-check` (needs `TEST_DATABASE_URL`),
 `make tailcat-lab-check`, `make derp-lab-proof`, `make relay-fallback-proof`.
 `make derp-lab-proof` and `make storage-crash-check` are not run in CI.

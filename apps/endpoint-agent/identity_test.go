@@ -60,19 +60,12 @@ func testAccepted(start contracts.EnrollmentStartV1) contracts.EnrollmentAccepte
 	return contracts.EnrollmentAcceptedV1{SchemaVersion: contracts.EnrollmentAcceptedV1Version, DeploymentID: start.DeploymentID, DeviceID: start.DeviceID, SigningKeyID: id, NetworkPublicKey: start.NetworkPublicKey, LastSequence: 1}
 }
 
-// This TLS peer checks real canonical signatures and network possession. It is
-// a protocol fixture, not a PostgreSQL admission or deployed-controller proof.
-func TestEnrollmentAndProcessRestart(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "private")
-	s, err := openIdentityStore(path, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		if s != nil {
-			s.close()
-		}
-	}()
+// fixtureEnrollmentServer is a TLS peer that checks real canonical signatures
+// and network possession. It is a protocol fixture, not a PostgreSQL admission
+// or deployed-controller proof. It returns the server, a CA file trusting it
+// and the request counter.
+func fixtureEnrollmentServer(t *testing.T) (*httptest.Server, string, *atomic.Int32) {
+	t.Helper()
 	var start contracts.EnrollmentStartV1
 	var requests atomic.Int32
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,11 +97,26 @@ func TestEnrollmentAndProcessRestart(t *testing.T) {
 			w.WriteHeader(404)
 		}
 	}))
-	defer server.Close()
+	t.Cleanup(server.Close)
 	caFile := filepath.Join(t.TempDir(), "ca.pem")
 	if err := os.WriteFile(caFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw}), 0600); err != nil {
 		t.Fatal(err)
 	}
+	return server, caFile, &requests
+}
+
+func TestEnrollmentAndProcessRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "private")
+	s, err := openIdentityStore(path, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if s != nil {
+			s.close()
+		}
+	}()
+	server, caFile, requests := fixtureEnrollmentServer(t)
 	client, origin, err := enrollmentClient(server.URL, caFile)
 	if err != nil {
 		t.Fatal(err)

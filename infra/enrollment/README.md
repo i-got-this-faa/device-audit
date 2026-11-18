@@ -4,9 +4,10 @@ SEC01 [#18](https://github.com/i-got-this-faa/device-audit/issues/18) implements
 controller bootstrap admission over TLS. One transaction binds an authorized
 opaque device ID to separate Ed25519 signing and X25519 network public keys.
 Endpoint key storage and the explicit enrollment CLI are documented under
-[#23](../../apps/endpoint-agent/README.md). Native Windows service qualification
-remains open. The endpoint has no default mode; synthetic telemetry needs
-`--fixture`.
+[#23](../../apps/endpoint-agent/README.md). The LocalService service host (#26)
+enrolls under its own token from a one-use bootstrap file; see
+[windows-service-26](../../docs/validation/windows-service-26.md). The endpoint
+has no default mode; synthetic telemetry needs `--fixture`.
 
 ## Enable the controller routes
 

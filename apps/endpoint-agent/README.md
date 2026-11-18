@@ -53,9 +53,9 @@ unreadable ACLs fail without repairing permissions or replacing keys.
 LocalService without an enabled per-service SID fails. Interactive development
 uses the process user SID instead. Run provisioning and later reads under the
 same account and service token. Interactive provisioning does not qualify or
-initialize the LocalService installation. Service registration, SID activation,
-private parent provisioning and running this operation under the service token
-belong to installation/service work #26/#57/#64. Administrators and SYSTEM can
+initialize the LocalService installation. The service host below (#26)
+enrolls under its own token; the release installer and operator walkthrough
+remain #57/#64. Administrators and SYSTEM can
 override filesystem protection; this does not defend against a compromised
 administrator, the endpoint process or its authorized principal. DPAPI backup,
 profile loss and account migration require an explicit recovery design.
@@ -206,6 +206,49 @@ anything runs. A probe that runs and fails prints a
 Error evidence carries message digests, never message text. This is a local
 operator check: assignment signature, target and expiry checks are DIA03 #38.
 See [probe-catalog-36.md](../../docs/validation/probe-catalog-36.md).
+
+## Windows service host, TEL02 #26
+
+```powershell
+# elevated
+tools/service/Install-EndpointService.ps1 -AgentPath bin/endpoint-agent.exe `
+  -EnrollmentOrigin https://controller.example.org -CAFile ca.pem -BootstrapFile bootstrap.json
+Start-Service DeviceAuditEndpoint
+```
+
+`--service --service-config <file>` runs only under the service control
+manager. The installer creates `DeviceAuditEndpoint` as
+`NT AUTHORITY\LocalService` with an unrestricted per-service SID, restricts its
+token to `SeChangeNotifyPrivilege` (`sc.exe privs`), and restarts it on
+failure, including a non-zero service exit code (`sc.exe failureflag 1`). At
+start the service refuses LocalSystem, NetworkService, any other account, an
+elevated token, a missing service SID and any privilege outside that set.
+
+Under `%ProgramData%\DeviceAudit\Endpoint` the installer grants the service
+SID read and create-folder access on the root, modify access on `evidence` and
+`enrollment`, and read access on `service.json`. The service creates
+`identity` itself with the private DACL described above, so provisioning and
+every later read use the same service token. On first start without an
+admission receipt, it reads `enrollment\bootstrap.json`, deletes it, and
+enrolls. A bootstrap file found beside an admitted identity is deleted unused.
+
+The pipeline is the `--sample` schedule (default, or `sampling_config`). Each
+snapshot with a known metric becomes telemetry v2 for the admitted device ID
+and is signed with the crash-safe sequence. The signed envelopes are appended,
+one per line and synced, to `evidence\signed-evidence.jsonl`. A crash can tear
+the final line; the next start truncates it, leaving a sequence gap. When the
+file would exceed `max_evidence_bytes` the service stops with an error instead
+of dropping evidence. Delivery and a retrying spool are #27. Each clean stop
+writes a `sampling-report-*.json`; `service.log` records starts, the token,
+failures and budget summaries. Stop and shutdown cancel the workers and wait
+at most 25 s. A collector failure becomes a null with a reason and sampling
+continues.
+
+Exit codes: 1 configuration, 2 refused account or privilege, 3 pipeline
+failure, 4 workers did not stop. `Uninstall-EndpointService.ps1` keeps the
+state unless `-PurgeState` is given. This is a development install, not the
+signed release installer (#57). See
+[windows-service-26.md](../../docs/validation/windows-service-26.md).
 
 ## Verification
 

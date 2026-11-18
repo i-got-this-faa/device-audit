@@ -1,0 +1,4 @@
+{
+  "directory_sddl": "O:LSG:LSD:P(A;OICI;RC;;;OW)(A;OICI;FA;;;SY)(A;OICI;FA;;;S-1-5-80-4292395088-3533198219-2614372270-357532753-3690481432)",
+  "files": "administrator listing denied: Access to the path 'C:\\ProgramData\\DeviceAudit\\Endpoint\\identity' is denied."
+}

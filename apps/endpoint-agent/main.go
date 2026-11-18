@@ -39,12 +39,23 @@ func main() {
 	samplingReport := flag.String("sampling-report", "", "new file for the sampling budget report")
 	fixture := flag.Bool("fixture", false, "send synthetic fixture telemetry to a loopback development controller")
 	runProbe := flag.Bool("run-probe", false, "run one allowlisted read-only diagnostic probe from a JSON request on stdin")
+	service := flag.Bool("service", false, "run the signed sampling pipeline as the installed Windows service")
+	serviceConfigPath := flag.String("service-config", "", "service configuration JSON, required with --service")
 	flag.Parse()
 	if *runProbe {
 		if flag.NFlag() != 1 {
 			fail(fmt.Errorf("--run-probe runs alone"))
 		}
 		os.Exit(runProbeRequest(context.Background(), workflows.NewCatalog(), os.Stdin, os.Stdout, os.Stderr))
+	}
+	if *service || *serviceConfigPath != "" {
+		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 {
+			fail(fmt.Errorf("--service runs alone and requires --service-config"))
+		}
+		if err := runService(*serviceConfigPath); err != nil {
+			fail(err)
+		}
+		return
 	}
 	modes := 0
 	for _, selected := range []bool{*enrollMode, *identityStatus, *signEvidence, *collectErrors} {
