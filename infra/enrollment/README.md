@@ -5,7 +5,8 @@ controller bootstrap admission over TLS. One transaction binds an authorized
 opaque device ID to separate Ed25519 signing and X25519 network public keys.
 Endpoint key storage and the explicit enrollment CLI are documented under
 [#23](../../apps/endpoint-agent/README.md). Native Windows service qualification
-remains open. The default endpoint mode still sends fixture telemetry.
+remains open. The endpoint has no default mode; synthetic telemetry needs
+`--fixture`.
 
 ## Enable the controller routes
 
