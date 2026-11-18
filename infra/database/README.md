@@ -61,7 +61,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 5 and the configured
+- health output for a connected database, schema version 6 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

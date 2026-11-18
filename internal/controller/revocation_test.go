@@ -43,16 +43,35 @@ func requireAdmitted(t *testing.T, repo *PostgresRepository, d meshTestDevice, w
 }
 
 // pausingClock blocks its first caller, which holds the device row lock when it
-// reads the clock, until the test releases it.
+// reads the clock, until the test releases it. Cleanup releases it, so a failed
+// assertion does not leave a transaction holding the lock.
 type pausingClock struct {
-	once     sync.Once
-	locked   chan struct{}
-	released chan struct{}
-	now      func() time.Time
+	once        sync.Once
+	releaseOnce sync.Once
+	locked      chan struct{}
+	released    chan struct{}
+	now         func() time.Time
 }
 
-func newPausingClock(now func() time.Time) *pausingClock {
-	return &pausingClock{locked: make(chan struct{}), released: make(chan struct{}), now: now}
+func newPausingClock(t *testing.T, now func() time.Time) *pausingClock {
+	c := &pausingClock{locked: make(chan struct{}), released: make(chan struct{}), now: now}
+	t.Cleanup(c.release)
+	return c
+}
+
+func (c *pausingClock) release() { c.releaseOnce.Do(func() { close(c.released) }) }
+
+// awaitLocked waits until the worker reads the clock under the row lock. It
+// fails if the worker returns first, for example on a database error.
+func awaitLocked[T any](t *testing.T, c *pausingClock, worker <-chan T) {
+	t.Helper()
+	select {
+	case <-c.locked:
+	case result := <-worker:
+		t.Fatalf("worker returned before reading the clock under the lock: %+v", result)
+	case <-time.After(repositoryTestTimeout):
+		t.Fatal("worker did not read the clock under the lock")
+	}
 }
 
 func (c *pausingClock) Now() time.Time {
@@ -208,7 +227,7 @@ func TestRevocationRejectsSampleQueuedBehindIt(t *testing.T) {
 	b := newEnrollmentTestBed(t)
 	device := enrollMeshTestDevice(t, b, "device:queued-sample")
 	server := newMeshTestServer(t, MeshConfig{Node: &meshTestNode{}, Repository: b.repo, Now: b.clock.Now})
-	clock := newPausingClock(b.clock.Now)
+	clock := newPausingClock(t, b.clock.Now)
 	revoker, err := NewPostgresRepository(context.Background(), b.db, RepositoryConfig{DeploymentID: b.repo.deploymentID, Now: clock.Now})
 	if err != nil {
 		t.Fatal(err)
@@ -218,13 +237,13 @@ func TestRevocationRejectsSampleQueuedBehindIt(t *testing.T) {
 		_, _, err := revoker.RevokeDevice(context.Background(), revocationRequest(device.id, "incident:race"), "https://id.example.test", "admin:test")
 		revoked <- err
 	}()
-	<-clock.locked
+	awaitLocked(t, clock, revoked)
 	// The revocation is uncommitted, so the peer still passes tunnel admission.
 	envelope := meshReplayEvidence(t, b, device, 2)
 	response := make(chan *httptest.ResponseRecorder, 1)
 	go func() { response <- recordMeshEvidence(server, device.peer, envelope) }()
 	waitForLockedQuery(t, b.db, "SELECT public_key")
-	close(clock.released)
+	clock.release()
 	if err := <-revoked; err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +260,7 @@ func TestRevocationRejectsSampleQueuedBehindIt(t *testing.T) {
 func TestRevocationWaitsForInFlightSample(t *testing.T) {
 	b := newEnrollmentTestBed(t)
 	device := enrollMeshTestDevice(t, b, "device:in-flight")
-	clock := newPausingClock(b.clock.Now)
+	clock := newPausingClock(t, b.clock.Now)
 	ingest, err := NewPostgresRepository(context.Background(), b.db, RepositoryConfig{DeploymentID: b.repo.deploymentID, Now: clock.Now})
 	if err != nil {
 		t.Fatal(err)
@@ -250,7 +269,7 @@ func TestRevocationWaitsForInFlightSample(t *testing.T) {
 	envelope := meshReplayEvidence(t, b, device, 2)
 	response := make(chan *httptest.ResponseRecorder, 1)
 	go func() { response <- recordMeshEvidence(server, device.peer, envelope) }()
-	<-clock.locked
+	awaitLocked(t, clock, response)
 	type outcome struct {
 		record  contracts.DeviceRevocationV1
 		created bool
@@ -262,7 +281,7 @@ func TestRevocationWaitsForInFlightSample(t *testing.T) {
 		revoked <- outcome{record, created, err}
 	}()
 	waitForLockedQuery(t, b.db, "SELECT request_sha256")
-	close(clock.released)
+	clock.release()
 	w := <-response
 	requireAcceptedAcknowledgement(t, w.Code, meshAcknowledgement(t, w, envelope), 2)
 	result := <-revoked

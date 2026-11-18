@@ -7,8 +7,10 @@ create an on-chain payload.
 
 A request contains `schema_version: device-audit.device-revocation-request.v1`,
 `device_id` and `reason_reference`. The reason is an opaque off-chain reference
-to an incident or ticket. It uses the opaque ID grammar, so free text, raw logs
-and hardware serial numbers cannot be stored through it. Revocation is
+to an incident or ticket. The opaque ID grammar rejects free text and
+multi-line logs, but it cannot tell a ticket reference from a hardware serial
+number. Callers must use an incident or ticket reference and must not put raw
+logs or hardware serial numbers in it. Revocation is
 permanent for that enrollment. No reinstatement contract exists; a device that
 must return needs a new enrollment.
 

@@ -34,7 +34,7 @@ Implemented routes:
   [enrollment guide](../../infra/enrollment/README.md).
 
 Sessions use the tables introduced in PostgreSQL schema version 2; the current
-controller migrates to schema version 5. The session browser state
+controller migrates to schema version 6. The session browser state
 is the opaque `__Host-device-audit-session` cookie: `Secure`, `HttpOnly`,
 `Path=/`, no `Domain`, `SameSite=Lax`; the short-lived login transaction uses a
 second `__Host-` cookie. Idle expiry is 15 minutes and absolute expiry is
