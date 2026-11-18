@@ -179,15 +179,21 @@ func TestServicePipelineRecoversAndRestarts(t *testing.T) {
 }
 
 func TestServiceSpoolOverflowMatchesSignedSequenceGap(t *testing.T) {
-	for _, limit := range []string{"records", "bytes"} {
-		t.Run(limit, func(t *testing.T) {
+	const retained, rejected = 3, 2
+	for _, tc := range []struct {
+		name       string
+		maxRecords int
+		freeBytes  int64
+	}{
+		{name: "records", maxRecords: retained},
+		{name: "exact_bytes"},
+		{name: "one_byte_remaining", freeBytes: 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			store, stateDir, identity, receipt := admittedStore(t)
 			t.Cleanup(store.close)
 			cfg := testServiceConfig(t, stateDir)
-			const retained, rejected = 3, 2
-			if limit == "records" {
-				cfg.MaxEvidenceRecords = retained
-			}
+			cfg.MaxEvidenceRecords = tc.maxRecords
 			deviceKey := identity.signing.Public().(ed25519.PublicKey)
 			openSpool := func() *evidenceSpool {
 				t.Helper()
@@ -210,12 +216,11 @@ func TestServiceSpoolOverflowMatchesSignedSequenceGap(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if limit == "bytes" {
-					// Leave one byte free so the next envelope is larger than
-					// the remaining space even though the cap has not been met.
-					size := (cfg.MaxEvidenceBytes - 1) / retained
+				if tc.maxRecords == 0 {
+					targetSize := cfg.MaxEvidenceBytes - tc.freeBytes
+					size := targetSize / retained
 					if n == retained-1 {
-						size = cfg.MaxEvidenceBytes - 1 - spool.size
+						size = targetSize - spool.size
 					}
 					record = append(record, bytes.Repeat([]byte(" "), int(size)-len(record)-1)...)
 				}
@@ -230,21 +235,38 @@ func TestServiceSpoolOverflowMatchesSignedSequenceGap(t *testing.T) {
 				original = append(original, record)
 			}
 			initialSize := spool.size
+			if tc.maxRecords == 0 && initialSize != cfg.MaxEvidenceBytes-tc.freeBytes {
+				t.Fatalf("prefill left %d bytes free, want %d", cfg.MaxEvidenceBytes-initialSize, tc.freeBytes)
+			}
 			spool.close()
 			store.close()
 
-			var logs bytes.Buffer
+			log := &serviceLog{path: filepath.Join(cfg.EvidenceDir, serviceLogFile)}
+			previousLog := log.path + ".previous"
+			if err := os.WriteFile(previousLog, []byte("older log\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			fullLog := bytes.Repeat([]byte("old log\n"), maxServiceLogBytes/len("old log\n"))
+			if err := os.WriteFile(log.path, fullLog, 0600); err != nil {
+				t.Fatal(err)
+			}
 			synctest.Test(t, func(t *testing.T) {
 				ctx, cancel := context.WithTimeout(context.Background(), 11*time.Second)
 				defer cancel()
-				if err := runServicePipeline(ctx, cfg, cpuSource(new(atomic.Bool), false), func(format string, args ...any) {
-					fmt.Fprintf(&logs, format+"\n", args...)
-				}); err != nil {
+				if err := runServicePipeline(ctx, cfg, cpuSource(new(atomic.Bool), false), log.printf); err != nil {
 					t.Fatal(err)
 				}
 			})
-			if !strings.Contains(logs.String(), fmt.Sprintf("2 snapshots, 0 not signed, %d rejected by spool,", rejected)) {
-				t.Fatalf("unexpected overflow accounting: %s", logs.String())
+			if previous, err := os.ReadFile(previousLog); err != nil || !bytes.Equal(previous, fullLog) {
+				t.Fatalf("full log was not retained as the previous log: %v", err)
+			}
+			logs, err := os.ReadFile(log.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			summary := fmt.Sprintf("%d snapshots, 0 not signed, %d rejected by spool, last spool sequence %d", rejected, rejected, last.Sequence)
+			if len(logs) > maxServiceLogBytes || !bytes.Contains(logs, []byte(summary)) {
+				t.Fatalf("unexpected overflow accounting in rotated log: %s", logs)
 			}
 
 			spool = openSpool()
@@ -267,7 +289,7 @@ func TestServiceSpoolOverflowMatchesSignedSequenceGap(t *testing.T) {
 			spool.close()
 
 			// A new pipeline run uses the durable sequence state after space
-			// becomes available. Isolate its report filename from the first run.
+			// becomes available.
 			synctest.Test(t, func(t *testing.T) {
 				ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 				defer cancel()

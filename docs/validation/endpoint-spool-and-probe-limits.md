@@ -41,10 +41,11 @@ rejection. Elevated execution of that harness remains unverified.
 ## Overflow and disk-full recovery, TEL10 #95
 
 - `TestServiceSpoolOverflowMatchesSignedSequenceGap` runs the sampling
-  pipeline against each configured limit. It checks two reported rejections,
-  exact retention of the original records, and two missing sequences between
-  the last retained envelope and the next one signed after space is released
-  and the pipeline restarts.
+  pipeline at the record limit, at the exact byte limit, and with one byte left.
+  It starts with a full service log and checks that the log rotates and still
+  records both rejections. The original records stay byte for byte, and after
+  space is released and the pipeline restarts, the next signed envelope skips
+  two sequences.
 - `TestSpoolDiskFullDuringWrite` writes a partial staging file before
   injecting a disk-full error. The failed spool refuses delivery and
   acknowledgement. Reopening it through the maintenance command discards the
