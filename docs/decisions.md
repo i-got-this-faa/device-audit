@@ -171,6 +171,33 @@ reboot interruption and cancellation authority are consumer requirements, not
 implemented state. All examples are synthetic; execution, authorization and
 restart/race qualification remain future work.
 
+## Typed read-only probe catalog, DIA01 #36
+
+On 18 November 2026 `packages/workflows` gained the endpoint catalog for the
+two CT06 probes. One exported check, `DiagnosticArgumentsV1.ValidateFor`, now
+serves both assignment validation and the catalog, so the allowlist cannot
+drift. There is no generic executor: each probe ID maps to one Go function.
+
+`storage_health.v1` resolves `component_id` only in the form
+`storage:disk-<n>`, the OS disk number from 0 to 63. It does not use a serial
+number or path. The disk is opened with no access rights and read through
+`IOCTL_STORAGE_QUERY_PROPERTY`, including the NVMe health log page. That works
+for a standard user, so no privilege is requested. Removable, USB, SD/MMC and
+virtual disks are not eligible. A non-NVMe disk reports `not_applicable`
+instead of guessing at SMART. Mapping inventory component IDs (#97) to these
+local IDs is not done.
+
+`system_errors.v1` reuses the TEL07 reader with the assignment's lookback and
+per-log entry limit. It never moves the `--collect-errors` read positions.
+Event messages are reduced to a SHA-256 digest. Any process can log under an
+unregistered source name, so a provider name is kept only when it looks like a
+publisher name and is reduced to its digest otherwise. A denied log or disk is a
+`permission_denied` failure without retry, elevation or state change. A probe
+that fails after its wall budget is `budget_exhausted`, and evidence larger than
+`max_output_bytes` is never returned. Assignment signature and target checks
+and signed results remain DIA03 #38. Evidence is in
+[probe-catalog-36.md](validation/probe-catalog-36.md).
+
 ## Provisional lifecycle contract v2
 
 Issue #78 adds a separate `device-audit.lifecycle.v2` report proposal without

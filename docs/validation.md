@@ -410,6 +410,12 @@ Compare `--collect-errors` record IDs with
 and the disk reading with `Get-Volume`. The reports carry no hostname or device
 identifier; the dated record attributes the machine.
 
+The 18 November probe-catalog record pipes the requests in
+[probe-catalog-36](validation/probe-catalog-36.md#hp-victus-run-18-november-2026)
+to `bin/endpoint-agent.exe --run-probe`. Compare `system_errors.v1` record IDs
+with the same `Get-WinEvent` query, oldest first, and the disk with
+`Get-PhysicalDisk`.
+
 **Hosted CI OS.** `windows-check` in `.github/workflows/check.yml` runs
 `tools/check-windows.ps1` on `windows-2025`, which includes `go test -race ./...`
 with the real Windows collector, event-log and DPAPI tests, and uploads

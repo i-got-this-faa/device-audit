@@ -89,7 +89,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | CPU utilization | RQ-01 | Target hardware | [telemetry-91](validation/telemetry-91.md#hp-victus-run-17-november-2026), 17 Nov, Go 1.27.4 | LocalService; observed counter reset (tests only); multi-processor-group hosts (null by design) |
 | Memory in use | RQ-01 | Target hardware | telemetry-91, 17 Nov | LocalService |
 | Fixed-volume space used | RQ-01 | Target hardware | telemetry-91, 17 Nov (90.518 % vs `Get-Volume` 90.516 %) | Disk health, SMART or I/O; observed volume denial (tests only) |
-| Disk health / SMART | RQ-01, RQ-04 | Unsupported | No collector ([Backblaze mapping](../models/datasets/backblaze-2013/README.md)) | — |
+| Disk health / SMART | RQ-01, RQ-04 | Target hardware | NVMe health log read on demand by the `storage_health.v1` probe, [probe-catalog-36](validation/probe-catalog-36.md), 18 Nov | Not a scheduled telemetry source; SATA/ATA SMART; [Backblaze mapping](../models/datasets/backblaze-2013/README.md) features |
 | Network receive/send rate | RQ-01 | Target hardware | telemetry-91, 17 Nov; down interface reported `interface_down` | Not on the telemetry v2 wire; interface removal and counter reset (tests only) |
 | Network latency | RQ-01 | Unsupported | No collector | — |
 | Battery charge | RQ-01 | Target hardware | telemetry-91 and [sensors-92](validation/sensors-92.md), 17 Nov | Battery health/life; LocalService |
@@ -110,6 +110,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | --- | --- | --- | --- | --- |
 | Telemetry, prediction, lifecycle, envelope, bootstrap, inventory, federated, diagnostic and audit wire contracts | RQ-01–RQ-09 | Contract | [validation.md](validation.md#shared-contract-conformance-ct05-80) and `make contract-check` in `check` | Live collectors, authorization, training, chain behavior |
 | Read-only typed diagnostic assignments and results | RQ-05 | Contract | [diagnostics-v1](../packages/contracts/diagnostics-v1.md) | Scheduler, executor, cancellation, result storage |
+| Typed read-only probe catalog (`storage_health.v1`, `system_errors.v1`, `--run-probe`) | RQ-05, RQ-01 | Target hardware | [probe-catalog-36](validation/probe-catalog-36.md), 18 Nov: NVMe health log and System/Application errors as the standard user | Assignment verification and signed results (#38); an observed OS denial (tests only); LocalService; non-NVMe health |
 
 ### Models
 
