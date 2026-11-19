@@ -34,7 +34,7 @@ Implemented routes:
   [enrollment guide](../../infra/enrollment/README.md).
 
 Sessions use the tables introduced in PostgreSQL schema version 2; the current
-controller migrates to schema version 5. The session browser state
+controller migrates to schema version 6. The session browser state
 is the opaque `__Host-device-audit-session` cookie: `Secure`, `HttpOnly`,
 `Path=/`, no `Domain`, `SameSite=Lax`; the short-lived login transaction uses a
 second `__Host-` cookie. Idle expiry is 15 minutes and absolute expiry is
@@ -146,7 +146,7 @@ This table records local evidence; it does not qualify a production IdP.
 | Forged email, group, organization, proxy identity or device header | Implemented: no header is read for roles; forged-header test passes |
 | Viewer reads fleet/device/findings/exports | Device/workflow destinations implemented as unavailable states; fleet data, findings and exports remain absent |
 | Viewer performs admin action | Implemented for role bindings: 403 with no mutation |
-| Admin performs an allowlisted action | Role-binding management requires authentication within five minutes; durable audit events are not implemented |
+| Admin performs an allowlisted action | Role-binding management and device revocation require authentication within five minutes. Device revocation appends a durable audit record (#90); other actions have no durable audit event. No console page calls the revocation API yet |
 | Missing/invalid CSRF, foreign Origin or mutation over GET | Implemented and tested |
 | Exactly 15 minutes idle or eight hours since login | Implemented in memory-store HTTP tests; server, not cookie, controls it |
 | Role removed or identity revoked | Implemented: next request denied; server-side session is not authority |
@@ -217,7 +217,7 @@ viewer. Use a disposable browser profile that trusts the test certificate.
 - Run the matrix against the selected real IdP, including issuer discovery,
   client authentication method and provider-specific `amr`/`acr` claims.
 - Apply the fresh-authentication rule to future sensitive administrator actions.
-- Add durable audit events, login rate limiting and expired session/login-row
+- Add durable audit events beyond device revocation, login rate limiting and expired session/login-row
   cleanup; qualify IdP single logout or back-channel revocation if required.
 - Connect production fleet, device and evidence pages and bounded exports with
   server-side resource and action authorization. Current device pages use fixtures.

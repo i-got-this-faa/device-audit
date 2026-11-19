@@ -49,6 +49,16 @@ or establish sensor truth. The mesh handler signs acknowledgements (#89).
    It returns the stored receive time only after COMMIT succeeds.
 4. `Device` and `Evidence` read deployment-scoped stored records for later
    authorized consumers. They are not an authenticated receipt lookup service.
+5. `RevokeDevice` (#90) is called only by
+   `POST /console/api/devices/{id}/revocation`, behind fresh-admin, CSRF and
+   Origin checks. The actor comes from the session. It locks the same device row
+   as `AcceptEvidence`, reads the clock after the lock, sets
+   `device_enrollments.revoked_at` and appends one `device_revocation_events`
+   row in one transaction. A sample that holds the lock commits first, with a
+   receive time no later than `revoked_at`. A sample queued behind the
+   revocation re-reads the row and is rejected with `revoked_key`. A repeat
+   returns the original record and writes nothing. Revocation is permanent; no
+   reinstatement or re-enrollment exists.
 
 Writes explicitly use Read Committed and `SET LOCAL synchronous_commit=on`.
 This overrides an asynchronous session default. PostgreSQL must still use
@@ -87,9 +97,13 @@ a stale backup requires sequence/revocation reconciliation before ingestion.
 
 Migration 003 leaves candidate `devices`/`telemetry_samples` untouched. They
 lack the provenance needed to establish signed enrollment trust. The trusted
-tables have no mandatory mesh credential. #90 must add revocation authority and
-qualify its serialization against this device-row lock; the nullable column
-and rejection check alone are not that capability.
+tables have no mandatory mesh credential.
+
+`revoked_at` stays the single admission flag. Tunnel admission and each mesh
+request read it through `NetworkPeerBinding`; ingestion re-reads it under the
+row lock. A row revoked by hand, for example before migration 006, has no audit
+record. `RevokeDevice` then returns `ErrRevocationUnrecorded` (HTTP 409) rather
+than invent an actor. The static relay admission file is not updated.
 
 Run `make database-check` with `TEST_DATABASE_URL` for database integration and
 writer-kill tests. Run `make storage-crash-check` with local PostgreSQL server

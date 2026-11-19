@@ -39,8 +39,8 @@ git diff --check
 
 - `make check`: `go vet`, `go test -race ./...`, 55 Python tests including
   the 4 new feature tests, controller fake scenarios and `go fmt`. Passed.
-- `make contract-check`: 319 golden vectors (30 new), 75 wire cases (4 new)
-  and 27 reader versions (2 new). Passed.
+- `make contract-check`: 331 golden vectors (30 from this change), 79 wire cases (4 from this change)
+  and 29 reader versions (2 from this change). Passed.
 - `make cross-build` built Windows amd64, then failed the Darwin arm64 build in
   `runtime/cgo` (`gcc: unrecognized option '-arch'`). The Nix shell sets
   `CGO_ENABLED=1` with a Linux gcc. With `CGO_ENABLED=0` both builds passed.
