@@ -1,6 +1,16 @@
 # SEC08 #89 replay rejection and signed acknowledgements
 
-Mesh evidence replies for
+TEL09 #96 changes exact retries on the existing mesh POST. After peer and
+device authorization, the controller compares the signed request digest to the
+stored row. A match returns the original signed `accepted` acknowledgement,
+including the stored receive time. A mismatch or missing row at a consumed
+sequence still receives a rejection. Receipt recovery checks revocation before
+looking up the row. The wire format and acknowledgement key pin are unchanged.
+See the [TEL09 evidence](spool-drain-96.md) for the current tests.
+
+## Original SEC08 validation
+
+The sections below record the mesh evidence replies first shipped for
 [issue #89](https://github.com/i-got-this-faa/device-audit/issues/89). Based on
 main `32a14f3`. No wire schema changed. The controller acknowledgement key is
 separate from the mesh, TLS, device and chain keys.

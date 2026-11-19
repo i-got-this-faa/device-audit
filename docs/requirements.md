@@ -137,7 +137,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Controller verification before ingestion | RQ-02 | Local lab | [evidence-verification-24](validation/evidence-verification-24.md), 17 Nov, Linux, PostgreSQL 17.11 | Rejections over a real tunnel; durable audit table |
 | Replay rejection and signed acknowledgements | RQ-02 | Local lab | [replay-acknowledgements-89](validation/replay-acknowledgements-89.md), Linux, PostgreSQL 17.11 | Acknowledgement-key rotation; Windows controller; deployed database |
 | Device revocation authority and audit record | RQ-02 | Local lab | [device-revocation-90](validation/device-revocation-90.md), 18 Nov, Linux, PostgreSQL 17.11 | Real IdP; rejection over a real tunnel; relay admission export; Windows controller |
-| Durable signed spool and retry | RQ-02 | Unsupported | [database README](../infra/database/README.md) | — |
+| Durable signed spool and retry | RQ-02 | Local lab | [spool-drain-96](validation/spool-drain-96.md), Linux, PostgreSQL 18.7 | Installed LocalService delivery, NAT/WAN and power loss |
 | Identity rotation and re-enrollment | RQ-02 | Unsupported | Open in #130 | — |
 
 ### Controller, storage and console

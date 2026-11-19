@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -38,6 +39,7 @@ type spoolRecord struct {
 
 // The spool lock serializes disk mutations. The caller holds the identity lock so sequences are reserved by one process.
 type evidenceSpool struct {
+	mu                        sync.Mutex
 	root                      *os.Root
 	lock                      *os.File
 	writeRecord               func(*os.File, []byte) (int, error)
@@ -340,6 +342,8 @@ func (s *evidenceSpool) append(envelope contracts.EvidenceEnvelopeV1) error {
 	if _, err := s.verify(data); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.appendBytes(append(data, '\n'), envelope.Sequence)
 }
 
@@ -394,6 +398,12 @@ func (s *evidenceSpool) stageRecord(data []byte) error {
 var spoolStage = func(string) {}
 
 func (s *evidenceSpool) head() ([]byte, contracts.EvidenceEnvelopeV1, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.headLocked()
+}
+
+func (s *evidenceSpool) headLocked() ([]byte, contracts.EvidenceEnvelopeV1, error) {
 	if s.failed {
 		return nil, contracts.EvidenceEnvelopeV1{}, errors.New("spool needs recovery")
 	}
@@ -415,7 +425,9 @@ func (s *evidenceSpool) head() ([]byte, contracts.EvidenceEnvelopeV1, error) {
 }
 
 func (s *evidenceSpool) acknowledge(key ed25519.PublicKey, ack contracts.AcknowledgementV1) error {
-	_, envelope, err := s.head()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, envelope, err := s.headLocked()
 	if err != nil {
 		return err
 	}
@@ -438,7 +450,9 @@ func (s *evidenceSpool) acknowledge(key ed25519.PublicKey, ack contracts.Acknowl
 }
 
 func (s *evidenceSpool) archiveExpired(now time.Time) (string, error) {
-	data, envelope, err := s.head()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	data, envelope, err := s.headLocked()
 	if err != nil {
 		return "", err
 	}

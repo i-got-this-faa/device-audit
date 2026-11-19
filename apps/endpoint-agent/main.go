@@ -46,6 +46,7 @@ func main() {
 	spoolAck := flag.Bool("spool-ack", false, "retire the oldest queued envelope after verifying the accepted acknowledgement on stdin")
 	spoolArchive := flag.Bool("spool-archive-expired", false, "preserve an expired head without acknowledging it")
 	spoolMaintain := flag.Bool("spool-session", false, "emit heads and accept signed acknowledgements in one maintenance session")
+	spoolDeliver := flag.Bool("spool-drain", false, "deliver the queued evidence over the configured mesh and retry transient failures")
 	signedProbe := flag.Bool("run-assigned-probe", false, "run one signed diagnostic assignment from stdin for the admitted identity")
 	diagnosticKey := flag.String("diagnostic-controller-key-file", "", "pinned controller Ed25519 diagnostic assignment public key PEM")
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
@@ -68,7 +69,7 @@ func main() {
 		active    bool
 		operation spoolOperation
 	}{
-		{*spoolNext, spoolShowHead}, {*spoolAck, spoolAcceptHead}, {*spoolArchive, spoolArchiveHead}, {*spoolMaintain, spoolSession},
+		{*spoolNext, spoolShowHead}, {*spoolAck, spoolAcceptHead}, {*spoolArchive, spoolArchiveHead}, {*spoolMaintain, spoolSession}, {*spoolDeliver, spoolDrain},
 	} {
 		if mode.active {
 			operation = mode.operation
@@ -84,7 +85,14 @@ func main() {
 		if spoolModes != 1 || *serviceConfigPath == "" || wantsKey != (*controllerAckKeyFile != "") || flag.NFlag() != expected || flag.NArg() != 0 {
 			fail(fmt.Errorf("choose one spool mode with --service-config; acknowledgement modes require --controller-ack-key-file"))
 		}
-		if err := runSpoolCommand(*serviceConfigPath, *controllerAckKeyFile, operation, os.Stdin, os.Stdout, os.Stderr); err != nil {
+		ctx := context.Background()
+		if operation == spoolDrain {
+			var stop context.CancelFunc
+			ctx, stop = signal.NotifyContext(ctx, os.Interrupt)
+			defer stop()
+		}
+		err := runSpoolCommand(ctx, *serviceConfigPath, *controllerAckKeyFile, operation, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
 			fail(err)
 		}
 		return

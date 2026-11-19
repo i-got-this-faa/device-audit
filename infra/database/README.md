@@ -115,8 +115,9 @@ restore automation and recovery qualification are not implemented by #19.
 - Exporting revocations to the relay admission file, key rotation and
   re-enrollment after revocation. #90 implements revocation authority and its
   ordering against ingestion; see the [repository guide](../../internal/controller/repository.md).
-- Retention, authenticated receipt lookup and reconciliation after an uncertain
-  commit. Replay is rejection, never proof that a particular payload was stored.
+- Retention policy and reconciliation when the stored row is missing. TEL09
+  can recover a receipt for an authorized exact retry while the row is retained.
+  See the [validation record](../../docs/validation/spool-drain-96.md).
 - Durable audit events beyond device revocation, session/login-row cleanup and IdP revocation. Fresh
   authentication is enforced for role changes and bootstrap-token issuance;
   future sensitive administrator

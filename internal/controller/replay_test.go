@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -89,25 +90,19 @@ func TestMeshConcurrentDuplicatesAcceptOnce(t *testing.T) {
 	close(start)
 	wg.Wait()
 
-	var accepted []*contracts.AcknowledgementV1
 	for _, w := range responses {
 		ack := meshAcknowledgement(t, w, envelope)
-		if ack != nil && ack.Status == "accepted" {
-			requireAcceptedAcknowledgement(t, w.Code, ack, envelope.Sequence)
-			accepted = append(accepted, ack)
-			continue
+		requireAcceptedAcknowledgement(t, w.Code, ack, envelope.Sequence)
+		if !bytes.Equal(responses[0].Body.Bytes(), w.Body.Bytes()) {
+			t.Fatal("concurrent retry returned a different receipt")
 		}
-		// Every duplicate learns the committed mark, never a second acceptance.
-		requireReplayAcknowledgement(t, w.Code, ack, envelope.Sequence)
-	}
-	if len(accepted) != 1 {
-		t.Fatalf("accepted %d concurrent copies, want 1", len(accepted))
 	}
 	requireMeshDeviceState(t, bed, device, envelope.Sequence, envelope.Sequence)
 	// The accepted receipt names the committed row's receive time.
 	stored, err := bed.repo.Evidence(context.Background(), device.id, envelope.Sequence)
-	if err != nil || stored.ReceivedAt.UTC().Format(time.RFC3339) != accepted[0].ReceivedAt {
-		t.Fatalf("stored receipt=%v acknowledged=%s err=%v", stored.ReceivedAt, accepted[0].ReceivedAt, err)
+	accepted := meshAcknowledgement(t, responses[0], envelope)
+	if err != nil || stored.ReceivedAt.UTC().Format(time.RFC3339) != accepted.ReceivedAt {
+		t.Fatalf("stored receipt=%v acknowledged=%s err=%v", stored.ReceivedAt, accepted.ReceivedAt, err)
 	}
 }
 
@@ -119,9 +114,10 @@ func TestMeshSequencePolicySurvivesControllerRestart(t *testing.T) {
 		return serveMeshEvidence(t, s, device.peer, meshReplayEvidence(t, bed, device, sequence))
 	}
 
-	status, ack := send(server, 5)
-	requireAcceptedAcknowledgement(t, status, ack, 5)
-	status, ack = send(server, 3) // Out of order: gaps below the mark are consumed.
+	original := meshReplayEvidence(t, bed, device, 5)
+	first := recordMeshEvidence(server, device.peer, original)
+	requireAcceptedAcknowledgement(t, first.Code, meshAcknowledgement(t, first, original), 5)
+	status, ack := send(server, 3) // Out of order: gaps below the mark are consumed.
 	requireReplayAcknowledgement(t, status, ack, 5)
 
 	// Restart: a new connection pool, repository and handler hold no process
@@ -139,7 +135,7 @@ func TestMeshSequencePolicySurvivesControllerRestart(t *testing.T) {
 	bed.db, bed.repo = db, repo
 	restarted := newMeshTestServer(t, MeshConfig{Node: &meshTestNode{}, Repository: repo, Now: bed.clock.Now})
 
-	for _, sequence := range []uint64{5, 4, 2} {
+	for _, sequence := range []uint64{4, 2} {
 		status, ack = send(restarted, sequence)
 		requireReplayAcknowledgement(t, status, ack, 5)
 	}
@@ -147,6 +143,22 @@ func TestMeshSequencePolicySurvivesControllerRestart(t *testing.T) {
 	requireAcceptedAcknowledgement(t, status, ack, 7)
 	status, ack = send(restarted, 6)
 	requireReplayAcknowledgement(t, status, ack, 7)
+
+	// A valid signature for a different payload under the same sequence
+	// cannot recover the committed request's receipt.
+	mismatch := original
+	setMeshTestPayload(&mismatch, meshTestTelemetry(t, device.id, bed.clock.Now().Add(-time.Minute)))
+	signMeshTestEvidence(t, &mismatch, device.signing)
+	status, ack = serveMeshEvidence(t, restarted, device.peer, mismatch)
+	requireReplayAcknowledgement(t, status, ack, 7)
+
+	// Recover after expiry and after a later commit advanced the mark.
+	bed.clock.Advance(time.Hour)
+	retry := recordMeshEvidence(restarted, device.peer, original)
+	requireAcceptedAcknowledgement(t, retry.Code, meshAcknowledgement(t, retry, original), 5)
+	if !bytes.Equal(first.Body.Bytes(), retry.Body.Bytes()) {
+		t.Fatal("retry after restart returned a different receipt")
+	}
 	requireMeshDeviceState(t, bed, device, 7, 5, 7)
 }
 

@@ -239,8 +239,8 @@ storage, release-machine suitability, or an approved organizational policy.
 Sequences are scoped to deployment/device across restarts and keys. Enrollment
 starts at 1, evidence at 2, gaps are allowed, and accepted responses require an
 atomic durable commit with the high-water mark. Rejection never advances it.
-A lost response can produce a replay rejection; that is not proof of receipt
-of the pending payload. Recovery and authenticated receipt lookup remain open.
+A replay rejection provides no proof of receipt. TEL09 #96 adds exact-request
+receipt recovery in the mesh controller without changing this wire contract.
 `enrollment_conflict` provisionally describes a binding admission conflict;
 `replay` describes a consumed sequence at freshness checking. The pure helpers
 cannot decide admission or challenge state, and the schemas only carry outcomes.
@@ -630,14 +630,29 @@ response. Operator pinning needs no wire change and keeps the receipt key
 separate from the mesh, TLS, device and chain keys. Key rotation is not
 implemented.
 
-`accepted` is signed only after COMMIT returns, with the stored receive time.
-Duplicates and out-of-order sequences get a signed `replay` that carries the
-committed mark. The PostgreSQL device row lock serializes them, so the mark
-survives a controller restart. Signed rejections are limited to correlatable
-requests that name the admitted peer's own device. A failed or uncertain COMMIT
-returns an unsigned 503 and never a signed rejection. Replay is still not proof
-of storage, and authenticated receipt lookup remains open. Evidence is in
-[the validation record](validation/replay-acknowledgements-89.md).
+SEC08 signs `accepted` with the stored receive time after COMMIT. The
+PostgreSQL device row lock serializes writers and the mark survives a
+controller restart. Signed rejections are limited to correlatable requests
+that name the admitted peer's own device. A failed or uncertain COMMIT returns
+an unsigned 503. See the [SEC08 validation](validation/replay-acknowledgements-89.md).
+
+## Authenticated spool drain, TEL09 #96
+
+Recover a lost receipt through the same mesh POST. Under the device row lock,
+after peer authorization, revocation and signature checks, an exact match
+against the stored request digest returns the original receive time. The
+controller regenerates the original signed `accepted` with the same pinned
+key. This works after expiry and a later commit while the original row is
+retained. A different request digest or an absent row at a consumed sequence
+stays rejected. A replay rejection cannot authorize retirement. This needs
+the existing CT04 acknowledgement and PostgreSQL columns only.
+
+The opt-in service worker retries only the queue head and keeps sampling
+during outages. It retires the head through the spool's existing durable
+acknowledgement operation. A signed rejection, invalid acknowledgement or
+HTTP admission denial logs a stopped delivery state without retiring the
+head. Confirmed revocation depends on an authenticated rejection reaching
+the endpoint. See the [TEL09 validation](validation/spool-drain-96.md).
 
 ## Device revocation authority, SEC09 #90
 

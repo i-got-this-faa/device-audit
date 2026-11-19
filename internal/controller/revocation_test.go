@@ -178,12 +178,19 @@ func TestRevocationRejectsFreshAndEstablishedPeersAcrossRestart(t *testing.T) {
 	device := enrollMeshTestDevice(t, b, "device:revoke-restart")
 	node := &meshTestNode{}
 	server := newMeshTestServer(t, MeshConfig{Node: node, Repository: b.repo, Now: b.clock.Now})
-	status, ack := serveMeshEvidence(t, server, device.peer, meshReplayEvidence(t, b, device, 2))
+	original := meshReplayEvidence(t, b, device, 2)
+	status, ack := serveMeshEvidence(t, server, device.peer, original)
 	requireAcceptedAcknowledgement(t, status, ack, 2)
 
 	record, created, err := b.repo.RevokeDevice(context.Background(), revocationRequest(device.id, "incident:restart"), "https://id.example.test", "admin:test")
 	if err != nil || !created {
 		t.Fatalf("revoke: created=%v err=%v", created, err)
+	}
+	// Revocation prevents receipt recovery even for bytes already committed.
+	requireRepositoryRejection(t, evidenceErr(b.repo.AcceptEvidence(context.Background(), original)), contracts.EnvelopeRejectionRevokedKey)
+	status, ack = serveMeshEvidence(t, server, device.peer, original)
+	if status != http.StatusForbidden || ack != nil {
+		t.Fatalf("revoked retry status=%d ack=%+v", status, ack)
 	}
 	requireRevoked := func(repo *PostgresRepository, server *http.Server, node *meshTestNode, sequence uint64) {
 		t.Helper()

@@ -51,6 +51,7 @@ type serviceConfig struct {
 	MaxEvidenceRecords int                `json:"max_evidence_records,omitempty"`
 	SamplingConfig     *string            `json:"sampling_config"`
 	Enrollment         *serviceEnrollment `json:"enrollment"`
+	Delivery           *deliveryConfig    `json:"delivery,omitempty"`
 }
 
 // loadServiceConfig strictly decodes one bounded configuration file.
@@ -89,6 +90,12 @@ func (c serviceConfig) validate() error {
 		if e.CAFile != nil {
 			paths = append(paths, *e.CAFile)
 		}
+	}
+	if d := c.Delivery; d != nil {
+		if _, err := contracts.NetworkPublicKeyV1(d.MeshServerKey); err != nil {
+			return errors.New("delivery requires a valid mesh_server_key")
+		}
+		paths = append(paths, d.DERPRegionFile, d.ControllerAckKeyFile)
 	}
 	for _, p := range paths {
 		if !filepath.IsAbs(p) {
@@ -151,6 +158,29 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 	if sink.recoveredTail {
 		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
 	}
+	var wake chan struct{}
+	var deliveryDone chan error
+	ctx, stopDelivery := context.WithCancel(ctx)
+	defer stopDelivery()
+	if cfg.Delivery != nil {
+		sender, err := cfg.Delivery.sender(store, i)
+		if err != nil {
+			return fmt.Errorf("configure spool delivery: %w", err)
+		}
+		wake = make(chan struct{}, 1)
+		deliveryDone = make(chan error, 1)
+		go func() {
+			err := drainEvidence(ctx, sink, sender.controllerKey, sender.send, wake, logf)
+			sender.close()
+			if errors.Is(err, errDeliveryBlocked) {
+				logf("spool delivery stopped: %v", err)
+				err = nil
+			} else if err != nil {
+				stopDelivery()
+			}
+			deliveryDone <- err
+		}()
+	}
 	unsigned, overflow := 0, 0
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
@@ -175,10 +205,20 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 				logf("%s", errEvidenceFull)
 			}
 			return nil
-		} else {
+		} else if err != nil {
 			return err
 		}
+		select {
+		case wake <- struct{}{}:
+		default:
+		}
+		return nil
 	})
+	if deliveryDone != nil {
+		// Join the worker before closing the spool or reading the final mark.
+		stopDelivery()
+		err = errors.Join(err, <-deliveryDone)
+	}
 	if err != nil {
 		if overflow > 0 {
 			logf("%d snapshots rejected by spool before sampling failed", overflow)

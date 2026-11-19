@@ -215,7 +215,7 @@ func (s *PostgresRepository) enrollInTransaction(ctx context.Context, tx *sql.Tx
 
 // AcceptEvidence verifies against the locked enrolled key, then commits the
 // exact payload and shared device high-water mark in the same transaction.
-// It returns the stored receipt time only after COMMIT succeeds.
+// An exact retry returns the original committed receipt time.
 // Callers must authorize the authenticated peer before invoking this method.
 func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contracts.EvidenceEnvelopeV1) (time.Time, error) {
 	if envelope.DeploymentID != s.deploymentID {
@@ -246,12 +246,33 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	if err := envelope.VerifySignature(publicKey); err != nil {
 		return time.Time{}, &RepositoryRejection{Reason: contracts.EnvelopeRejectionInvalidSignature}
 	}
+	signingBytes, _ := envelope.SigningBytes()
+	requestDigest, _ := contracts.EnvelopeRequestSHA256V1(signingBytes, envelope.Signature)
+	digest := decodeRepositoryDigest(requestDigest)
+	if envelope.Sequence <= lastSequence {
+		// The mark alone also covers gaps and reused sequences. Only an exact
+		// stored request can recover its receipt, including after expiry.
+		var receivedAt time.Time
+		err := tx.QueryRowContext(ctx, `SELECT received_at FROM device_evidence
+			WHERE deployment_id=$1 AND device_id=$2 AND sequence=$3 AND request_sha256=$4`,
+			s.deploymentID, envelope.DeviceID, envelope.Sequence, digest).Scan(&receivedAt)
+		if err == nil {
+			return receivedAt, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return time.Time{}, repositoryUnavailable(err)
+		}
+	}
 	// Read the clock after acquiring the lock: a waiter may have expired.
 	now := s.now().UTC()
 	if reason, err := envelope.EnvelopeHeaderV1.FreshnessRejection(now, lastSequence); err != nil {
 		return time.Time{}, err
 	} else if reason != "" {
-		return time.Time{}, &RepositoryRejection{Reason: reason, LastSequence: &lastSequence}
+		rejection := &RepositoryRejection{Reason: reason}
+		if reason == contracts.EnvelopeRejectionReplay {
+			rejection.LastSequence = &lastSequence
+		}
+		return time.Time{}, rejection
 	}
 	payload, _ := base64.StdEncoding.Strict().DecodeString(envelope.PayloadBase64)
 	var telemetry contracts.TelemetryV2
@@ -262,12 +283,11 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	if err != nil {
 		return time.Time{}, err
 	}
-	signingBytes, _ := envelope.SigningBytes()
-	requestDigest, _ := contracts.EnvelopeRequestSHA256V1(signingBytes, envelope.Signature)
-	_, err = tx.ExecContext(ctx, `INSERT INTO device_evidence
+	var receivedAt time.Time
+	err = tx.QueryRowContext(ctx, `INSERT INTO device_evidence
 		(deployment_id, device_id, sequence, envelope, payload_bytes, request_sha256, collected_at, received_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, s.deploymentID, envelope.DeviceID, envelope.Sequence,
-		string(encoded), payload, decodeRepositoryDigest(requestDigest), telemetry.CollectedAt, now)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING received_at`, s.deploymentID, envelope.DeviceID, envelope.Sequence,
+		string(encoded), payload, digest, telemetry.CollectedAt, now).Scan(&receivedAt)
 	if err != nil {
 		return time.Time{}, repositoryUnavailable(err)
 	}
@@ -278,7 +298,7 @@ func (s *PostgresRepository) AcceptEvidence(ctx context.Context, envelope contra
 	if err := repositoryCommit(tx); err != nil {
 		return time.Time{}, err
 	}
-	return now, nil
+	return receivedAt, nil
 }
 
 func (s *PostgresRepository) Device(ctx context.Context, deviceID string) (EnrolledDevice, error) {
@@ -340,7 +360,7 @@ func repositoryReadError(err error) error {
 func repositoryCommit(tx *sql.Tx) error {
 	if err := tx.Commit(); err != nil {
 		// A lost connection at commit leaves an uncertain outcome. Never infer
-		// rejection or issue accepted; a future authenticated lookup must resolve it.
+		// rejection or issue accepted. A retry checks the committed state.
 		return repositoryUnavailable(err)
 	}
 	return nil

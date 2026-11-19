@@ -26,67 +26,128 @@ func sendMeshEvidence(ctx context.Context, stateDir, serverKey string, controlle
 		return contracts.AcknowledgementV1{}, err
 	}
 	defer s.close()
-	receipt, err := s.status()
-	if err != nil {
-		return contracts.AcknowledgementV1{}, err
-	}
-	i, err := s.load(false)
-	if err != nil {
-		return contracts.AcknowledgementV1{}, err
-	}
-	address, err := s.read("mesh-address")
-	if err != nil {
-		return contracts.AcknowledgementV1{}, errors.New("private mesh address unavailable")
-	}
-	regionJSON, err := os.ReadFile(regionFile)
-	if err != nil {
-		return contracts.AcknowledgementV1{}, errors.New("read self-hosted DERP region")
-	}
-	region, err := mesh.DecodeRegion(regionJSON)
+	i, receipt, err := s.admitted()
 	if err != nil {
 		return contracts.AcknowledgementV1{}, err
 	}
 	var envelope contracts.EvidenceEnvelopeV1
-	data, err := io.ReadAll(io.LimitReader(input, (400<<10)+1))
-	if err != nil || len(data) > 400<<10 || json.Unmarshal(data, &envelope) != nil || envelope.VerifySignature(i.signing.Public().(ed25519.PublicKey)) != nil {
+	data, readErr := io.ReadAll(io.LimitReader(input, maxSpoolRecordBytes+1))
+	if readErr != nil || len(data) > maxSpoolRecordBytes || json.Unmarshal(data, &envelope) != nil || envelope.VerifySignature(i.signing.Public().(ed25519.PublicKey)) != nil {
 		return contracts.AcknowledgementV1{}, errors.New("valid locally signed CT04 evidence required on stdin")
 	}
 	if envelope.DeploymentID != receipt.DeploymentID || envelope.DeviceID != receipt.DeviceID || envelope.SigningKeyID != receipt.SigningKeyID {
 		return contracts.AcknowledgementV1{}, errors.New("evidence does not match stored admission")
 	}
-	private := i.network.Bytes()
-	defer clear(private)
-	// A cold Tailcat session discovers the controller through the relay.
-	// Report a bad relay explicitly instead of an opaque delivery timeout.
-	if err := mesh.CheckRelay(ctx, mesh.DERPConfig{Region: region}, private); err != nil {
-		return contracts.AcknowledgementV1{}, fmt.Errorf("%v; evidence not sent, retain the signed envelope", err)
-	}
-	client, err := mesh.NewClient(mesh.ClientConfig{NetworkPrivateKey: private, ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}})
+	sender, err := newMeshEvidenceSender(s, i, serverKey, regionFile, controllerKey)
 	if err != nil {
 		return contracts.AcknowledgementV1{}, err
 	}
-	defer client.Close()
+	defer sender.close()
+	return sender.send(ctx, data, envelope)
+}
+
+var (
+	errDeliveryRetry   = errors.New("temporary evidence delivery failure")
+	errDeliveryBlocked = errors.New("evidence delivery blocked")
+)
+
+// The sender owns a single Tailcat session. A failed request drops that
+// session so retry can rediscover the peer after a controller restart.
+type meshEvidenceSender struct {
+	config        mesh.ClientConfig
+	controllerKey ed25519.PublicKey
+	client        mesh.Client
+	preflight     bool
+}
+
+func newMeshEvidenceSender(store *identityStore, id *identity, serverKey, regionFile string, controllerKey ed25519.PublicKey) (*meshEvidenceSender, error) {
+	address, err := store.read("mesh-address")
+	if err != nil {
+		return nil, errors.New("private mesh address unavailable")
+	}
+	f, err := os.Open(regionFile)
+	if err != nil {
+		return nil, errors.New("read self-hosted DERP region")
+	}
+	defer f.Close()
+	regionJSON, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
+	if err != nil {
+		return nil, errors.New("read self-hosted DERP region")
+	}
+	region, err := mesh.DecodeRegion(regionJSON)
+	if err != nil {
+		return nil, err
+	}
+	cfg := mesh.ClientConfig{NetworkPrivateKey: id.network.Bytes(), ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}}
+	client, err := mesh.NewClient(cfg)
+	if err != nil {
+		clear(cfg.NetworkPrivateKey)
+		return nil, err
+	}
+	return &meshEvidenceSender{config: cfg, client: client, controllerKey: controllerKey, preflight: true}, nil
+}
+
+func (s *meshEvidenceSender) close() {
+	if s.client != nil {
+		s.client.Close()
+	}
+	clear(s.config.NetworkPrivateKey)
+}
+
+func (s *meshEvidenceSender) send(ctx context.Context, data []byte, envelope contracts.EvidenceEnvelopeV1) (contracts.AcknowledgementV1, error) {
+	if s.preflight {
+		if err := mesh.CheckRelay(ctx, s.config.DERP, s.config.NetworkPrivateKey); err != nil {
+			return contracts.AcknowledgementV1{}, fmt.Errorf("%w: %v; evidence not sent", errDeliveryRetry, err)
+		}
+		s.preflight = false
+	}
+	if s.client == nil {
+		client, err := mesh.NewClient(s.config)
+		if err != nil {
+			return contracts.AcknowledgementV1{}, err
+		}
+		s.client = client
+	}
+	ack, err := postMeshEvidence(ctx, s.client.HTTPClient(), s.controllerKey, data, envelope)
+	if errors.Is(err, errDeliveryRetry) {
+		s.client.Close()
+		s.client = nil
+		s.preflight = true
+	}
+	return ack, err
+}
+
+func postMeshEvidence(ctx context.Context, client *http.Client, key ed25519.PublicKey, data []byte, envelope contracts.EvidenceEnvelopeV1) (contracts.AcknowledgementV1, error) {
 	r, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://"+mesh.ApplicationHost+"/v1/evidence", bytes.NewReader(data))
 	if err != nil {
 		return contracts.AcknowledgementV1{}, errors.New("create mesh evidence request")
 	}
 	r.Header.Set("Content-Type", "application/json")
-	response, err := client.HTTPClient().Do(r)
+	response, err := client.Do(r)
 	if err != nil {
-		return contracts.AcknowledgementV1{}, errors.New("mesh evidence delivery failed; commit outcome may be uncertain")
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%w: mesh request failed; commit outcome may be uncertain", errDeliveryRetry)
 	}
 	defer response.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+	status := response.StatusCode
+	if status == http.StatusRequestTimeout || status == http.StatusTooManyRequests || status >= 500 {
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%w: controller returned HTTP %d", errDeliveryRetry, status)
+	}
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxSpoolAckBytes+1))
 	if err != nil {
-		return contracts.AcknowledgementV1{}, errors.New("mesh evidence response was interrupted; commit outcome may be uncertain")
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%w: mesh response was interrupted; commit outcome may be uncertain", errDeliveryRetry)
 	}
 	var ack contracts.AcknowledgementV1
-	if json.Unmarshal(body, &ack) != nil || ack.VerifyForEvidence(controllerKey, envelope) != nil {
-		return contracts.AcknowledgementV1{}, fmt.Errorf("mesh evidence was not acknowledged (HTTP %d); retain the original signed envelope", response.StatusCode)
+	if parseSpoolAck(body, &ack) != nil || ack.VerifyForEvidence(key, envelope) != nil {
+		if status == http.StatusForbidden {
+			return contracts.AcknowledgementV1{}, fmt.Errorf("%w: mesh admission denied (HTTP 403); check device admission or revocation", errDeliveryBlocked)
+		}
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%w: missing or invalid controller acknowledgement (HTTP %d)", errDeliveryBlocked, status)
 	}
 	if ack.Status != "accepted" {
-		// A replay can follow a lost accepted response; it does not prove this payload was stored.
-		return ack, fmt.Errorf("controller rejected evidence: %s; retain the original signed envelope", *ack.RejectionReason)
+		return ack, fmt.Errorf("%w: controller rejected evidence (%s)", errDeliveryBlocked, *ack.RejectionReason)
+	}
+	if status != http.StatusOK {
+		return contracts.AcknowledgementV1{}, fmt.Errorf("%w: accepted acknowledgement with unexpected HTTP %d", errDeliveryBlocked, status)
 	}
 	return ack, nil
 }

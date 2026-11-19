@@ -36,13 +36,17 @@ func (n *meshTestNode) DisconnectClient(string) error    { n.disconnected = true
 func (*meshTestNode) Close() error                       { return nil }
 
 type meshTestRepository struct {
-	binding DeviceNetworkBinding
-	denied  bool
-	calls   int
-	err     error
+	binding    DeviceNetworkBinding
+	denied     bool
+	bindingErr error
+	calls      int
+	err        error
 }
 
 func (r *meshTestRepository) NetworkPeerBinding(context.Context, string) (DeviceNetworkBinding, error) {
+	if r.bindingErr != nil {
+		return DeviceNetworkBinding{}, r.bindingErr
+	}
 	if r.denied {
 		return DeviceNetworkBinding{}, errors.New("unavailable")
 	}
@@ -156,6 +160,11 @@ func TestMeshHTTPAdmissionAndBoundary(t *testing.T) {
 		t.Fatalf("rejected evidence reached ingestion: calls=%d", repo.calls)
 	}
 	repo.denied, repo.err = false, ErrRepositoryUnavailable
+	repo.bindingErr = ErrRepositoryUnavailable
+	if got, ack := serveMeshEvidence(t, s, node.peer, envelope); got != http.StatusServiceUnavailable || ack != nil {
+		t.Fatalf("temporary admission failure status=%d ack=%+v", got, ack)
+	}
+	repo.bindingErr = nil
 	if got, ack := serveMeshEvidence(t, s, node.peer, envelope); got != 503 || ack != nil || repo.calls != 2 {
 		t.Fatalf("uncertain storage status=%d signed=%v calls=%d", got, ack != nil, repo.calls)
 	}
