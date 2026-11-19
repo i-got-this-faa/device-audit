@@ -26,7 +26,9 @@ Requests require administrator authorization, authentication within five minutes
 and CSRF/Origin checks. Storage must set the admission state and append this
 record in one transaction under the same row lock that evidence ingestion uses.
 Repeating a request for a revoked device returns the original record and does
-not create a second one. An unavailable store fails closed. A lost commit
+not create a second one. A device revoked outside this request, for example by
+hand before migration 006, has no record; the request returns 409 Conflict and
+no actor is invented. An unavailable store fails closed. A lost commit
 response is uncertain; repeat the request or read the device before assuming
 either outcome.
 
