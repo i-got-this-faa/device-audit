@@ -347,4 +347,37 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	requireRepositoryRejection(t, err, contracts.EnvelopeRejectionBootstrapInvalid)
 	requireRepositoryRejection(t, repo.Enroll(ctx, request.Enrollment), contracts.EnvelopeRejectionChallengeReused)
 	t.Log("bootstrap signing/network binding, token consumption and challenge consumption survived abrupt PostgreSQL recovery")
+
+	// SEC09 #90: revocation state and its audit record recover together.
+	revocations := make(map[string]contracts.DeviceRevocationV1)
+	for _, deviceID := range []string{token.DeviceID, enrollment.DeviceID} {
+		record, created, err := repo.RevokeDevice(ctx, contracts.DeviceRevocationRequestV1{SchemaVersion: contracts.DeviceRevocationRequestV1Version, DeviceID: deviceID, ReasonReference: "incident:crash-test"}, "https://id.example.test", "admin:crash-test")
+		if err != nil || !created {
+			t.Fatalf("revoke %s: created=%v err=%v", deviceID, created, err)
+		}
+		revocations[deviceID] = record
+	}
+	run("pg_ctl", "-D", data, "-m", "immediate", "-w", "stop")
+	if _, _, err := repo.RevokeDevice(ctx, contracts.DeviceRevocationRequestV1{SchemaVersion: contracts.DeviceRevocationRequestV1Version, DeviceID: token.DeviceID, ReasonReference: "incident:outage"}, "https://id.example.test", "admin:crash-test"); !errors.Is(err, ErrRepositoryUnavailable) {
+		t.Fatalf("revocation outage did not fail closed: %v", err)
+	}
+	run("pg_ctl", "-D", data, "-l", log, "-o", options, "-w", "start")
+	db.Close()
+	db, err = database.Open(ctx, databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	repo = fixtureRepository(t, db)
+	if _, err := repo.NetworkPeerBinding(ctx, request.NetworkPublicKey); err == nil {
+		t.Fatal("revoked peer admitted after PostgreSQL crash")
+	}
+	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionRevokedKey)
+	for deviceID, want := range revocations {
+		got, created, err := repo.RevokeDevice(ctx, contracts.DeviceRevocationRequestV1{SchemaVersion: contracts.DeviceRevocationRequestV1Version, DeviceID: deviceID, ReasonReference: "incident:after-crash"}, "https://id.example.test", "admin:other")
+		if err != nil || created || got != want {
+			t.Fatalf("revocation record after crash: %+v created=%v err=%v; want %+v", got, created, err, want)
+		}
+	}
+	t.Log("device revocation state and audit records survived abrupt PostgreSQL recovery")
 }

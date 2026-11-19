@@ -99,7 +99,7 @@ The candidate `001_initial.sql` and `002_console_auth.sql` tables are applied.
 Console role bindings, login transactions and sessions are durable. #83 adds
 a separate durable signed-device repository, described below. The fixture API
 continues to use memory. #18, #24 and #89 now provide authorized admission,
-evidence verification and signed acknowledgements; revocation authority remains #90. #14 still bounds the deployment
+evidence verification and signed acknowledgements; #90 adds revocation authority. #14 still bounds the deployment
 target; no production persistence is claimed.
 
 ## Provisional telemetry/inventory contract v2
@@ -638,6 +638,37 @@ requests that name the admitted peer's own device. A failed or uncertain COMMIT
 returns an unsigned 503 and never a signed rejection. Replay is still not proof
 of storage, and authenticated receipt lookup remains open. Evidence is in
 [the validation record](validation/replay-acknowledgements-89.md).
+
+## Device revocation authority, SEC09 #90
+
+A fresh console administrator revokes a device with
+`POST /console/api/devices/{id}/revocation` and a
+`device-audit.device-revocation-request.v1` body. The body carries an opaque
+`reason_reference`, never free text. The controller answers with the stored
+`device-audit.device-revocation.v1` record: 201 when it revoked the device, or
+200 with the original record when the device was already revoked. Actor,
+deployment, receive time and enrollment digest come from the server.
+
+We chose to reuse `device_enrollments.revoked_at` as the only admission flag,
+because tunnel admission, per-request peer checks and locked ingestion already
+read it. Migration 006 adds `device_revocation_events` as the durable audit
+record. It holds one row per enrollment and is written in the same transaction
+as the flag. Revocation is permanent. Reinstating a device would need a new
+enrollment and key rotation (#130), which this work does not add.
+
+Revocation takes the device row lock that `AcceptEvidence` takes. We rely on
+that lock rather than an application mutex or a stricter isolation level. A
+sample already holding the lock is admitted before the revocation. A sample
+waiting behind it is rejected. An established tunnel is not cut when the
+revocation commits. Its next request fails the peer check and is disconnected.
+That request gets an unsigned 403, as an unknown peer does. A sample already
+queued on the lock gets a signed `revoked_key`.
+
+Unauthorized attempts are denied by the existing session middleware and logged
+as security events. They are not written to the audit table. The relay
+admission file stays static, so a revoked peer can still reach the relay until
+an operator edits it. The controller still denies that peer. Evidence and
+remaining gaps are in [device-revocation-90](validation/device-revocation-90.md).
 
 ## Release chain and writer policy, CHAIN01 #47
 

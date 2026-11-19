@@ -79,10 +79,11 @@ bindings cannot replace existing identities. Old signing-only rows remain
 signing-only after migration. Storage errors, cancellation and uncertain commits
 fail closed. Only a committed `AdmitEnrollment` creates network admission state.
 Future mesh/evidence consumers must retrieve the binding, authenticate the
-actual network peer and apply the device revocation policy independently.
+actual network peer and apply device revocation independently. #90 adds the
+administrator revocation route; see the [repository guide](../../internal/controller/repository.md).
 
 Expiry does not delete rows. Cleanup, early bootstrap-token revocation,
-rate limits, endpoint service qualification, key rotation/recovery, device revocation,
+rate limits, endpoint service qualification, key rotation/recovery,
 authenticated receipt reconciliation and off-host backup restore remain open.
 Keep storage and proxy access restricted. All records remain off-chain.
 
