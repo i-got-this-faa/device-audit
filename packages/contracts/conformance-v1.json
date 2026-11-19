@@ -158,6 +158,21 @@
       }
     },
     {
+      "name": "features-v1",
+      "fixture": "features/v1-vectors.json",
+      "payload_field": "payload",
+      "valid_field": "valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestFeatureV1Vectors",
+      "python_tests": [
+        "test_feature_contracts.FeatureContractTests.test_shared_vectors"
+      ],
+      "schemas": {
+        "device-audit.feature-window.v1": "features-v1.schema.json",
+        "device-audit.feature-vector.v1": "features-v1.schema.json"
+      }
+    },
+    {
       "name": "revocation-v1",
       "fixture": "revocation/v1-vectors.json",
       "payload_field": "payload",

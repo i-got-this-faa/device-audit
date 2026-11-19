@@ -942,3 +942,33 @@ stay with #27/#95. A non-zero service exit code triggers the SCM recovery
 actions (`failureflag 1`). The installer replaces each state DACL instead of adding grants. The service refuses evidence storage open to anyone but SYSTEM, Administrators and itself, because signed telemetry is private device data. Run 3 showed that a non-zero exit is restarted without a reboot. `tools/service` is a development install, not the
 #57 package. Evidence is in
 [windows-service-26.md](validation/windows-service-26.md).
+
+## Frozen feature version, CT03 #32
+
+On 18 November 2026 the [feature contract](../packages/contracts/features-v1.md)
+froze `hdd-smart-7d.v1`, the only feature version. It takes three ML01 SMART
+counters, `smart_5_raw`, `smart_9_raw` and `smart_197_raw`, in that order.
+`smart_187_raw` and `smart_198_raw` are left out because every one of the
+5,091,501 Backblaze 2013 rows has them null. Telemetry v2 metrics and error
+events are left out because the selected study has no labels for them, so no
+model could be fitted or judged against ML05 on them.
+
+The window is the seven UTC days ending on the `as_of` day. Samples after
+`as_of` or before the window are ignored. Each day's value is that counter's
+latest non-null reading of the day; no other noise filter, clip or fitted
+scaler exists. A counter needs a value on all seven days, otherwise both of its
+features are null with `no_observation` or `incomplete_history` and the vector
+is `incomplete`. Only a `complete` vector may reach a model. Each counter
+yields `log1p(final)` and the signed `log1p` of `final − first`; decreases stay
+negative.
+
+Go and Python reference implementations agree within `1e-12` absolute plus
+`1e-12` relative on 30 shared vectors, which `make contract-check` runs.
+Readers reject any other feature version as `unsupported_feature_version`.
+
+No endpoint collector reads SMART counters, so the endpoint and controller
+produce `incomplete` vectors and `unknown` predictions under this version.
+This is a planning gap: #102 and #105 can implement the pipeline, but a known
+endpoint prediction needs a SMART collector, its Windows permission model and
+a decision on NVMe drives, none of which has an issue. The
+[validation notes](validation/features-32.md) record the checks.

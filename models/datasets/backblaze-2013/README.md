@@ -76,7 +76,8 @@ familiar name does not settle normalized units, vendor equivalence or a health
 threshold. The actual null counts are published in `partitions.json`; columns
 may be entirely unavailable in this historical archive. This ordering defines
 the **index fingerprint**, not the shared CT03 training/inference feature
-contract. Feature selection, scaling and missingness handling remain #32/#102.
+contract. CT03 #32 froze that contract as
+[`hdd-smart-7d.v1`](../../../packages/contracts/features-v1.md); #102 implements it.
 
 There are no usable per-component CPU, GPU, memory, battery or network fault
 labels, fault-type labels, or Windows service/diagnostic outcome labels in
