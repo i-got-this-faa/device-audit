@@ -248,7 +248,7 @@ func TestSpoolCommandAcknowledgesOnlyVerifiedHead(t *testing.T) {
 	store.close()
 	for _, e := range envelopes {
 		var out bytes.Buffer
-		if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil {
+		if err := runSpoolCommand(t.Context(), configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 		expected, _ := json.Marshal(e)
@@ -256,11 +256,11 @@ func TestSpoolCommandAcknowledgesOnlyVerifiedHead(t *testing.T) {
 			t.Fatal("spool command changed original bytes or order")
 		}
 		ack, _ := json.Marshal(spoolTestAck(t, key, e))
-		if err := runSpoolCommand(configPath, keyPath, spoolAcceptHead, bytes.NewReader(ack), io.Discard, io.Discard); err != nil {
+		if err := runSpoolCommand(t.Context(), configPath, keyPath, spoolAcceptHead, bytes.NewReader(ack), io.Discard, io.Discard); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, io.Discard, io.Discard); !errors.Is(err, errEmptySpool) {
+	if err := runSpoolCommand(t.Context(), configPath, "", spoolShowHead, nil, io.Discard, io.Discard); !errors.Is(err, errEmptySpool) {
 		t.Fatal("retired record was redelivered")
 	}
 }
@@ -397,7 +397,7 @@ func TestSpoolDiskFullDuringWrite(t *testing.T) {
 	spool.close()
 	store.close()
 
-	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil || !bytes.Equal(out.Bytes(), original) {
+	if err := runSpoolCommand(t.Context(), configPath, "", spoolShowHead, nil, &out, io.Discard); err != nil || !bytes.Equal(out.Bytes(), original) {
 		t.Fatalf("recovery did not return the original signed head: %v", err)
 	}
 	if _, err := os.Stat(pending); !errors.Is(err, os.ErrNotExist) {
@@ -441,7 +441,7 @@ func TestSpoolCommittedRecordRequiresNewline(t *testing.T) {
 	}
 	store.close()
 	var out bytes.Buffer
-	if err := runSpoolCommand(configPath, "", spoolShowHead, nil, &out, io.Discard); err == nil || errors.Is(err, errEmptySpool) || out.Len() != 0 {
+	if err := runSpoolCommand(t.Context(), configPath, "", spoolShowHead, nil, &out, io.Discard); err == nil || errors.Is(err, errEmptySpool) || out.Len() != 0 {
 		t.Fatalf("truncated committed record was reported as delivered or empty: %v", err)
 	}
 	if stored, err := os.ReadFile(path); err != nil || !bytes.Equal(stored, raw) {

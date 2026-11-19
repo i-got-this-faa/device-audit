@@ -240,15 +240,18 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 	if telemetry.Metrics.GPUUtilization.Value != nil || telemetry.Metrics.GPUUtilization.Unit != "percent" || telemetry.Metrics.GPUUtilization.MissingReason != "sensor_unavailable" {
 		t.Fatalf("nullable metric lost: %+v", telemetry.Metrics.GPUUtilization)
 	}
-	rejection := requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
-	if rejection.LastSequence == nil || *rejection.LastSequence != contracts.FirstEvidenceSequenceV1 {
-		t.Fatalf("replay lacks committed mark: %+v", rejection)
+	recoveredAt, err := repo.AcceptEvidence(ctx, evidence)
+	if err != nil || !recoveredAt.Equal(receivedAt) {
+		t.Fatalf("original receipt time=%v recovered=%v err=%v", receivedAt, recoveredAt, err)
 	}
 	// Retention of sample bodies must never control replay protection.
 	if _, err := reopened.Exec(`DELETE FROM device_evidence`); err != nil {
 		t.Fatal(err)
 	}
-	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
+	rejection := requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
+	if rejection.LastSequence == nil || *rejection.LastSequence != contracts.FirstEvidenceSequenceV1 {
+		t.Fatalf("replay lacks committed mark: %+v", rejection)
+	}
 	const sequenceGap = 100
 	for _, sequence := range []uint64{sequenceGap, contracts.MaxEnvelopeSequence} {
 		evidence.Sequence = sequence
@@ -258,7 +261,9 @@ func TestRepositoryPreservesSignedProvenanceAndSequenceOnReopen(t *testing.T) {
 		}
 	}
 	requireRepositoryState(t, reopened, contracts.MaxEnvelopeSequence, 2)
-	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
+	if _, err := repo.AcceptEvidence(ctx, evidence); err != nil {
+		t.Fatalf("recover receipt at the sequence limit: %v", err)
+	}
 	evidence.Sequence++
 	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionInvalidPayload)
 }
@@ -441,16 +446,10 @@ func TestRepositoryConcurrentIndependentWriters(t *testing.T) {
 	close(start)
 	wg.Wait()
 	close(results)
-	accepted := 0
 	for err := range results {
-		if err == nil {
-			accepted++
-		} else {
-			requireRepositoryRejection(t, err, contracts.EnvelopeRejectionReplay)
+		if err != nil {
+			t.Fatalf("exact concurrent retry failed: %v", err)
 		}
-	}
-	if accepted != 1 {
-		t.Fatalf("accepted %d concurrent duplicates, want 1", accepted)
 	}
 	requireRepositoryState(t, db, evidence.Sequence, 1)
 	// Race distinct higher sequences. Any serial order is valid; the maximum

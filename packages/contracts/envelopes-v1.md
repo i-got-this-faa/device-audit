@@ -121,13 +121,14 @@ is fixed. No controller admission or durable state is implemented here.
 Endpoints durably reserve a sequence and immutable signed request before first
 send; restart resumes the same pending request or reserves a higher sequence.
 SEC07 #87 implements crash-safe endpoint reservation before signing in
-`apps/endpoint-agent`; spool/retry/recovery of the signed request is deferred. A controller must atomically
+`apps/endpoint-agent`. A controller must atomically
 commit enrollment/challenge consumption or evidence together with the high-water
 mark before returning `accepted`. Parallel requests use that same atomic
-comparison, not a read/check/write race. A lost accepted response can yield a
-signed replay rejection on retry. Replay alone does not prove the pending
-payload was stored; retain it for reconciliation through a future authenticated
-receipt lookup. No idempotent success or lookup endpoint is invented here.
+comparison, not a read/check/write race. The mesh controller can reissue
+the original `accepted` on an authorized retry of an exact retained request
+before evaluating freshness. It verifies the stored digest for the request's
+deployment, device, and sequence. A `replay` rejection provides no proof of
+receipt. See the [mesh delivery policy](../../docs/decisions.md#authenticated-spool-drain-tel09-96).
 Missing/unavailable durable state must fail closed with `storage_unavailable`.
 Restore must preserve or reconcile high-water marks and revocations before
 ingestion resumes. Backup rollback must not reopen old sequence numbers.
@@ -150,8 +151,8 @@ from the controller clock, echoes the request version, key ID and sequence,
 and binds `request_sha256`. It has no independent acknowledgement sequence.
 Correlation prevents a valid old acknowledgement from accepting another
 request. `AcknowledgementV1.VerifyForEvidence` applies the pinned-key and
-correlation check for evidence. Retention and authenticated receipt lookup
-remain open.
+correlation check for evidence. Receipt recovery depends on retention of the
+original evidence row.
 
 - `accepted`: `rejection_reason` is explicitly null and `last_sequence` equals
   `request_sequence`. This means durable commit, not buffering, queueing,

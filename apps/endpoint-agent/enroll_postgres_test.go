@@ -132,5 +132,5 @@ func TestEndpointEnrollmentPostgres(t *testing.T) {
 	if id != signingKey {
 		t.Fatal("restart key mismatch")
 	}
-	endpointMeshRoundTrip(t, repo, path, i, accepted)
+	endpointMeshRoundTrip(t, repo, db, path, i, accepted)
 }

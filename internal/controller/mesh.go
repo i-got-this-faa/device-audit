@@ -43,8 +43,8 @@ type evidenceAttempt struct {
 }
 
 // evidenceOutcome is the answer to one request. An empty reason means the
-// repository committed the sample at receivedAt. lastSequence is the durable
-// mark read under the device lock, or nil when unknown or not disclosable.
+// sample was committed at receivedAt. For rejection, lastSequence is the
+// durable mark read under the device lock when it can be disclosed.
 type evidenceOutcome struct {
 	reason       string
 	lastSequence *uint64
@@ -80,7 +80,7 @@ func MeshHTTPServer(cfg MeshConfig) (*http.Server, error) {
 		ack, ok := signEvidenceAcknowledgement(cfg.AcknowledgementKey, controllerKeyID, attempt, outcome)
 		if !ok {
 			if outcome.reason == "" {
-				// Committed but unanswerable. A retry receives a signed replay.
+				// The committed request can recover its receipt on retry.
 				cfg.Logger.LogAttrs(r.Context(), slog.LevelError, "evidence acknowledgement failed", slog.String("peer", peer))
 				status = http.StatusInternalServerError
 			}
@@ -112,8 +112,10 @@ func admitEvidence(w http.ResponseWriter, r *http.Request, cfg MeshConfig, peer 
 	defer cancel()
 	binding, err := cfg.Repository.NetworkPeerBinding(ctx, peer)
 	if err != nil || binding.NetworkPublicKey != peer {
-		// Unavailable admission state is denied like revocation; the tunnel is dropped either way.
 		_ = cfg.Node.DisconnectClient(peer)
+		if errors.Is(err, ErrRepositoryUnavailable) {
+			return reject(contracts.EnvelopeRejectionStorageUnavailable)
+		}
 		return reject(contracts.EnvelopeRejectionUnauthorizedPeer)
 	}
 	attempt.binding = &binding
@@ -128,7 +130,7 @@ func admitEvidence(w http.ResponseWriter, r *http.Request, cfg MeshConfig, peer 
 		return reject(contracts.EnvelopeRejectionInvalidPayload)
 	}
 	attempt.envelope = &envelope
-	if reason := verifyEvidence(binding, envelope, cfg.Now()); reason != "" {
+	if reason := verifyEvidence(binding, envelope); reason != "" {
 		return reject(reason)
 	}
 	receivedAt, err := cfg.Repository.AcceptEvidence(ctx, envelope)
@@ -181,8 +183,8 @@ func signEvidenceAcknowledgement(key ed25519.PrivateKey, keyID string, attempt e
 }
 
 // verifyEvidence authenticates an envelope against the admitted peer's binding.
-// It is pure; replay and revocation under lock remain the repository's job.
-func verifyEvidence(binding DeviceNetworkBinding, envelope contracts.EvidenceEnvelopeV1, now time.Time) string {
+// Freshness, replay and revocation under lock remain the repository's job.
+func verifyEvidence(binding DeviceNetworkBinding, envelope contracts.EvidenceEnvelopeV1) string {
 	if envelope.Validate() != nil {
 		return contracts.EnvelopeRejectionInvalidPayload
 	}
@@ -196,11 +198,7 @@ func verifyEvidence(binding DeviceNetworkBinding, envelope contracts.EvidenceEnv
 	case envelope.VerifySignature(binding.SigningPublicKey) != nil:
 		return contracts.EnvelopeRejectionInvalidSignature
 	}
-	reason, err := envelope.TimestampRejection(now)
-	if err != nil {
-		return contracts.EnvelopeRejectionInvalidPayload
-	}
-	return reason
+	return ""
 }
 
 func evidenceRejectionStatus(reason string) int {

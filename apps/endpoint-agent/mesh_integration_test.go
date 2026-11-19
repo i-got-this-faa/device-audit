@@ -4,16 +4,21 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
-	"crypto/sha256"
-	"encoding/base64"
+	"crypto/x509"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"flag"
 	"io"
 	"net"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -26,6 +31,12 @@ import (
 )
 
 func TestEndpointMeshProcess(t *testing.T) {
+	if config := os.Getenv("DEVICE_AUDIT_TEST_DRAIN_CONFIG"); config != "" {
+		flag.CommandLine = flag.NewFlagSet("endpoint-agent", flag.ExitOnError)
+		os.Args = []string{os.Args[0], "--spool-drain", "--service-config", config}
+		main()
+		return
+	}
 	path := os.Getenv("DEVICE_AUDIT_TEST_MESH_DIR")
 	if path == "" {
 		t.Skip("subprocess entry")
@@ -53,56 +64,42 @@ func TestEndpointMeshProcess(t *testing.T) {
 
 // This continues actual TLS enrollment through persisted endpoint state, a fresh
 // endpoint process, Tailcat, the real HTTP handler and PostgreSQL evidence storage.
-func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, path string, i *identity, receipt contracts.EnrollmentAcceptedV1) {
+func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, db *sql.DB, path string, i *identity, receipt contracts.EnrollmentAcceptedV1) {
 	t.Helper()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(t.Context(), 70*time.Second)
+	defer cancel()
 	d := derpserver.New(key.NewNode(), func(string, ...any) {})
 	defer d.Close()
 	h := httptest.NewTLSServer(derpserver.Handler(d))
 	defer h.Close()
 	region := &tailcfg.DERPRegion{RegionID: 1, Nodes: []*tailcfg.DERPNode{{Name: "loopback", RegionID: 1, HostName: "127.0.0.1", IPv4: "127.0.0.1", IPv6: "none", DERPPort: h.Listener.Addr().(*net.TCPAddr).Port, STUNPort: -1, InsecureForTests: true}}}
-	regionData, _ := json.Marshal(region)
-	regionPath := filepath.Join(t.TempDir(), "region.json")
-	if os.WriteFile(regionPath, regionData, 0600) != nil {
-		t.Fatal("write region config")
-	}
-	dir := filepath.Join(t.TempDir(), "controller")
-	if err := mesh.InitializeServer(dir); err != nil {
+	dir := t.TempDir()
+	regionPath := filepath.Join(dir, "region.json")
+	writeJSON(t, regionPath, region)
+	controllerDir := filepath.Join(dir, "controller")
+	if err := mesh.InitializeServer(controllerDir); err != nil {
 		t.Fatal(err)
 	}
-	pin, err := mesh.ServerPublicKey(dir)
+	pin, err := mesh.ServerPublicKey(controllerDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixture, err := os.ReadFile("../../packages/contracts/fixtures/telemetry/v2-vectors.json")
+	ackPublic, ackKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Only the first, valid vector is decoded; later vectors are deliberately malformed.
-	var raw struct {
-		Vectors []struct{ Telemetry json.RawMessage }
-	}
-	if json.Unmarshal(fixture, &raw) != nil || len(raw.Vectors) == 0 {
-		t.Fatal("telemetry fixture unavailable")
-	}
-	var telemetry contracts.TelemetryV2
-	if json.Unmarshal(raw.Vectors[0].Telemetry, &telemetry) != nil {
-		t.Fatal("decode valid telemetry fixture")
-	}
-	telemetry.DeviceID = receipt.DeviceID
-	telemetry.CollectedAt = time.Now().UTC().Truncate(time.Second)
-	payload, _ := json.Marshal(telemetry)
-	digest := sha256.Sum256(payload)
-	_, ackKey, err := ed25519.GenerateKey(nil)
+	der, err := x509.MarshalPKIXPublicKey(ackPublic)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ackPublic := ackKey.Public().(ed25519.PublicKey)
-	envelope := contracts.EvidenceEnvelopeV1{EnvelopeHeaderV1: contracts.EnvelopeHeaderV1{SchemaVersion: contracts.EvidenceEnvelopeV1Version, DeploymentID: receipt.DeploymentID, DeviceID: receipt.DeviceID, SigningKeyID: receipt.SigningKeyID, Sequence: 2, IssuedAt: telemetry.CollectedAt.Format(time.RFC3339), ExpiresAt: telemetry.CollectedAt.Add(time.Hour).Format(time.RFC3339)}, PayloadSchemaVersion: contracts.TelemetryV2Version, PayloadBase64: base64.StdEncoding.EncodeToString(payload), PayloadSHA256: hex.EncodeToString(digest[:])}
-	// Phase 0 sends sequence 2. After a server and client restart, phase 1
-	// replays sequence 2 and then sends sequence 3.
-	for phase := 0; phase < 2; phase++ {
-		node, err := mesh.NewServer(mesh.ServerConfig{Context: ctx, StateDir: dir, DERP: mesh.DERPConfig{Region: region}, Allow: func(peer string) bool { _, err := repo.NetworkPeerBinding(ctx, peer); return err == nil }})
+	keyPath := filepath.Join(dir, "ack.pem")
+	if err := os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	start := func(repo *controller.PostgresRepository, dropReply chan<- []byte) (string, func()) {
+		t.Helper()
+		node, err := mesh.NewServer(mesh.ServerConfig{Context: ctx, StateDir: controllerDir, DERP: mesh.DERPConfig{Region: region}, Allow: func(peer string) bool { _, err := repo.NetworkPeerBinding(ctx, peer); return err == nil }})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -116,46 +113,164 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, pa
 			node.Close()
 			t.Fatal(err)
 		}
+		if dropReply != nil {
+			controllerHandler := server.Handler
+			server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				recorded := httptest.NewRecorder()
+				controllerHandler.ServeHTTP(recorded, r)
+				// Commit through the real controller, then close the HTTP
+				// connection before any response reaches the endpoint.
+				conn, _, err := http.NewResponseController(w).Hijack()
+				if err != nil {
+					t.Errorf("intercept committed reply: %v", err)
+					return
+				}
+				conn.Close()
+				select {
+				case dropReply <- recorded.Body.Bytes():
+				default:
+				}
+			})
+		}
 		go server.Serve(ln)
-		if phase == 0 {
-			s, err := openIdentityStore(path, false)
-			if err != nil {
-				t.Fatal(err)
-			}
-			err = s.write("mesh-address", []byte(node.Addr()))
-			s.close()
-			if err != nil {
-				t.Fatal(err)
-			}
+		return node.Addr(), func() { server.Close(); node.Close() }
+	}
+
+	lost := make(chan []byte, 1)
+	addr, stop := start(repo, lost)
+	defer func() {
+		if stop != nil {
+			stop()
 		}
-		sequences := map[int][]uint64{0: {2}, 1: {2, 3}}[phase]
-		for _, sequence := range sequences {
-			envelope.Sequence = sequence
-			canonical, err := envelope.SigningBytes()
+	}()
+	cfg := testServiceConfig(t, path)
+	cfg.Delivery = &deliveryConfig{MeshServerKey: pin, DERPRegionFile: regionPath, ControllerAckKeyFile: keyPath}
+	configPath := filepath.Join(dir, "service.json")
+	writeJSON(t, configPath, cfg)
+	envelopes := func() []contracts.EvidenceEnvelopeV1 {
+		store, err := openIdentityStore(path, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer store.close()
+		if err := store.write("mesh-address", []byte(addr)); err != nil {
+			t.Fatal(err)
+		}
+		s, err := openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, i.signing.Public().(ed25519.PublicKey), receipt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer s.close()
+		var queued []contracts.EvidenceEnvelopeV1
+		for range 2 {
+			e, err := store.signEvidence(testPayload(receipt.DeviceID), time.Now())
 			if err != nil {
 				t.Fatal(err)
 			}
-			envelope.Signature = hex.EncodeToString(ed25519.Sign(i.signing, canonical))
-			ack := runEndpointMeshProcess(t, path, pin, regionPath, ackPublic, envelope)
-			if err := ack.VerifyForEvidence(ackPublic, envelope); err != nil {
-				t.Fatalf("acknowledgement does not answer sequence %d: %v", sequence, err)
+			if err := s.append(e); err != nil {
+				t.Fatal(err)
 			}
-			replayed := phase == 1 && sequence == 2
-			switch {
-			case replayed && (ack.Status != "rejected" || *ack.RejectionReason != contracts.EnvelopeRejectionReplay || *ack.LastSequence != 2):
-				t.Fatalf("replay across restart answered %s", ack.Status)
-			case !replayed && (ack.Status != "accepted" || *ack.LastSequence != sequence):
-				t.Fatalf("sequence %d answered %s", sequence, ack.Status)
-			}
+			queued = append(queued, e)
 		}
-		server.Close()
-		node.Close()
-		stored, err := repo.Evidence(ctx, receipt.DeviceID, envelope.Sequence)
-		if err != nil || !bytes.Equal(stored.PayloadBytes, payload) || stored.Envelope.VerifySignature(i.signing.Public().(ed25519.PublicKey)) != nil {
-			t.Fatal("committed mesh evidence differs")
+		return queued
+	}()
+
+	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestEndpointMeshProcess$")
+	command.Env = append(os.Environ(), "DEVICE_AUDIT_TEST_DRAIN_CONFIG="+configPath)
+	var output bytes.Buffer
+	command.Stdout, command.Stderr = &output, &output
+	if err := command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	var drainErr error
+	done := make(chan struct{})
+	go func() { drainErr = command.Wait(); close(done) }()
+	defer func() { cancel(); <-done }()
+
+	requireSamples := func(expected int) {
+		t.Helper()
+		var count int
+		if err := db.QueryRowContext(ctx, "SELECT count(*) FROM device_evidence WHERE deployment_id=$1 AND device_id=$2", receipt.DeploymentID, receipt.DeviceID).Scan(&count); err != nil || count != expected {
+			t.Fatalf("durable evidence count=%d, want %d, err=%v", count, expected, err)
 		}
 	}
-	t.Log("TLS enrollment -> protected endpoint state -> fresh process -> admitted Tailcat -> PostgreSQL evidence -> verified signed acknowledgement passed before and after server/client restart, including a signed replay rejection")
+	var firstAck contracts.AcknowledgementV1
+	select {
+	case data := <-lost:
+		if err := json.Unmarshal(data, &firstAck); err != nil || firstAck.Status != "accepted" || firstAck.VerifyForEvidence(ackPublic, envelopes[0]) != nil {
+			t.Fatal("withheld reply was not the accepted receipt for the head")
+		}
+	case <-done:
+		t.Fatalf("spool drain ended before the first reply was lost: %v\n%s", drainErr, &output)
+	case <-ctx.Done():
+		t.Fatal("did not observe a committed reply")
+	}
+	requireSamples(1)
+	for _, e := range envelopes {
+		if _, err := os.Stat(filepath.Join(cfg.EvidenceDir, recordName(e.Sequence))); err != nil {
+			t.Fatalf("head or next record disappeared without a reply: %v", err)
+		}
+	}
+	stop()
+	stop = nil
+	repo, err = controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: receipt.DeploymentID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, stop = start(repo, nil)
+	select {
+	case <-done:
+		if drainErr != nil {
+			t.Fatalf("drain did not recover after restart: %v\n%s", drainErr, &output)
+		}
+	case <-ctx.Done():
+		t.Fatal("did not drain after controller restart")
+	}
+	requireSamples(2)
+	if !bytes.Contains(output.Bytes(), []byte("retry in")) {
+		t.Fatal("lost reply did not exercise retry")
+	}
+	if err := runSpoolCommand(ctx, configPath, "", spoolShowHead, nil, io.Discard, io.Discard); !errors.Is(err, errEmptySpool) {
+		t.Fatalf("drain left evidence queued: %v", err)
+	}
+	for _, e := range envelopes {
+		stored, err := repo.Evidence(ctx, receipt.DeviceID, e.Sequence)
+		if err != nil || stored.Envelope.Signature != e.Signature {
+			t.Fatalf("stored sequence %d changed: %v", e.Sequence, err)
+		}
+	}
+	recovered := runEndpointMeshProcess(t, path, pin, regionPath, ackPublic, envelopes[0])
+	if recovered.Status != "accepted" || recovered.Signature != firstAck.Signature {
+		t.Fatal("fresh endpoint did not receive the original signed receipt")
+	}
+	requireSamples(2)
+	t.Log("Tailcat drain kept both records when the committed head reply was dropped, reconnected after controller restart, recovered the original receipt, then delivered the next record")
+
+	// The same configuration lets the service send new snapshots without
+	// an operator running the drain command after each append.
+	serviceCtx, stopService := context.WithCancel(ctx)
+	serviceDone := make(chan struct{})
+	var serviceErr error
+	serviceLog := &serviceLog{path: filepath.Join(cfg.EvidenceDir, serviceLogFile)}
+	go func() {
+		defer close(serviceDone)
+		serviceErr = runServicePipeline(serviceCtx, cfg, cpuSource(new(atomic.Bool), false), serviceLog.printf)
+	}()
+	defer func() { stopService(); <-serviceDone }()
+	next := envelopes[1].Sequence + 1
+	waitFor(t, "the service to retire a new sample", 20*time.Second, func() bool {
+		var retired contracts.EvidenceEnvelopeV1
+		data, err := os.ReadFile(filepath.Join(cfg.EvidenceDir, spoolRetired))
+		return err == nil && json.Unmarshal(data, &retired) == nil && retired.Sequence >= next
+	})
+	stopService()
+	<-serviceDone
+	if serviceErr != nil {
+		t.Fatal(serviceErr)
+	}
+	if _, err := repo.Evidence(ctx, receipt.DeviceID, next); err != nil {
+		t.Fatalf("service retired sequence %d without a stored sample: %v", next, err)
+	}
 }
 
 // runEndpointMeshProcess submits one envelope from a fresh endpoint process and

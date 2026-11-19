@@ -322,6 +322,7 @@ the same account that owns the admitted identity.
 endpoint-agent --spool-next --service-config <config>
 endpoint-agent --spool-ack --service-config <config> --controller-ack-key-file <pinned-key.pem>
 endpoint-agent --spool-session --service-config <config> --controller-ack-key-file <pinned-key.pem>
+endpoint-agent --spool-drain --service-config <config>
 endpoint-agent --spool-archive-expired --service-config <config>
 ```
 
@@ -332,17 +333,49 @@ one exact envelope line and waits for one newline-terminated signed
 acknowledgement at a time. Ending input leaves the current head queued. The
 session holds the storage locks until it exits.
 
-A timeout, replay rejection or other unverified outcome leaves the envelope
-queued. Recovery of an accepted receipt after a lost response, automatic
-delivery and reconnect are tracked in
-[#96](https://github.com/i-got-this-faa/device-audit/issues/96).
-
 `--spool-archive-expired` moves the expired head to a protected
 `expired-<sequence>.json` file and prints its filename. This preserves its
 original bytes and does not acknowledge it. The archive is capped separately
 at 65,536 records and 1 GiB. If full, export older archived files to equally
 protected storage while the writer is stopped. Keep the highest numbered
 archive in place to prevent reimport after restart.
+
+### Automatic delivery, TEL09 #96
+
+Add a `delivery` object to the existing service configuration to send the
+queue over the admitted mesh. Set `mesh_server_key` to the pinned controller
+X25519 public key, `derp_region_file` to the DERP region JSON path, and
+`controller_ack_key_file` to the pinned controller Ed25519 PKIX public key PEM
+path. Both paths must be absolute and outside `state_dir`. Provision the
+private `mesh-address` in the admitted identity directory using the mesh guide.
+Omit `delivery` to keep the service in offline spool mode.
+
+The service drains the backlog and wakes the delivery worker when sampling
+adds records. `--spool-drain` uses the same settings, holds the storage locks
+and exits when the backlog is empty. Ctrl+C interrupts a standalone drain
+and leaves any unacknowledged head queued.
+
+The worker submits the oldest envelope's exact signed bytes. It retries
+connection errors, interrupted responses, HTTP 408, 429 and 5xx with jitter
+between half and all of a delay that doubles from 1 second to a 1-minute cap.
+Each verified acceptance resets that delay. Use an updated controller to
+recover the original receipt after a reply is lost. It can reissue the same
+signed acceptance for an exact request still in storage even after the
+envelope expires. The endpoint checks the pinned acknowledgement signature
+and the deployment, device, key, sequence and request digest before retiring
+the head.
+
+A signed rejection (including `revoked_key` or `replay`), HTTP 403 admission
+denial, or an invalid acknowledgement stops delivery and keeps the queue.
+The standalone command reports the failure and the service writes it to
+`service.log`. The service continues to sample within the configured spool
+limits. Investigate and restart the service to resume delivery. If a peer is
+refused before HTTP, the endpoint sees a connection failure and retries the
+head. It can report revocation specifically when it receives a verified
+`revoked_key` response. An expired envelope that was never accepted can be
+preserved with the explicit archive command.
+
+See the [delivery validation](../../docs/validation/spool-drain-96.md).
 ## Verification
 
 ```sh
@@ -370,14 +403,11 @@ X25519 network identity. It never emits unsigned fixture telemetry or creates
 another network key. `--controller-ack-key-file` pins the controller's Ed25519
 acknowledgement public key (PKIX PEM). The agent accepts a reply only after it
 checks that signature and every request correlation field. It prints the
-verified acknowledgement JSON. A signed rejection, such as `replay` after a lost
-reply, exits non-zero. Keep the envelope: replay does not prove that this
-payload was stored.
-With `TEST_DATABASE_URL` set, `TestEndpointEnrollmentPostgres` continues through
-a fresh endpoint process and an actual Tailcat application request before and
-after mesh restart. After the restart it resends the first sequence and checks
-the signed `replay` acknowledgement. The controller side of that test uses the Unix or Windows
-mesh state store of the host running the test. The repository's Windows CI job
-does not start PostgreSQL, so that combined path is a database-check result on
-a host where the database is configured. Windows device/service execution on
-the selected laptop remains unqualified.
+verified acknowledgement JSON after acceptance. Keep the envelope when a
+rejection or interrupted response exits non-zero. Retrying an exact committed
+request can recover its signed acceptance.
+
+With `TEST_DATABASE_URL` set, `TestEndpointEnrollmentPostgres` exercises
+TLS enrollment, a fresh endpoint process, a dropped reply, Tailcat reconnect,
+and receipt recovery through PostgreSQL. The Windows CI job runs without
+PostgreSQL. See the validation record for the platforms and paths exercised.

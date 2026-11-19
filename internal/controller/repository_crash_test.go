@@ -301,7 +301,10 @@ func TestRepositoryPostgresCrashRecovery(t *testing.T) {
 	if err != nil || stored.Envelope.Signature != evidence.Signature {
 		t.Fatalf("evidence provenance lost after PostgreSQL crash: %v", err)
 	}
-	requireRepositoryRejection(t, evidenceErr(repo.AcceptEvidence(ctx, evidence)), contracts.EnvelopeRejectionReplay)
+	recoveredAt, err := repo.AcceptEvidence(ctx, evidence)
+	if err != nil || !recoveredAt.Equal(stored.ReceivedAt) {
+		t.Fatalf("receipt recovery after PostgreSQL crash: time=%v err=%v", recoveredAt, err)
+	}
 	requireRepositoryRejection(t, repo.Enroll(ctx, enrollment), contracts.EnvelopeRejectionChallengeReused)
 	contents, err := os.ReadFile(log)
 	if err != nil || !strings.Contains(string(contents), "database system was interrupted") {

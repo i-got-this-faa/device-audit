@@ -43,10 +43,11 @@ or establish sensor truth. The mesh handler signs acknowledgements (#89).
    committing `Enroll` call.
 3. After authenticating and authorizing the peer, #24/#89 call `AcceptEvidence`.
    It locks the enrolled device row, rejects a revoked binding, verifies the
-   evidence v1 envelope using the stored key, and checks the server clock and
-   high-water mark. Evidence and the new mark commit together. The clock is read
-   after locking, so waiting cannot bypass expiry. No Go mutex serializes writers.
-   It returns the stored receive time only after COMMIT succeeds.
+   evidence v1 envelope using the stored key, and checks the high-water mark.
+   An exact retry at a consumed sequence returns the original stored receive
+   time if the digest matches the row. A new request must pass the clock check
+   after locking. Evidence and the new mark commit together before the
+   repository returns the stored receive time.
 4. `Device` and `Evidence` read deployment-scoped stored records for later
    authorized consumers. They are not an authenticated receipt lookup service.
 5. `RevokeDevice` (#90) is called only by
@@ -82,7 +83,7 @@ advance-only operation, or reset it after pruning or restoring data.
 
 ## Failure and integration boundaries
 
-`RepositoryRejection` carries a contract/storage reason and, for freshness
+`RepositoryRejection` carries a contract/storage reason and, for replay
 rejections, a known mark. These are internal outcomes. Admission handlers own
 authorization precedence, safe disclosure, transport status and signed
 acknowledgements. Missing reads return `ErrRepositoryNotFound`; database errors
@@ -91,9 +92,9 @@ Do not return underlying database errors to clients or log their private data.
 
 Any commit error is unavailable/uncertain, never success. A connection lost
 during COMMIT can leave either a committed transaction or a rolled-back one.
-Do not turn a retry's `replay` into idempotent success or proof of receipt.
-Authenticated reconciliation and receipt lookup remain future work. Restoring
-a stale backup requires sequence/revocation reconciliation before ingestion.
+An authenticated retry of the exact stored request can recover its receipt.
+A `replay` rejection provides no proof of receipt. Restoring a stale backup
+requires sequence/revocation reconciliation before ingestion.
 
 Migration 003 leaves candidate `devices`/`telemetry_samples` untouched. They
 lack the provenance needed to establish signed enrollment trust. The trusted

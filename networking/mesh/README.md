@@ -90,26 +90,25 @@ log at error level and security rejections at warning level.
 Only `POST /v1/evidence` is exposed on mesh TCP port 8080. The request is the
 existing strict `device-audit.evidence.v1` contract, bounded to 400 KiB, without
 queries. HTTP 200 carries a signed `device-audit.acknowledgement.v1` with status
-`accepted`, sent only after COMMIT returned. Its `received_at` is the stored
-receive time. Malformed input and queries are 400 (`invalid_payload`). Peer,
+`accepted` for committed evidence. Its `received_at` is the stored receive
+time. Malformed input and queries are 400 (`invalid_payload`). Peer,
 deployment and signing-key scope denials are 403. Signature, timestamp, replay
 and other envelope rejections are 409. Storage and uncertain commit failures
 are 503.
 
 A rejection also carries a signed acknowledgement (status `rejected`) when the
 request is correlatable and names the admitted peer's own deployment and device.
-`last_sequence` is the mark read under the device row lock (replay, and expiry
-found under the lock), otherwise null. Other rejections, including unadmitted or
+`last_sequence` is the mark read under the device row lock for replay,
+otherwise null. Other rejections, including unadmitted or
 misbound peers, get a plain-text error. A 503 is never signed: a failed COMMIT may
 still have committed, so the controller cannot truthfully reject it.
 
-Concurrent copies of one envelope serialize on the device row lock. One gets
-`accepted`; every other copy gets a signed `replay` with the committed mark.
-The endpoint verifies the pinned key and every correlation field before it
-trusts a reply. Lost replies remain uncertain. Preserve the signed envelope;
-never fabricate a receipt or allocate a new sequence for an automatic retry.
-A `replay` after a lost reply does not prove that this payload was stored.
-Authenticated receipt lookup remains open.
+Concurrent copies of one envelope serialize on the device row lock. Only
+one inserts a row. Exact retries for a retained row receive the same signed
+acceptance with the original receive time. A different digest or a sequence
+in a gap is rejected. The endpoint verifies the pinned key and every
+correlation field before retiring evidence. Preserve the exact envelope for
+automatic retry. See the [endpoint delivery instructions](../../apps/endpoint-agent/README.md#automatic-delivery-tel09-96).
 
 Bootstrap, inventory, OIDC and administrator routes use the separate HTTPS
 listener, with existing authorization. In mesh mode that listener excludes the

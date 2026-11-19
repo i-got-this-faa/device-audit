@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
@@ -21,11 +22,12 @@ const (
 	spoolAcceptHead  spoolOperation = "ack"
 	spoolArchiveHead spoolOperation = "archive-expired"
 	spoolSession     spoolOperation = "session"
+	spoolDrain       spoolOperation = "drain"
 )
 
 var errEmptySpool = errors.New("evidence spool is empty")
 
-func runSpoolCommand(configPath, controllerKeyPath string, operation spoolOperation, input io.Reader, output, warnings io.Writer) error {
+func runSpoolCommand(ctx context.Context, configPath, controllerKeyPath string, operation spoolOperation, input io.Reader, output, warnings io.Writer) error {
 	var key ed25519.PublicKey
 	var err error
 	if operation == spoolAcceptHead || operation == spoolSession {
@@ -42,7 +44,7 @@ func runSpoolCommand(configPath, controllerKeyPath string, operation spoolOperat
 		}
 	}
 	var outputAfterUnlock []byte
-	err = withEvidenceSpool(configPath, warnings, func(spool *evidenceSpool) error {
+	err = withEvidenceSpool(configPath, warnings, func(cfg serviceConfig, store *identityStore, id *identity, spool *evidenceSpool) error {
 		switch operation {
 		case spoolAcceptHead:
 			return spool.acknowledge(key, ack)
@@ -52,6 +54,17 @@ func runSpoolCommand(configPath, controllerKeyPath string, operation spoolOperat
 			return err
 		case spoolSession:
 			return drainSpoolSession(spool, key, input, output)
+		case spoolDrain:
+			if cfg.Delivery == nil {
+				return errors.New("--spool-drain requires delivery settings in the service config")
+			}
+			sender, err := cfg.Delivery.sender(store, id)
+			if err != nil {
+				return err
+			}
+			defer sender.close()
+			logf := func(format string, args ...any) { fmt.Fprintf(warnings, format+"\n", args...) }
+			return drainEvidence(ctx, spool, sender.controllerKey, sender.send, nil, logf)
 		case spoolShowHead:
 			data, _, err := spool.head()
 			outputAfterUnlock = data
@@ -70,7 +83,7 @@ func runSpoolCommand(configPath, controllerKeyPath string, operation spoolOperat
 	return err
 }
 
-func withEvidenceSpool(configPath string, warnings io.Writer, run func(*evidenceSpool) error) error {
+func withEvidenceSpool(configPath string, warnings io.Writer, run func(serviceConfig, *identityStore, *identity, *evidenceSpool) error) error {
 	cfg, err := loadServiceConfig(configPath)
 	if err != nil {
 		return err
@@ -89,7 +102,7 @@ func withEvidenceSpool(configPath string, warnings io.Writer, run func(*evidence
 		store.close()
 		return err
 	}
-	err = run(spool)
+	err = run(cfg, store, i, spool)
 	recoveredTail := spool.recoveredTail
 	spool.close()
 	store.close()
