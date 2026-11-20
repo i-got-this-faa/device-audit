@@ -74,3 +74,16 @@ methods and add observed-time freshness; see the
 [console guide](../../apps/web-console/README.md#enrolled-devices-and-freshness).
 This JSON API is unchanged and does not classify freshness.
 
+
+## Telemetry and evidence history, API02 #98
+
+`GET /console/api/devices/{id}/history` pages through a device's persisted samples
+(see [telemetry history v1](../../packages/contracts/telemetry-history-v1.md)).
+Viewer or administrator scope is required, and `deployment_id` follows the same
+rules as the device list. `from` and `to` are required and the window is capped at
+31 days; `limit` is capped at 100 and an excess is rejected, so one request cannot
+read an unbounded range. Ordering is `(collected_at, sequence)` with a keyset
+cursor, so equal timestamps are stable. Reads come from `device_evidence`, so a
+controller restart changes nothing. Revoked devices stay readable; an unknown
+device returns 404. Not covered: retention, aggregation, filtering by source or
+metric, and export.

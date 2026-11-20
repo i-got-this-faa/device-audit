@@ -557,6 +557,19 @@ reported null (`missing`) from an omitted metric (`not_reported`). See the
 [API boundary](../internal/controller/inventory.md). Not covered: filtering,
 sorting other than device ID, health verdicts, and the web console device view.
 
+## Telemetry and evidence history, API02 #98
+
+History is a per-device, time-windowed read of `device_evidence`, ordered by
+`(collected_at, sequence)` with a keyset cursor so equal timestamps page
+deterministically. Both window ends are required, the window is capped at 31 days
+and the page at 100; excess is rejected rather than clamped. Samples return their
+source, receive time, request digest, unit-bearing nullable metrics and
+`log_references` (digests only). No new table, so history survives restarts and
+the reads reuse the #28 deployment scope. See the
+[contract](../packages/contracts/telemetry-history-v1.md) and
+[API boundary](../internal/controller/inventory.md). Not covered: retention,
+aggregation, export and the web console history view.
+
 ## Protected console navigation, WEB01 #29
 
 The 27 October 2026 implementation keeps the SRC04 template/ES-module choice.
