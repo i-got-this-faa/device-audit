@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	webconsole "github.com/i-got-this-faa/device-audit/apps/web-console"
 	"github.com/i-got-this-faa/device-audit/infra/database"
 	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -136,5 +138,124 @@ func TestDeviceStateHTTPPaginationProvenanceAndRestart(t *testing.T) {
 	if all := decodePage(get(restarted, "/console/api/devices"+scope, viewer, 200)); len(all.Devices) != 3 || all.NextAfter != nil ||
 		!reflect.DeepEqual(all.Devices[:2], first.Devices) {
 		t.Fatalf("list after restart: %+v", all)
+	}
+}
+
+// TestConsoleFreshnessFromSignedEvidence drives two enrolled devices through
+// the signed evidence path, then stops one. Only that device leaves Current,
+// and the JSON API reports the same observed times.
+func TestConsoleFreshnessFromSignedEvidence(t *testing.T) {
+	b := newEnrollmentTestBed(t)
+	ctx := context.Background()
+	devices := []meshTestDevice{enrollMeshTestDevice(t, b, "endpoint:a"), enrollMeshTestDevice(t, b, "endpoint:b")}
+	accept := func(d meshTestDevice, sequence uint64) {
+		t.Helper()
+		if _, err := b.repo.AcceptEvidence(ctx, meshReplayEvidence(t, b, d, sequence)); err != nil {
+			t.Fatalf("accept %s/%d: %v", d.id, sequence, err)
+		}
+	}
+	newHandler := func(reader *PostgresRepository) http.Handler {
+		console, err := auth.NewService(auth.Config{Issuer: "https://id.example.test", PublicOrigin: "https://console.example.test", Store: b.authStore,
+			Provider: auth.NewOIDCProvider("https://id.example.test", "test-client", "test-only", "https://console.example.test/auth/callback", nil),
+			Now:      b.clock.Now, Logger: slog.New(slog.NewTextHandler(b.logs, nil)), Devices: reader.ConsoleDevices()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		service, err := NewDeviceStateService(reader, console)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return NewAPI(Config{MaxDevices: 1, Auth: console, DeviceState: service}).Handler()
+	}
+	handler := newHandler(b.repo)
+	get := func(handler http.Handler, target string, want int) string {
+		t.Helper()
+		// A new session each read: the test clock outruns the idle expiry.
+		session, _ := b.addSession(t, "viewer:freshness", auth.RoleViewer, 0)
+		r := httptest.NewRequest("GET", target, nil)
+		r.AddCookie(&http.Cookie{Name: "__Host-device-audit-session", Value: session})
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != want {
+			t.Fatalf("GET %s: %d want %d: %s", target, w.Code, want, w.Body.String())
+		}
+		return w.Body.String()
+	}
+	states := func() map[string]string {
+		t.Helper()
+		body := get(handler, "/console/devices", 200)
+		found := map[string]string{}
+		for _, row := range strings.Split(body, "<li>")[1:] {
+			for _, d := range devices {
+				if strings.Contains(row, ">"+d.id+"</a>") {
+					state := strings.SplitN(strings.SplitN(row, `class="device-status" data-state="`, 2)[1], `"`, 2)[0]
+					found[d.id] = state
+				}
+			}
+		}
+		return found
+	}
+	requireStates := func(a, c string) {
+		t.Helper()
+		if got := states(); got["endpoint:a"] != a || got["endpoint:b"] != c {
+			t.Fatalf("freshness: %v want endpoint:a=%s endpoint:b=%s", got, a, c)
+		}
+	}
+
+	requireStates("no-sample", "no-sample")
+	accept(devices[0], 2)
+	accept(devices[1], 2)
+	requireStates("current", "current")
+
+	// endpoint:b stops; endpoint:a keeps reporting.
+	b.clock.Advance(webconsole.StaleAfter)
+	accept(devices[0], 3)
+	requireStates("current", "stale")
+	b.clock.Advance(webconsole.OfflineAfter - webconsole.StaleAfter)
+	accept(devices[0], 4)
+	requireStates("current", "offline")
+
+	detail := get(handler, "/console/devices/endpoint:b", 200)
+	for _, fragment := range []string{"Offline: the endpoint has not reported recently", `class="sensor-unit">percent</span>`, "Reported by the endpoint.", "15m0s before evaluation"} {
+		if !strings.Contains(detail, fragment) {
+			t.Fatalf("offline detail missing %q", fragment)
+		}
+	}
+	if strings.Contains(detail, "Fixture source") {
+		t.Fatal("endpoint sample labelled as fixture source")
+	}
+
+	var page contracts.DeviceStatePageV1
+	if err := json.Unmarshal([]byte(get(handler, "/console/api/devices?deployment_id="+b.repo.deploymentID, 200)), &page); err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Devices) != 2 || page.Devices[0].Latest.Sequence != 4 || page.Devices[1].Latest.Sequence != 2 ||
+		!page.Devices[1].Latest.CollectedAt.Equal(b.clock.Now().Add(-webconsole.OfflineAfter)) {
+		t.Fatalf("API disagrees with console: %+v", page)
+	}
+
+	// A failed inventory read is an error page, never a stale or zero value.
+	failing, err := database.Open(ctx, b.url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	broken, err := NewPostgresRepository(ctx, failing, RepositoryConfig{DeploymentID: b.repo.deploymentID, Now: b.clock.Now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	failing.Close()
+	handler = newHandler(broken)
+	for _, target := range []string{"/console/devices", "/console/devices/endpoint:a"} {
+		body := get(handler, target, 503)
+		if !strings.Contains(body, "Device data could not be loaded") || strings.Contains(body, "endpoint:a</") || strings.Contains(body, "sensor-value") || strings.Contains(body, "Fixture data") {
+			t.Fatalf("%s outage rendered device data", target)
+		}
+	}
+	get(handler, "/console/devices/endpoint:missing", 503)
+	handler = newHandler(b.repo)
+	get(handler, "/console/devices/endpoint:missing", 404)
+	get(handler, "/console/devices?after=bad%20id", 400)
+	if !strings.Contains(get(handler, "/console/devices?fixture=live", 200), "Fixture data") {
+		t.Fatal("explicit fixture selection lost its fixture banner")
 	}
 }

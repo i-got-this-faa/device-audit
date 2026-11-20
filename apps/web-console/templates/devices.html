@@ -1,6 +1,7 @@
 {{define "devices"}}
 <div class="fixture-context"><strong class="fixture-badge">Fixture data</strong><span>Synthetic examples</span></div>
 <div class="fixture-notice" role="note"><p>All devices and measurements on this page are synthetic. Live and offline labels describe fixture states, not production telemetry.</p><p class="supporting">Reference clock: <time>{{.FixedTime}}</time>. Scenarios do not advance with the wall clock. No health assessment is available.</p></div>
+<p class="supporting"><a href="/console/devices">Open enrolled devices</a></p>
 <nav class="fixture-picker" aria-label="Fixture scenarios">{{range .Scenarios}}<a href="{{.URL}}" {{if .Selected}}aria-current="true"{{end}}>{{.Label}}</a>{{end}}</nav>
 {{if .IsDetail}}<a class="back-link" href="{{.ListURL}}">← Back to device list</a>{{end}}
 {{if eq .State "loading"}}

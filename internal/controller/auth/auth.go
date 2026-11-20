@@ -119,6 +119,9 @@ type Config struct {
 	SessionAbsolute time.Duration
 	LoginLifetime   time.Duration
 	RequiredAMR     string
+	// Devices reads enrolled devices for console pages. Nil means no
+	// deployment is configured; pages then say so instead of showing fixtures.
+	Devices webconsole.DeviceReader
 }
 
 type Service struct {
@@ -134,6 +137,7 @@ type Service struct {
 	sessionAbsolute time.Duration
 	loginLifetime   time.Duration
 	requiredAMR     string
+	devices         webconsole.DeviceReader
 }
 
 func NewService(cfg Config) (*Service, error) {
@@ -198,6 +202,7 @@ func NewService(cfg Config) (*Service, error) {
 		sessionAbsolute: cfg.SessionAbsolute,
 		loginLifetime:   cfg.LoginLifetime,
 		requiredAMR:     strings.TrimSpace(cfg.RequiredAMR),
+		devices:         cfg.Devices,
 	}, nil
 }
 
@@ -459,7 +464,7 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/console/devices":
 		page.Title, page.Section = "Devices", "devices"
-		page.Devices, status = webconsole.FixtureDevices(r.URL.Query(), "")
+		status = s.devicePage(r, &page, "")
 	case "/console/workflows":
 		page.Title, page.Section = "Workflows", "workflows"
 	case "/console/access":
@@ -475,10 +480,27 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 	default:
 		if deviceID := r.PathValue("device"); deviceID != "" {
 			page.Title, page.Section = "Device detail", "devices"
-			page.Devices, status = webconsole.FixtureDevices(r.URL.Query(), deviceID)
+			status = s.devicePage(r, &page, deviceID)
 		}
 	}
 	s.renderPage(w, status, page)
+}
+
+// devicePage shows named fixtures only when ?fixture= selects them; otherwise
+// it reads the enrolled inventory. A read failure is never replaced by fixtures.
+func (s *Service) devicePage(r *http.Request, page *webconsole.Page, deviceID string) int {
+	query := r.URL.Query()
+	if query.Has("fixture") {
+		var status int
+		page.Devices, status = webconsole.FixtureDevices(query, deviceID)
+		return status
+	}
+	inventory, status, err := webconsole.EnrolledDevices(r.Context(), s.devices, query, deviceID, s.now())
+	if err != nil {
+		s.logger.Error("console device read failed", "error", err)
+	}
+	page.Inventory = inventory
+	return status
 }
 
 func (s *Service) renderPage(w http.ResponseWriter, status int, page webconsole.Page) {

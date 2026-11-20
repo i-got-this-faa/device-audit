@@ -25,7 +25,7 @@ const heading = async text => {
 };
 const noProtectedContent = async () => {
   assert.equal(await page.locator("[data-protected]").count(), 0);
-  assert.doesNotMatch(await page.locator("body").innerText(), /viewer:browser|admin:browser|unknown:private|Operations laptop|Stores workstation/);
+  assert.doesNotMatch(await page.locator("body").innerText(), /viewer:browser|admin:browser|unknown:private|Operations laptop|Stores workstation|endpoint:browser/);
   assert.equal(await page.locator('input[name="_csrf"]').count(), 0);
 };
 
@@ -53,6 +53,47 @@ try {
   console.log("PASS real TLS OIDC/PKCE callback returns to requested protected page");
 
   const fits = async () => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `horizontal overflow at ${page.url()}`);
+  const freshness = async () => Object.fromEntries(await page.locator(".device-list > li").evaluateAll(rows => rows.map(row => [row.querySelector("a").textContent, row.querySelector(".device-status").dataset.state])));
+  const enrolled = await page.goto(origin + "/console/devices");
+  assert.equal(enrolled.status(), 200);
+  assert.equal(await page.locator(".fixture-context").count(), 0, "enrolled inventory must not carry the fixture catalogue banner");
+  assert.deepEqual(await freshness(), { "endpoint:browser-a": "current", "endpoint:browser-b": "current", "endpoint:browser-fixture": "current" });
+  const fixtureRow = page.locator(".device-list > li").filter({ hasText: "endpoint:browser-fixture" });
+  assert.equal(await fixtureRow.locator(".fixture-badge").innerText(), "Fixture source");
+  assert.equal(await page.locator(".device-list > li").filter({ hasText: "endpoint:browser-a" }).locator(".fixture-badge").count(), 0);
+  await control("stale-b");
+  await page.reload();
+  assert.deepEqual(await freshness(), { "endpoint:browser-a": "current", "endpoint:browser-b": "stale", "endpoint:browser-fixture": "current" });
+  await control("offline-b");
+  await page.reload();
+  assert.deepEqual(await freshness(), { "endpoint:browser-a": "current", "endpoint:browser-b": "offline", "endpoint:browser-fixture": "current" });
+  for (const width of [1280, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(origin + "/console/devices");
+    await fits();
+    await page.getByRole("link", { name: "endpoint:browser-b", exact: true }).click();
+    await heading("endpoint:browser-b");
+    await fits();
+    assert.match(await page.locator(".state-warning").first().innerText(), /Offline: .*historical; current device condition is unknown/);
+    const sensors = page.locator(".sensor-list");
+    assert.equal(await sensors.locator("div").filter({ hasText: "CPU utilization" }).locator(".sensor-value").innerText(), "0");
+    assert.equal(await sensors.locator("div").filter({ hasText: "Network latency" }).locator(".sensor-unit").innerText(), "milliseconds");
+    assert.match(await sensors.locator("div").filter({ hasText: "Battery charge" }).innerText(), /Unknown[\s\S]*Sensor unavailable/);
+    assert.match(await sensors.locator("div").filter({ hasText: "Temperature" }).innerText(), /Unknown[\s\S]*Not reported in this sample/);
+    await page.screenshot({ path: resolve(artifacts, `enrolled-offline-detail-${width}.png`), fullPage: true });
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await control("devices-outage");
+  for (const path of ["/console/devices", "/console/devices/endpoint:browser-a"]) {
+    const failed = await page.goto(origin + path);
+    assert.equal(failed.status(), 503);
+    assert.ok(await page.getByRole("alert").getByText("Device data could not be loaded").isVisible());
+    assert.equal(await page.locator(".sensor-list, .device-list, .device-status, .fixture-context").count(), 0);
+  }
+  await page.screenshot({ path: resolve(artifacts, "enrolled-outage-1280.png"), fullPage: true });
+  await control("devices-restore");
+  assert.equal((await page.goto(origin + "/console/devices/endpoint:missing")).status(), 404);
+  console.log("PASS enrolled inventory freshness: one stopped device turns stale then offline; units, missing reasons, fixture source, outage and 320px layout");
   const fixtureNotice = async () => {
     assert.ok(await page.locator(".fixture-context").getByText("Fixture data", { exact: true }).isVisible());
     assert.match(await page.getByRole("note").innerText(), /synthetic.*not production telemetry/s);
@@ -115,7 +156,7 @@ try {
       }
     }
   }
-  await page.goto(origin + "/console/devices/fixture-laptop");
+  await page.goto(origin + "/console/devices/fixture-laptop?fixture=live");
   for (const [label, deviceName] of [["Offline sample", "Stores workstation"], ["Unknown sample", "Unreported device"], ["Empty component inventory", "Replay device"]]) {
     await page.getByRole("navigation", { name: "Fixture scenarios", exact: true }).getByRole("link", { name: label, exact: true }).click();
     await heading(deviceName);
@@ -125,7 +166,7 @@ try {
   console.log("PASS detail scenario controls select compatible device samples");
   // A 640 CSS-pixel viewport covers reflow equivalent to 200% zoom on a 1280px layout.
   console.log("PASS named fixture list/detail states at 1280, 640 and 320px; provenance, missing reasons, stale evidence, zero values and recovery");
-  for (const path of ["/console/devices/no-such-device", "/console/devices?fixture=missing", "/console/devices?fixture=live&fixture=error"]) {
+  for (const path of ["/console/devices/no-such-device?fixture=live", "/console/devices?fixture=missing", "/console/devices?fixture=live&fixture=error"]) {
     assert.equal((await page.goto(origin + path)).status(), 404);
     await fixtureNotice();
     assert.equal(await page.locator(".sensor-list, .device-list").count(), 0);
@@ -214,6 +255,10 @@ try {
   const basicPage = await noJS.newPage();
   await basicPage.goto(origin + "/auth/login?return_to=/console/devices");
   await basicPage.getByRole("heading", { name: "Devices", exact: true }).waitFor();
+  await basicPage.getByRole("link", { name: "endpoint:browser-b", exact: true }).click();
+  await basicPage.getByRole("heading", { name: "endpoint:browser-b", exact: true }).waitFor();
+  assert.match(await basicPage.locator(".sensor-list").innerText(), /Sensor unavailable/);
+  await basicPage.goto(origin + "/console/devices?fixture=live");
   await basicPage.getByRole("link", { name: "Operations laptop", exact: true }).click();
   await basicPage.getByRole("heading", { name: "Operations laptop", exact: true }).waitFor();
   assert.match(await basicPage.locator(".sensor-list").innerText(), /Sensor unavailable/);

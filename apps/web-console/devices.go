@@ -3,10 +3,9 @@ package webconsole
 import (
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
+	"regexp"
 	"strings"
 	"time"
 
@@ -83,10 +82,18 @@ type DeviceView struct {
 	IsDetail                  bool
 }
 
-// IsDeviceDetailPath extends the login return allowlist only to known fixture IDs.
+// IsDeviceDetailPath extends the login return allowlist to device detail
+// paths whose ID matches the opaque device ID contract. Fixture IDs match it.
 func IsDeviceDetailPath(path string) bool {
+	id, ok := strings.CutPrefix(path, "/console/devices/")
+	return ok && deviceIDPattern.MatchString(id)
+}
+
+var deviceIDPattern = regexp.MustCompile(contracts.OpaqueIDPattern)
+
+func isFixtureDevice(id string) bool {
 	for _, device := range deviceFixtures.Devices {
-		if path == "/console/devices/"+device.ID {
+		if device.ID == id {
 			return true
 		}
 	}
@@ -125,7 +132,7 @@ func FixtureDevices(query url.Values, deviceID string) (*DeviceView, int) {
 	if selected == nil || len(query["fixture"]) > 1 {
 		return view, http.StatusNotFound
 	}
-	if deviceID != "" && !IsDeviceDetailPath(path) {
+	if deviceID != "" && !isFixtureDevice(deviceID) {
 		return view, http.StatusNotFound
 	}
 	view.State = selected.State
@@ -167,36 +174,6 @@ func deviceRow(device fixtureDevice, scenario string) DeviceRow {
 		row.Inventory = &device.Telemetry.Inventory
 		metrics = device.Telemetry.Metrics
 	}
-	for _, item := range []struct {
-		name, unit string
-		metric     *contracts.MetricV2
-	}{
-		{"CPU utilization", "percent", metrics.CPUUtilization}, {"GPU utilization", "percent", metrics.GPUUtilization},
-		{"Memory utilization", "percent", metrics.MemoryPercent}, {"Disk space used", "percent", metrics.DiskUsedPercent},
-		{"Battery charge", "percent", metrics.BatteryPercent}, {"Temperature", "celsius", metrics.TemperatureC},
-		{"Network latency", "milliseconds", metrics.NetworkLatencyMS},
-	} {
-		sensor := Sensor{Name: item.name, Value: "Unknown", Unit: item.unit, Explanation: "Not reported in this sample."}
-		if item.metric != nil {
-			if item.metric.Value != nil {
-				sensor.Value = strconv.FormatFloat(*item.metric.Value, 'f', -1, 64)
-				sensor.Explanation = "Fixture measurement."
-			} else {
-				switch item.metric.MissingReason {
-				case "sensor_unavailable":
-					sensor.Explanation = "Sensor unavailable on this fixture device."
-				case "not_applicable":
-					sensor.Explanation = "Sensor does not apply to this fixture device."
-				case "permission_denied":
-					sensor.Explanation = "Collection permission denied."
-				case "collection_error":
-					sensor.Explanation = "Collection failed; no measurement is available."
-				default:
-					panic(fmt.Sprintf("unsupported fixture missing reason %q", item.metric.MissingReason))
-				}
-			}
-		}
-		row.Sensors = append(row.Sensors, sensor)
-	}
+	row.Sensors = sensorRows(metrics, "Fixture measurement.")
 	return row
 }

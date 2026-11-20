@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
+	webconsole "github.com/i-got-this-faa/device-audit/apps/web-console"
 	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
@@ -92,6 +94,32 @@ func (s *PostgresRepository) DeviceStates(ctx context.Context, after string, lim
 		page.NextAfter = &next
 	}
 	return page, nil
+}
+
+// ConsoleDevices gives console pages the same durable reads as the device
+// state API, with errors mapped to the console's not-found and invalid cases.
+func (s *PostgresRepository) ConsoleDevices() webconsole.DeviceReader { return consoleDevices{s} }
+
+type consoleDevices struct{ repository *PostgresRepository }
+
+func (c consoleDevices) DeviceStates(ctx context.Context, after string, limit int) (contracts.DeviceStatePageV1, error) {
+	page, err := c.repository.DeviceStates(ctx, after, limit)
+	return page, consoleDeviceError(err)
+}
+
+func (c consoleDevices) DeviceState(ctx context.Context, deviceID string) (contracts.DeviceStateV1, error) {
+	state, err := c.repository.DeviceState(ctx, deviceID)
+	return state, consoleDeviceError(err)
+}
+
+func consoleDeviceError(err error) error {
+	switch {
+	case errors.Is(err, ErrRepositoryNotFound):
+		return fmt.Errorf("%w: %w", webconsole.ErrDeviceNotFound, err)
+	case errors.Is(err, ErrDeviceStateInvalid):
+		return fmt.Errorf("%w: %w", webconsole.ErrDeviceQueryInvalid, err)
+	}
+	return err
 }
 
 // DeviceStateService serves the viewer-scoped fleet inventory.

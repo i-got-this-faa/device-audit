@@ -2,13 +2,18 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	webconsole "github.com/i-got-this-faa/device-audit/apps/web-console"
+	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
 func TestConsoleNavigationAuthorization(t *testing.T) {
@@ -57,7 +62,7 @@ func TestConsoleNavigationAuthorization(t *testing.T) {
 			t.Fatalf("expired %s: %d", path, r.StatusCode)
 		}
 	}
-	for _, target := range []string{"//attacker.example", "/console/devices?next=https://attacker.example", "/console/devices/../access", "/console/api/devices/x/inventory", "/console/workflows/evil", "/console/devices/unregistered", "/console/devices/fixture-laptop?fixture=live", "/console/devices/fixture-laptop/extra"} {
+	for _, target := range []string{"//attacker.example", "/console/devices?next=https://attacker.example", "/console/devices/../access", "/console/api/devices/x/inventory", "/console/workflows/evil", "/console/devices/", "/console/devices/bad id", "/console/devices/.hidden", "/console/devices/fixture-laptop?fixture=live", "/console/devices/fixture-laptop/extra"} {
 		if allowedReturnTo(target) {
 			t.Fatalf("unsafe return path %q", target)
 		}
@@ -83,6 +88,66 @@ func TestConsoleEscapesSubjectsAndFailsClosed(t *testing.T) {
 	}
 }
 
+// browserDevices is a test-only enrolled inventory for the browser suite.
+// Devices report at read time unless a control pins an older observation.
+type browserDevices struct {
+	mu       sync.Mutex
+	observed map[string]time.Duration
+	fail     bool
+}
+
+var browserDeviceIDs = []string{"endpoint:browser-a", "endpoint:browser-b", "endpoint:browser-fixture"}
+
+func (d *browserDevices) state(id string, now time.Time) contracts.DeviceStateV1 {
+	zero, latency := 0.0, 18.25
+	metrics := contracts.MetricsV2{CPUUtilization: &contracts.MetricV2{Value: &zero, Unit: "percent"},
+		BatteryPercent:   &contracts.MetricV2{Unit: "percent", MissingReason: "sensor_unavailable"},
+		NetworkLatencyMS: &contracts.MetricV2{Value: &latency, Unit: "milliseconds"}}
+	source := "endpoint"
+	if strings.HasSuffix(id, "fixture") {
+		source = "fixture"
+	}
+	observed := now.Add(-d.observed[id]).Truncate(time.Second)
+	return contracts.DeviceStateV1{DeviceID: id, SigningKeyID: "key:" + id, EnrolledAt: observed.Add(-time.Hour), LastSequence: 9,
+		Latest: &contracts.LatestSampleV1{Sequence: 9, Source: source, CollectedAt: observed, ReceivedAt: observed,
+			RequestSHA256: strings.Repeat("0f", 32), Metrics: metrics, Sensors: contracts.SensorStates(metrics)}}
+}
+
+func (d *browserDevices) DeviceStates(_ context.Context, after string, _ int) (contracts.DeviceStatePageV1, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	page := contracts.DeviceStatePageV1{Devices: []contracts.DeviceStateV1{}}
+	if d.fail {
+		return page, errors.New("synthetic inventory outage")
+	}
+	for _, id := range browserDeviceIDs {
+		if id > after {
+			page.Devices = append(page.Devices, d.state(id, time.Now()))
+		}
+	}
+	return page, nil
+}
+
+func (d *browserDevices) DeviceState(_ context.Context, id string) (contracts.DeviceStateV1, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.fail {
+		return contracts.DeviceStateV1{}, errors.New("synthetic inventory outage")
+	}
+	for _, known := range browserDeviceIDs {
+		if known == id {
+			return d.state(id, time.Now()), nil
+		}
+	}
+	return contracts.DeviceStateV1{}, webconsole.ErrDeviceNotFound
+}
+
+func (d *browserDevices) set(update func()) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	update()
+}
+
 // This fixture is compiled only by go test. It provides real OIDC/TLS routes
 // with synthetic accounts and an in-memory auth store, never a login bypass in
 // the controller binary.
@@ -103,6 +168,8 @@ func consoleBrowserFixture(t *testing.T) *httptest.Server {
 		t.Fatal(err)
 	}
 	store := s.store.(*memoryStore)
+	devices := &browserDevices{observed: map[string]time.Duration{}}
+	s.devices = devices
 	mux := app.Config.Handler.(*http.ServeMux)
 	mux.HandleFunc("POST /__test/{action}", func(w http.ResponseWriter, r *http.Request) {
 		switch r.PathValue("action") {
@@ -123,6 +190,14 @@ func consoleBrowserFixture(t *testing.T) *httptest.Server {
 			store.setFail(true)
 		case "restore":
 			store.setFail(false)
+		case "stale-b":
+			devices.set(func() { devices.observed["endpoint:browser-b"] = webconsole.StaleAfter + time.Minute })
+		case "offline-b":
+			devices.set(func() { devices.observed["endpoint:browser-b"] = webconsole.OfflineAfter + time.Minute })
+		case "devices-outage":
+			devices.set(func() { devices.fail = true })
+		case "devices-restore":
+			devices.set(func() { devices.fail = false })
 		default:
 			http.NotFound(w, r)
 			return

@@ -69,3 +69,8 @@ administrator scope is required.
 The list does not include inventory metadata revisions; read them with the
 inventory route. Fixture/candidate devices from `/v1/devices` are never listed.
 
+The console's `/console/devices` pages (WEB02 #30) read the same repository
+methods and add observed-time freshness; see the
+[console guide](../../apps/web-console/README.md#enrolled-devices-and-freshness).
+This JSON API is unchanged and does not classify freshness.
+

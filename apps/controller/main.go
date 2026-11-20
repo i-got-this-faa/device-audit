@@ -162,12 +162,23 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		bootstrapAdmin: *bootstrapAdmin,
 		requiredAMR:    *requiredAMR,
 	}
+	var repository *controller.PostgresRepository
+	if *deploymentID != "" {
+		if db == nil || !authConfig.configured() {
+			return errors.New("bootstrap enrollment requires a durable database and configured administrator authentication")
+		}
+		var err error
+		repository, err = controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: *deploymentID})
+		if err != nil {
+			return fmt.Errorf("enrollment repository startup failed: %w", err)
+		}
+	}
 	if authConfig.configured() {
 		if db == nil {
 			return errors.New("console auth requires --database-url for durable sessions and role bindings")
 		}
 		var err error
-		consoleAuth, err = configureAuth(ctx, db, authConfig)
+		consoleAuth, err = configureAuth(ctx, db, authConfig, repository)
 		if err != nil {
 			return fmt.Errorf("console auth startup failed: %w", err)
 		}
@@ -179,16 +190,8 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	var inventory *controller.InventoryService
 	var deviceState *controller.DeviceStateService
 	var revocation *controller.RevocationService
-	var repository *controller.PostgresRepository
-	if *deploymentID != "" {
-		if db == nil || consoleAuth == nil {
-			return errors.New("bootstrap enrollment requires a durable database and configured administrator authentication")
-		}
+	if repository != nil {
 		var err error
-		repository, err = controller.NewPostgresRepository(ctx, db, controller.RepositoryConfig{DeploymentID: *deploymentID})
-		if err != nil {
-			return fmt.Errorf("enrollment repository startup failed: %w", err)
-		}
 		enrollment, err = controller.NewEnrollmentService(repository, consoleAuth)
 		if err != nil {
 			return err
@@ -334,7 +337,9 @@ func (f authFlags) configured() bool {
 	return f.issuer != "" || f.clientID != "" || f.clientSecret != "" || f.redirectURL != "" || f.publicOrigin != "" || f.bootstrapAdmin != ""
 }
 
-func configureAuth(ctx context.Context, db *sql.DB, cfg authFlags) (*auth.Service, error) {
+// configureAuth builds console authentication. A nil repository means no
+// deployment is configured, so device pages have no enrolled inventory.
+func configureAuth(ctx context.Context, db *sql.DB, cfg authFlags, repository *controller.PostgresRepository) (*auth.Service, error) {
 	required := []struct {
 		name  string
 		value string
@@ -364,13 +369,18 @@ func configureAuth(ctx context.Context, db *sql.DB, cfg authFlags) (*auth.Servic
 
 	store := auth.NewPostgresStore(db)
 	provider := auth.NewOIDCProvider(cfg.issuer, cfg.clientID, cfg.clientSecret, cfg.redirectURL, nil)
-	service, err := auth.NewService(auth.Config{
+	authConfig := auth.Config{
 		Issuer:       cfg.issuer,
 		PublicOrigin: cfg.publicOrigin,
 		Store:        store,
 		Provider:     provider,
 		RequiredAMR:  strings.TrimSpace(cfg.requiredAMR),
-	})
+	}
+	// Assign only a non-nil repository: a typed nil would look configured.
+	if repository != nil {
+		authConfig.Devices = repository.ConsoleDevices()
+	}
+	service, err := auth.NewService(authConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -5,8 +5,10 @@ Go `html/template`, embedded CSS and JavaScript ES modules, with progressive
 enhancement. WEB01 [#29](https://github.com/i-got-this-faa/device-audit/issues/29) adds the
 responsive console shell to SEC06 [#82](https://github.com/i-got-this-faa/device-audit/issues/82)
 authentication. Templates and assets are embedded in the Go binary. Node is
-required only for browser tests. WEB06 [#99](https://github.com/i-got-this-faa/device-audit/issues/99) adds fixture device lists and detail views. Production device browsing, workflow
-execution and exports remain separate tasks.
+required only for browser tests. WEB06 [#99](https://github.com/i-got-this-faa/device-audit/issues/99) adds fixture device lists and detail views.
+WEB02 [#30](https://github.com/i-got-this-faa/device-audit/issues/30) shows enrolled
+devices' latest durable telemetry and freshness. Workflow execution and exports
+remain separate tasks.
 
 Implemented routes:
 
@@ -19,7 +21,8 @@ Implemented routes:
   token. `POST /auth/logout` requires CSRF and Origin checks, revokes the
   session and clears the cookie.
 - `GET /console` is the protected workspace. `GET /console/devices` and
-  `GET /console/devices/{device}` show named device fixtures to viewers and admins.
+  `GET /console/devices/{device}` show enrolled devices to viewers and admins.
+  Adding `?fixture=<scenario>` shows the named fixture catalogue instead.
   `GET /console/workflows` retains its explicit unavailable state.
 - `GET /console/access` lists role bindings for administrators. Viewers receive
   a public 403 page with no bindings or account details.
@@ -47,9 +50,43 @@ The loopback fixture API (`POST /v1/telemetry` and `GET /v1/devices/{id}`) is
 separate. It has no administrator authentication and must not be exposed by the
 public proxy as a console substitute.
 
+## Enrolled devices and freshness
+
+With a deployment configured (`--deployment-id`), `/console/devices` lists
+enrolled devices 50 at a time, ordered by device ID, with a `Next page` link
+(`?after=<device-id>`). The page reads the same PostgreSQL repository as the
+[device state API](../../internal/controller/inventory.md#device-list-and-latest-state-api01-28).
+Without a deployment, the page says the inventory is not configured and links
+to the fixture examples. It never substitutes fixtures for enrolled devices.
+
+Freshness uses the latest sample's observed time (`collected_at`), not its
+receipt time, so a drained spool backlog does not look current. The controller
+clock evaluates it at render time:
+
+| Observed age | Freshness |
+| --- | --- |
+| under 3 minutes | Current |
+| 3 minutes up to 15 minutes | Stale |
+| 15 minutes or more | Offline |
+| no retained sample | No sample |
+
+These are provisional display thresholds sized for the 60-second default emit
+interval and 60-second maximum retry backoff. The controller does not know each
+endpoint's configured cadence, so a slower custom cadence shows as stale. A
+stale or offline detail page labels its values historical. Revocation is shown
+separately from freshness.
+
+Each metric keeps its unit. A null metric shows `Unknown` with its missing
+reason, an omitted metric shows `Not reported in this sample`, and zero stays a
+measurement. A sample whose signed payload declares `source: fixture` carries a
+`Fixture source` badge. A read failure returns HTTP 503 with no device rows,
+freshness or values; an unknown device returns 404; a malformed cursor or an
+unknown query parameter returns 400. All times display in UTC. Component
+inventory metadata is not shown; read it with the inventory API.
+
 ## Device fixtures
 
-Open `/console/devices` after sign-in. The default `live` scenario includes
+Open `/console/devices?fixture=live` after sign-in. The `live` scenario includes
 live, offline, unknown and empty-component samples. Scenario links select
 `?fixture=live|offline|unknown|empty-inventory|loading|error|empty` on list and
 detail pages. These values select local examples, never a database or endpoint.
@@ -71,11 +108,11 @@ nullable metric's missing reason. Zero remains a measurement. Offline values
 are historical; unknown inventory differs from an empty component list.
 Missing group, segment and model identities stay unknown. No health score,
 prediction, network admission or signature verification is inferred by the UI.
-The console does not call the unsigned fixture API or inventory repository.
+Fixture pages do not call the unsigned fixture API or the inventory repository.
 
-Known fixture detail paths extend the exact login-return allowlist. Query strings
-are still excluded, so login after expiry returns to the device's default fixture
-scenario. Every list and detail request checks the existing viewer role and
+Device detail paths whose ID matches the opaque device ID pattern extend the
+exact login-return allowlist. Query strings are still excluded, so login after
+expiry on a fixture page returns to the enrolled-device detail path. Every list and detail request checks the existing viewer role and
 session store before rendering. A store outage shows the public auth error,
 never fixture device data. Device browsing, scenario selection and recovery
 links also work without JavaScript.
@@ -144,7 +181,7 @@ This table records local evidence; it does not qualify a production IdP.
 | Missing, expired or reused state, mismatched nonce, invalid token signature, issuer, audience or expiry | Rejected by library/service paths; not every case has a separate browser test |
 | Unknown identity, wrong issuer or missing local binding | Implemented: 403, no account creation |
 | Forged email, group, organization, proxy identity or device header | Implemented: no header is read for roles; forged-header test passes |
-| Viewer reads fleet/device/findings/exports | Device/workflow destinations implemented as unavailable states; fleet data, findings and exports remain absent |
+| Viewer reads fleet/device/findings/exports | Enrolled device list/detail implemented; workflow destination is an unavailable state; findings and exports remain absent |
 | Viewer performs admin action | Implemented for role bindings: 403 with no mutation |
 | Admin performs an allowlisted action | Role-binding management and device revocation require authentication within five minutes. Device revocation appends a durable audit record (#90); other actions have no durable audit event. No console page calls the revocation API yet |
 | Missing/invalid CSRF, foreign Origin or mutation over GET | Implemented and tested |
@@ -219,8 +256,9 @@ viewer. Use a disposable browser profile that trusts the test certificate.
 - Apply the fresh-authentication rule to future sensitive administrator actions.
 - Add durable audit events beyond device revocation, login rate limiting and expired session/login-row
   cleanup; qualify IdP single logout or back-channel revocation if required.
-- Connect production fleet, device and evidence pages and bounded exports with
-  server-side resource and action authorization. Current device pages use fixtures.
+- Add evidence pages and bounded exports with server-side resource and action
+  authorization. Device pages read enrolled devices; fixtures need `?fixture=`.
+- Qualify the freshness thresholds against physical endpoints and per-device cadence.
 - Run current and previous stable desktop Chrome, Edge and Firefox checks,
   including keyboard operation, visible focus, 200% zoom and the tested viewport.
 - Deploy behind the HTTPS proxy with operator-owned TLS, client secret and

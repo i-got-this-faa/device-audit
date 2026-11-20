@@ -597,6 +597,23 @@ rendering. See the [console guide](../apps/web-console/README.md#device-fixtures
 and [local validation](validation/console-fixtures-99.md). Production device reads,
 real telemetry freshness rules and health assessments remain separate work.
 
+## Enrolled device freshness in the console, WEB02 #30
+
+`/console/devices` now reads enrolled devices from the durable repository that
+serves the device state API. Fixtures moved behind an explicit `?fixture=`
+selector, so an unconfigured or failing inventory is never replaced by
+synthetic devices. The console receives the repository through `auth.Config`
+as a narrow `DeviceReader` interface. The controller maps repository not-found
+and invalid-query errors to the console's errors.
+
+Freshness is console display policy, not a wire field. It classifies the
+latest sample's observed time against the controller clock: stale at three
+minutes, offline at fifteen. Both thresholds are inclusive. Receipt time is
+not used, because a drained spool backlog would otherwise look current. The
+thresholds are provisional and sized for the 60-second default emit interval;
+qualifying them against physical endpoints and per-device cadence remains open.
+The device state v1 contract is unchanged.
+
 ## Admitted mesh application transport, NET02 #25
 
 The 13 November 2026 implementation promotes the NET01 Tailcat pin into the
