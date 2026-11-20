@@ -30,6 +30,7 @@ type Page struct {
 	Bindings  []Binding
 	Devices   *DeviceView
 	Inventory *InventoryView
+	History   *HistoryView
 }
 
 func RegisterAssets(mux *http.ServeMux) {

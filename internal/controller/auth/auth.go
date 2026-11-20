@@ -234,6 +234,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/devices", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/devices/{device}", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/devices/{device}/history", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/workflows", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/access", s.RequireRole(RoleAdmin, http.HandlerFunc(s.console)))
 	mux.Handle("GET /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.listBindings)))
@@ -479,8 +480,13 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		if deviceID := r.PathValue("device"); deviceID != "" {
-			page.Title, page.Section = "Device detail", "devices"
-			status = s.devicePage(r, &page, deviceID)
+			if webconsole.IsDeviceHistoryPath(r.URL.Path) {
+				page.Title, page.Section = "Device history", "devices"
+				status = s.historyPage(r, &page, deviceID)
+			} else {
+				page.Title, page.Section = "Device detail", "devices"
+				status = s.devicePage(r, &page, deviceID)
+			}
 		}
 	}
 	s.renderPage(w, status, page)
@@ -500,6 +506,16 @@ func (s *Service) devicePage(r *http.Request, page *webconsole.Page, deviceID st
 		s.logger.Error("console device read failed", "error", err)
 	}
 	page.Inventory = inventory
+	return status
+}
+
+// historyPage always reads the durable repository; history has no fixture mode.
+func (s *Service) historyPage(r *http.Request, page *webconsole.Page, deviceID string) int {
+	history, status, err := webconsole.DeviceHistory(r.Context(), s.devices, r.URL.Query(), deviceID, s.now())
+	if err != nil {
+		s.logger.Error("console history read failed", "error", err)
+	}
+	page.History = history
 	return status
 }
 
@@ -780,7 +796,7 @@ func isConsolePage(target string) bool {
 	case "/console", "/console/devices", "/console/workflows", "/console/access":
 		return true
 	}
-	return webconsole.IsDeviceDetailPath(target)
+	return webconsole.IsDeviceDetailPath(target) || webconsole.IsDeviceHistoryPath(target)
 }
 
 func allowedReturnToRequest(r *http.Request) string {

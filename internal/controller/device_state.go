@@ -112,6 +112,19 @@ func (c consoleDevices) DeviceState(ctx context.Context, deviceID string) (contr
 	return state, consoleDeviceError(err)
 }
 
+func (c consoleDevices) TelemetryHistory(ctx context.Context, deviceID string, from, to time.Time, after string, limit int) (contracts.TelemetryHistoryV1, error) {
+	var cursor *historyCursor
+	if after != "" {
+		parsed, err := parseHistoryCursor(after)
+		if err != nil {
+			return contracts.TelemetryHistoryV1{}, consoleDeviceError(err)
+		}
+		cursor = &parsed
+	}
+	page, err := c.repository.TelemetryHistory(ctx, deviceID, from, to, cursor, limit)
+	return page, consoleDeviceError(err)
+}
+
 func consoleDeviceError(err error) error {
 	switch {
 	case errors.Is(err, ErrRepositoryNotFound):

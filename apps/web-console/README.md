@@ -84,6 +84,26 @@ freshness or values; an unknown device returns 404; a malformed cursor or an
 unknown query parameter returns 400. All times display in UTC. Component
 inventory metadata is not shown; read it with the inventory API.
 
+## Telemetry and error history
+
+`/console/devices/{id}/history` pages through one enrolled device's durable
+signed samples, oldest first, 50 at a time. It reads the same repository as the
+[history API](../../packages/contracts/telemetry-history-v1.md) and has no
+fixture mode. With no query it shows the last 24 hours ending now; `from` and `to`
+(RFC 3339, UTC) select a window of at most 31 days, start inclusive and end
+exclusive. `Next page` links pin both ends, so a page never shifts as time passes.
+
+Each sample shows observed and received times, source, sequence, request
+SHA-256, every metric with its unit, and the error-evidence references the
+sample carried (ID, size, window, digest). Log text is never stored or shown.
+Failure states stay distinct: an empty window (200, "No samples", not evidence of
+health), a store failure (503, alert, no rows), an unknown device (404) and a
+bad window, cursor or parameter (400). A sensor whose collection was denied
+(`permission_denied`) is marked `Collection denied` and stays unknown, never zero.
+Console access to history needs the viewer role; the console reads its own
+deployment, so there is no cross-deployment denial path on this page.
+History is retained in PostgreSQL, so it survives refresh and controller restart.
+
 ## Device fixtures
 
 Open `/console/devices?fixture=live` after sign-in. The `live` scenario includes

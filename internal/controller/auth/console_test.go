@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -140,6 +141,45 @@ func (d *browserDevices) DeviceState(_ context.Context, id string) (contracts.De
 		}
 	}
 	return contracts.DeviceStateV1{}, webconsole.ErrDeviceNotFound
+}
+
+// TelemetryHistory serves three synthetic samples ending at read time. The
+// middle one carries a denied sensor and an error-evidence reference.
+func (d *browserDevices) TelemetryHistory(_ context.Context, id string, from, to time.Time, after string, _ int) (contracts.TelemetryHistoryV1, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.fail {
+		return contracts.TelemetryHistoryV1{}, errors.New("synthetic inventory outage")
+	}
+	if !slices.Contains(browserDeviceIDs, id) {
+		return contracts.TelemetryHistoryV1{}, webconsole.ErrDeviceNotFound
+	}
+	if !from.Before(to) || to.Sub(from) > contracts.TelemetryHistoryWindowMaxV1 {
+		return contracts.TelemetryHistoryV1{}, webconsole.ErrDeviceQueryInvalid
+	}
+	page := contracts.TelemetryHistoryV1{From: from, To: to, Samples: []contracts.HistorySampleV1{}}
+	zero := 0.0
+	for i := range 3 {
+		collected := to.Add(-time.Duration(3-i) * time.Minute).Truncate(time.Second)
+		if collected.Before(from) || (after != "" && i == 0) {
+			continue
+		}
+		metrics := contracts.MetricsV2{CPUUtilization: &contracts.MetricV2{Value: &zero, Unit: "percent"}}
+		refs := []contracts.LogReferenceV2{}
+		if i == 1 {
+			metrics.TemperatureC = &contracts.MetricV2{Unit: "celsius", MissingReason: "permission_denied"}
+			refs = append(refs, contracts.LogReferenceV2{ReferenceID: "log:system", SHA256: strings.Repeat("cd", 32), ByteSize: 512,
+				WindowStart: collected.Add(-time.Minute), WindowEnd: collected})
+		}
+		page.Samples = append(page.Samples, contracts.HistorySampleV1{Sequence: uint64(i + 2), Source: "endpoint", CollectedAt: collected,
+			ReceivedAt: collected, RequestSHA256: strings.Repeat("0f", 32), Metrics: metrics, LogReferences: refs})
+	}
+	if after == "" && len(page.Samples) > 0 {
+		next := "1.2"
+		page.NextAfter = &next
+		page.Samples = page.Samples[:1]
+	}
+	return page, nil
 }
 
 func (d *browserDevices) set(update func()) {
