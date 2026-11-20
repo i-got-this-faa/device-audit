@@ -179,6 +179,29 @@ try {
   assert.equal(page.url(), origin + "/console/devices?fixture=offline");
   console.log("PASS invalid fixture/device selections and browser Back preserve explicit fixture state");
 
+  // Persisted history: units, denial, error evidence, pagination and failure states.
+  await page.goto(origin + "/console/devices/endpoint:browser-a");
+  await page.getByRole("link", { name: /Browse telemetry and error history/ }).click();
+  await heading("Device history");
+  assert.match(await page.locator(".history-list").innerText(), /percent/);
+  await page.getByRole("link", { name: /Next page/ }).click();
+  assert.match(await page.locator(".history-list").innerText(), /Collection permission was denied for Temperature/);
+  assert.match(await page.locator(".log-refs").innerText(), /log:system: 512 bytes/);
+  await page.goto(origin + "/console/devices/endpoint:browser-a/history?from=2026-01-01T00:00:00Z&to=2026-06-01T00:00:00Z");
+  await page.getByRole("heading", { name: "History selection is not valid" }).waitFor();
+  assert.equal((await page.goto(origin + "/console/devices/no-such-device/history")).status(), 404);
+  await control("devices-outage");
+  assert.equal((await page.goto(origin + "/console/devices/endpoint:browser-a/history")).status(), 503);
+  assert.ok(await page.getByRole("alert").isVisible());
+  assert.equal(await page.locator(".history-list").count(), 0);
+  await control("devices-restore");
+  await page.goto(origin + "/console/devices/endpoint:browser-a/history");
+  assert.ok(await page.locator(".history-list").isVisible());
+  await page.setViewportSize({ width: 320, height: 760 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  console.log("PASS device history: units, denied collection, error evidence, paging, invalid window, unknown device and outage");
+
   await page.setViewportSize({ width: 320, height: 760 });
   for (const name of ["Workspace", "Devices", "Workflows"]) {
     const link = page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name, exact: true });

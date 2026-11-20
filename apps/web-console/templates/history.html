@@ -1,0 +1,29 @@
+{{define "history"}}
+<p class="supporting">Durable signed samples for one device, oldest first. The window includes its start and excludes its end, at most {{.MaxWindow}}, shown in UTC. Error evidence appears as digests and sizes; log text is never stored or shown.</p>
+<a class="back-link" href="{{.DeviceURL}}">← Back to device</a>
+{{if eq .State "error"}}
+<section class="empty-state" role="alert"><span class="status">Read error</span><h2>History could not be loaded</h2><p>The durable history could not be read. This is not an empty window: samples may exist but are unavailable. Nothing earlier or default is shown.</p><a href="{{.DeviceURL}}/history">Try again</a></section>
+{{else if eq .State "not-configured"}}
+<section class="empty-state"><span class="status">Not configured</span><h2>Device history is not configured</h2><p>This controller has no deployment configured, so no history can be read.</p></section>
+{{else if eq .State "not-found"}}
+<section class="empty-state"><h2>Device not found</h2><p>No enrolled device has this ID in the configured deployment.</p><a href="/console/devices">Open enrolled devices</a></section>
+{{else if eq .State "invalid"}}
+<section class="empty-state"><h2>History selection is not valid</h2><p>The window needs a start before its end, both in RFC 3339 and at most {{.MaxWindow}} apart. The page cursor and query parameters must come from this page.</p><a href="{{.DeviceURL}}/history">Open the last 24 hours</a></section>
+{{else}}
+<nav aria-label="History window"><ul class="history-presets">{{range .Presets}}<li><a href="{{.URL}}">{{.Label}}</a></li>{{end}}</ul></nav>
+<form method="get" class="history-window"><label>From (RFC 3339)<input name="from" value="{{.From}}" required></label><label>To (RFC 3339)<input name="to" value="{{.To}}" required></label><button type="submit">Show window</button></form>
+<p class="supporting">Window <time>{{.From}}</time> to <time>{{.To}}</time>.</p>
+{{if eq .State "empty"}}
+<section class="empty-state"><span class="status">No samples</span><h2>No samples {{if .Paged}}after this point{{else}}in this window{{end}}</h2><p>An empty window is not evidence that the device was healthy or offline; it only means no signed sample was observed in it. Try a wider window.</p></section>
+{{else}}
+<ol class="history-list" aria-label="Samples">{{range .Samples}}<li>
+<div class="device-title"><h3><time>{{.ObservedAt}}</time></h3>{{if .FixtureSource}}<span class="fixture-badge">Fixture source</span>{{end}}{{if .Denied}}<span class="device-status" data-state="stale">Collection denied</span>{{end}}</div>
+<dl class="inventory-meta"><div><dt>Received at</dt><dd><time>{{.ReceivedAt}}</time></dd></div><div><dt>Source</dt><dd>{{.Source}}</dd></div><div><dt>Sequence</dt><dd>{{.Sequence}}</dd></div><div><dt>Request SHA-256</dt><dd>{{.RequestSHA256}}</dd></div></dl>
+{{if .Denied}}<p class="state-warning">Collection permission was denied for {{range $i, $n := .Denied}}{{if $i}}, {{end}}{{$n}}{{end}}. Those values are unknown, not zero.</p>{{end}}
+<dl class="sensor-list">{{range .Sensors}}<div><dt>{{.Name}}</dt><dd><span class="sensor-value">{{.Value}}</span> <span class="sensor-unit">{{.Unit}}</span><small>{{.Explanation}}</small></dd></div>{{end}}</dl>
+{{if .LogRefs}}<h4>Error evidence</h4><ul class="log-refs">{{range .LogRefs}}<li>{{.ID}}: {{.ByteSize}} bytes from <time>{{.WindowStart}}</time> to <time>{{.WindowEnd}}</time>; SHA-256 {{.SHA256}}</li>{{end}}</ul>{{else}}<p class="supporting">No error evidence was attached to this sample.</p>{{end}}
+</li>{{end}}</ol>
+{{if .NextURL}}<a href="{{.NextURL}}">Next page <span aria-hidden="true">→</span></a>{{end}}
+{{end}}
+{{end}}
+{{end}}

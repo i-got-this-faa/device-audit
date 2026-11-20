@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -166,4 +167,87 @@ func TestTelemetryHistoryWindowCursorsAndDenials(t *testing.T) {
 	if after := get(restarted, "device:a", window(base, end), viewer, 200); !reflect.DeepEqual(before, after) || len(after.Samples) != 4 {
 		t.Fatalf("history after restart: %+v", after)
 	}
+}
+
+// TestConsoleHistoryPageSurvivesRestart reads the server-rendered history page
+// from durable rows, then again through a reopened repository.
+func TestConsoleHistoryPageSurvivesRestart(t *testing.T) {
+	b := newEnrollmentTestBed(t)
+	token := b.issue(t, "device:a")
+	keys := newEnrollmentKeys(t)
+	b.submit(t, token, admissionForChallenge(t, b.clock, b.challenge(t, token, keys), keys), http.StatusCreated)
+	base := b.clock.Now().UTC().Truncate(time.Microsecond).Add(-time.Hour)
+	for seq := 2; seq < 2+contracts.TelemetryHistoryPageDefaultV1+1; seq++ {
+		cpu := float64(seq)
+		denied := &contracts.MetricV2{Unit: "celsius", MissingReason: "permission_denied"}
+		payload, err := json.Marshal(contracts.TelemetryV2{SchemaVersion: contracts.TelemetryV2Version, DeviceID: "device:a",
+			CollectedAt: base.Add(time.Duration(seq) * time.Second), Source: "endpoint", LogReferences: []contracts.LogReferenceV2{{
+				ReferenceID: "log:system", SHA256: strings.Repeat("cd", 32), ByteSize: 12, WindowStart: base, WindowEnd: base.Add(time.Minute)}},
+			Metrics: contracts.MetricsV2{CPUUtilization: &contracts.MetricV2{Value: &cpu, Unit: "percent"}, TemperatureC: denied}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		collected := base.Add(time.Duration(seq) * time.Second)
+		if _, err := b.db.Exec(`INSERT INTO device_evidence (deployment_id, device_id, sequence, envelope, payload_bytes, request_sha256, collected_at, received_at)
+			VALUES ($1,$2,$3,'{}',$4,decode($5,'hex'),$6,$7)`, b.repo.deploymentID, "device:a", seq, payload, strings.Repeat("ab", 32), collected, collected); err != nil {
+			t.Fatal(err)
+		}
+	}
+	serve := func(repo *PostgresRepository, target string, want int) string {
+		t.Helper()
+		console, err := auth.NewService(auth.Config{Issuer: "https://id.example.test", PublicOrigin: "https://console.example.test", Store: b.authStore,
+			Provider: auth.NewOIDCProvider("https://id.example.test", "test-client", "test-only", "https://console.example.test/auth/callback", nil),
+			Now:      b.clock.Now, Logger: slog.New(slog.NewTextHandler(b.logs, nil)), Devices: repo.ConsoleDevices()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		service, err := NewDeviceStateService(repo, console)
+		if err != nil {
+			t.Fatal(err)
+		}
+		session, _ := b.addSession(t, "viewer:history", auth.RoleViewer, 0)
+		r := httptest.NewRequest("GET", target, nil)
+		r.AddCookie(&http.Cookie{Name: "__Host-device-audit-session", Value: session})
+		w := httptest.NewRecorder()
+		NewAPI(Config{MaxDevices: 1, Auth: console, DeviceState: service}).Handler().ServeHTTP(w, r)
+		if w.Code != want {
+			t.Fatalf("GET %s: %d want %d", target, w.Code, want)
+		}
+		return w.Body.String()
+	}
+	query := "?from=" + url.QueryEscape(base.Format(time.RFC3339Nano)) + "&to=" + url.QueryEscape(base.Add(time.Hour).Format(time.RFC3339Nano))
+	check := func(repo *PostgresRepository) {
+		t.Helper()
+		page := serve(repo, "/console/devices/device:a/history"+query, 200)
+		if got := strings.Count(page, `class="sensor-list"`); got != contracts.TelemetryHistoryPageDefaultV1 {
+			t.Fatalf("first page shows %d samples", got)
+		}
+		for _, want := range []string{"Collection permission was denied", "log:system: 12 bytes", "Next page", `class="sensor-unit">percent`} {
+			if !strings.Contains(page, want) {
+				t.Fatalf("first page missing %q", want)
+			}
+		}
+		next := page[strings.LastIndex(page, `<a href="`)+len(`<a href="`):]
+		next = strings.ReplaceAll(next[:strings.Index(next, `"`)], "&amp;", "&")
+		if second := serve(repo, next, 200); strings.Count(second, `class="sensor-list"`) != 1 || strings.Contains(second, "Next page") {
+			t.Fatal("second page should hold the one remaining sample")
+		}
+		if empty := serve(repo, "/console/devices/device:a/history?from="+url.QueryEscape(base.Add(2*time.Hour).Format(time.RFC3339))+"&to="+url.QueryEscape(base.Add(3*time.Hour).Format(time.RFC3339)), 200); !strings.Contains(empty, "No samples") {
+			t.Fatal("empty window not labelled")
+		}
+	}
+	check(b.repo)
+	serve(b.repo, "/console/devices/device:unknown/history"+query, 404)
+	serve(b.repo, "/console/devices/device:a/history?from=2020-01-01T00:00:00Z&to=2026-01-01T00:00:00Z", 400)
+
+	db, err := database.Open(context.Background(), b.url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	reopened, err := NewPostgresRepository(context.Background(), db, RepositoryConfig{DeploymentID: b.repo.deploymentID, Now: b.clock.Now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	check(reopened)
 }

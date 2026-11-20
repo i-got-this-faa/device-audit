@@ -18,10 +18,13 @@ var (
 
 // DeviceReader reads enrolled devices and their latest durable samples.
 // It returns ErrDeviceNotFound for an unknown device and ErrDeviceQueryInvalid
-// for a malformed device ID or cursor; any other error is a read failure.
+// for a malformed device ID, window or cursor; any other error is a read failure.
 type DeviceReader interface {
 	DeviceStates(ctx context.Context, after string, limit int) (contracts.DeviceStatePageV1, error)
 	DeviceState(ctx context.Context, deviceID string) (contracts.DeviceStateV1, error)
+	// TelemetryHistory pages one device's samples with from <= collected_at < to.
+	// after is the previous page's opaque cursor, or empty for the first page.
+	TelemetryHistory(ctx context.Context, deviceID string, from, to time.Time, after string, limit int) (contracts.TelemetryHistoryV1, error)
 }
 
 // Freshness classifies a device by the observation time of its latest sample.
@@ -207,6 +210,7 @@ func sensorRows(metrics contracts.MetricsV2, measured string) []Sensor {
 			sensor.Explanation = measured
 		default:
 			sensor.Unit = item.metric.Unit
+			sensor.Denied = item.metric.MissingReason == "permission_denied"
 			sensor.Explanation = missingReasons[item.metric.MissingReason]
 			if sensor.Explanation == "" {
 				sensor.Explanation = "Missing: " + item.metric.MissingReason + "."

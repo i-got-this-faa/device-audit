@@ -117,3 +117,12 @@ dd { margin: 0; }
   .device-list dl > div, .inventory-meta > div, .sensor-list > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .device-list dl > div { margin-top: 10px; }
 }
+
+.history-presets { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 0; list-style: none; }
+.history-window { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 12px 0; }
+.history-window label { display: grid; gap: 4px; font-size: .9rem; }
+.history-window input { font: inherit; min-width: 0; width: min(100%, 22rem); padding: 6px 8px; }
+.history-list { padding: 0; list-style: none; }
+.history-list > li { padding: 24px 0; border-top: 1px solid var(--line); }
+.history-list h3 { margin: 0; }
+.log-refs { padding-left: 1.2em; overflow-wrap: anywhere; font-size: .9rem; }

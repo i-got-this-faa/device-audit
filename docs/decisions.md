@@ -627,6 +627,18 @@ thresholds are provisional and sized for the 60-second default emit interval;
 qualifying them against physical endpoints and per-device cadence remains open.
 The device state v1 contract is unchanged.
 
+## Console telemetry and error history, WEB07 #100
+
+`/console/devices/{id}/history` renders the #98 history read through the same
+`DeviceReader` seam as the inventory, so it needs no new endpoint or table. The
+default window is the last 24 hours; a next-page link pins both window ends
+because a cursor is only valid for the window that produced it. Failure classes
+map to distinct statuses and copy: empty window (200), store failure (503),
+unknown device (404), invalid window, cursor or parameter (400). A
+`permission_denied` metric is shown as denied collection, never as zero. Error
+evidence is shown only as the sample's digest, size and window. Not covered:
+retention, aggregation, charts, export and filtering by error type.
+
 ## Admitted mesh application transport, NET02 #25
 
 The 13 November 2026 implementation promotes the NET01 Tailcat pin into the

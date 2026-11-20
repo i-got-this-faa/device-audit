@@ -18,6 +18,10 @@ type fakeReader struct {
 	state contracts.DeviceStateV1
 	err   error
 	after string
+
+	history      contracts.TelemetryHistoryV1
+	from, to     time.Time
+	historyAfter string
 }
 
 func (f *fakeReader) DeviceStates(_ context.Context, after string, _ int) (contracts.DeviceStatePageV1, error) {
@@ -27,6 +31,11 @@ func (f *fakeReader) DeviceStates(_ context.Context, after string, _ int) (contr
 
 func (f *fakeReader) DeviceState(context.Context, string) (contracts.DeviceStateV1, error) {
 	return f.state, f.err
+}
+
+func (f *fakeReader) TelemetryHistory(_ context.Context, _ string, from, to time.Time, after string, _ int) (contracts.TelemetryHistoryV1, error) {
+	f.from, f.to, f.historyAfter = from, to, after
+	return f.history, f.err
 }
 
 var evaluatedAt = time.Date(2026, 11, 20, 12, 0, 0, 0, time.UTC)

@@ -66,6 +66,7 @@ type ScenarioLink struct {
 
 type Sensor struct {
 	Name, Value, Unit, Explanation string
+	Denied                         bool // collection permission was denied
 }
 
 type DeviceRow struct {
