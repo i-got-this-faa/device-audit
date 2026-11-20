@@ -29,6 +29,7 @@ type Page struct {
 	Message   string
 	Bindings  []Binding
 	Devices   *DeviceView
+	Inventory *InventoryView
 }
 
 func RegisterAssets(mux *http.ServeMux) {

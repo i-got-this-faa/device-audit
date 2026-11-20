@@ -1,0 +1,40 @@
+{{define "inventory"}}
+<p class="supporting">Enrolled devices and their latest durable signed sample. Evaluated at <time>{{.EvaluatedAt}}</time>. Freshness uses each sample's observed time: stale after {{.StaleAfter}}, offline after {{.OfflineAfter}}. No health assessment is available.</p>
+{{if .IsDetail}}<a class="back-link" href="/console/devices">← Back to device list</a>{{end}}
+{{if eq .State "error"}}
+<section class="empty-state" role="alert"><span class="status">Read error</span><h2>Device data could not be loaded</h2><p>The device inventory could not be read. Device condition, freshness and sensor values are unknown. No earlier or default values are shown.</p><a href="{{if not .IsDetail}}/console/devices{{end}}">Try again</a></section>
+{{else if eq .State "not-configured"}}
+<section class="empty-state"><span class="status">Not configured</span><h2>Enrolled device inventory is not configured</h2><p>This controller has no deployment configured, so no enrolled devices can be read. Synthetic examples are available separately.</p><a href="/console/devices?fixture=live">Open fixture examples</a></section>
+{{else if eq .State "empty"}}
+<section class="empty-state"><span class="status">No devices</span><h2>No enrolled devices{{if .Paged}} after this point{{end}}</h2><p>An empty device list is not evidence that devices in your organization are healthy or absent.</p>{{if .Paged}}<a href="/console/devices">Return to the first page</a>{{end}}</section>
+{{else if eq .State "not-found"}}
+<section class="empty-state"><h2>Device not found</h2><p>No enrolled device has this ID in the configured deployment.</p><a href="/console/devices">Open enrolled devices</a></section>
+{{else if eq .State "invalid"}}
+<section class="empty-state"><h2>Device selection is not valid</h2><p>This device ID, page cursor or query parameter is not accepted.</p><a href="/console/devices">Open enrolled devices</a></section>
+{{else if .IsDetail}}
+{{with .Detail}}
+<section class="device-detail" aria-labelledby="device-name"><div class="device-title"><div><p class="eyebrow">Enrolled device</p><h2 id="device-name">{{.ID}}</h2></div><span class="device-status" data-state="{{.Freshness}}">{{.FreshnessLabel}}</span>{{if .FixtureSource}}<span class="fixture-badge">Fixture source</span>{{end}}{{if .RevokedAt}}<span class="device-status" data-state="revoked">Revoked</span>{{end}}</div>
+<dl class="inventory-meta">
+<div><dt>Observed at</dt><dd>{{if .HasSample}}<time>{{.ObservedAt}}</time> ({{.Age}}){{else}}Unknown: no retained sample{{end}}</dd></div>
+<div><dt>Received at</dt><dd>{{if .HasSample}}<time>{{.ReceivedAt}}</time>{{else}}Unknown{{end}}</dd></div>
+<div><dt>Sample source</dt><dd>{{if .HasSample}}{{.Source}}{{else}}Unknown{{end}}</dd></div>
+<div><dt>Sequence</dt><dd>{{if .HasSample}}{{.Sequence}}{{else}}Last accepted sequence {{.LastSequence}}{{end}}</dd></div>
+<div><dt>Signing key</dt><dd>{{.SigningKeyID}}</dd></div>
+<div><dt>Enrolled at</dt><dd><time>{{.EnrolledAt}}</time></dd></div>
+{{if .RequestSHA256}}<div><dt>Request SHA-256</dt><dd>{{.RequestSHA256}}</dd></div>{{end}}
+</dl>
+{{if .RevokedAt}}<p class="state-warning">Revoked at <time>{{.RevokedAt}}</time>. This device can no longer submit evidence; values below are historical.</p>{{end}}
+{{if eq .Freshness "stale"}}<p class="state-warning">Stale: no newer observation has been accepted. These values are historical; current device condition is unknown.</p>
+{{else if eq .Freshness "offline"}}<p class="state-warning">Offline: the endpoint has not reported recently. These values are historical; current device condition is unknown.</p>
+{{else if eq .Freshness "no-sample"}}<p class="state-warning">{{if .LastSequence}}The sample for sequence {{.LastSequence}} is no longer retained.{{else}}No sample has been accepted since enrollment.{{end}} Device condition is unknown.</p>{{end}}
+{{if .FixtureSource}}<p class="state-warning">This signed sample declares a fixture source. Its values are synthetic, not endpoint collection.</p>{{end}}
+<h3>Measurements</h3><p class="supporting">Disk space used is not disk health. Battery charge is not battery health or remaining life. Network latency is not throughput.</p>
+<dl class="sensor-list">{{range .Sensors}}<div><dt>{{.Name}}</dt><dd><span class="sensor-value">{{.Value}}</span> <span class="sensor-unit">{{.Unit}}</span><small>{{.Explanation}}</small></dd></div>{{end}}</dl>
+<p class="supporting">Component inventory metadata is read through the inventory API and is not shown here.</p>
+</section>
+{{end}}
+{{else}}
+<ul class="device-list" aria-label="Enrolled devices">{{range .Rows}}<li><div class="device-title"><a href="{{.URL}}">{{.ID}}</a><span class="device-status" data-state="{{.Freshness}}">{{.FreshnessLabel}}</span>{{if .FixtureSource}}<span class="fixture-badge">Fixture source</span>{{end}}{{if .RevokedAt}}<span class="device-status" data-state="revoked">Revoked</span>{{end}}</div><dl><div><dt>Observed at</dt><dd>{{if .HasSample}}<time>{{.ObservedAt}}</time> ({{.Age}}){{else}}Unknown: no retained sample{{end}}</dd></div><div><dt>Source</dt><dd>{{if .HasSample}}{{.Source}}{{else}}Unknown{{end}}</dd></div></dl></li>{{end}}</ul>
+{{if .NextURL}}<a href="{{.NextURL}}">Next page <span aria-hidden="true">→</span></a>{{end}}
+{{end}}
+{{end}}
