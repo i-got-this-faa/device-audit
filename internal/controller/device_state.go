@@ -138,6 +138,7 @@ func NewDeviceStateService(repository *PostgresRepository, consoleAuth *auth.Ser
 func (s *DeviceStateService) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/api/devices", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.list)))
 	mux.Handle("GET /console/api/devices/{id}", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.detail)))
+	mux.Handle("GET /console/api/devices/{id}/history", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.history)))
 }
 
 // parseDeviceStateQuery requires an explicit deployment_id so a client cannot
