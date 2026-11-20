@@ -4,6 +4,10 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [INT02 first real-device integration gate, 20 November 2026](validation/integration-gate-31.md)
+records the same-host failure-path evidence and keeps the two-Windows-machine
+direct and forced-DERP gates open; only one physical Windows endpoint exists.
+
 Follow-up: [CT03 frozen feature version, 18 November 2026](validation/features-32.md)
 fixes the SMART counter order, seven-day window, `log1p` transform and
 missing-value rules, with Go and Python references held to `1e-12 + 1e-12·abs(expected)`
