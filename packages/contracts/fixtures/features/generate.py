@@ -2,11 +2,12 @@
 
 Expected vectors come from the hand-written (first, final) day values below,
 not from either reference implementation, so the vectors also check day
-selection, window bounds and missing reasons.
+selection, window bounds and missing reasons. log1p is evaluated with 50-digit
+decimal arithmetic, not math.log1p, so neither language's libm is the oracle.
 """
 import copy
 import json
-import math
+from decimal import Decimal, localcontext
 from pathlib import Path
 
 WINDOW = "device-audit.feature-window.v1"
@@ -30,8 +31,14 @@ def window(samples, as_of=AS_OF, version=VERSION):
     return {"schema_version": WINDOW, "feature_version": version, "as_of": as_of, "samples": samples}
 
 
+def log1p(x):
+    with localcontext() as ctx:
+        ctx.prec = 50
+        return float((Decimal(x) + 1).ln())
+
+
 def signed_log1p(x):
-    return -math.log1p(-x) if x < 0 else math.log1p(x)
+    return -log1p(-x) if x < 0 else log1p(x)
 
 
 def vector(state, as_of=AS_OF, start="2013-11-01", end="2013-11-07"):
@@ -44,7 +51,7 @@ def vector(state, as_of=AS_OF, start="2013-11-01", end="2013-11-07"):
             last["missing_reason"] = delta["missing_reason"] = state[counter]
         else:
             first, final = state[counter]
-            last["value"], delta["value"] = math.log1p(final), signed_log1p(final - first)
+            last["value"], delta["value"] = log1p(final), signed_log1p(final - first)
         features += [last, delta]
     complete = all(f["value"] is not None for f in features)
     return {"schema_version": VECTOR, "feature_version": VERSION, "as_of": as_of,
@@ -106,6 +113,12 @@ valid("a power-on hours reset is kept as a signed change",
 top = 2**53 - 1
 valid("largest exact counter", window(daily([top] * 7, HOURS, ZEROS)),
       vector({"smart_5_raw": (top, top), "smart_9_raw": (11000, 11144), "smart_197_raw": (0, 0)}))
+
+# Every decade and power of two a counter can reach, as final value and as delta.
+for n, top_value in enumerate([1, 2, 255, 65535, 10**6, 2**31, 10**10, 2**40, 10**13, 2**52, 2**53 - 1]):
+    valid(f"log1p over the counter range, final {top_value}",
+          window(daily([0, 0, 0, 0, 0, 0, top_value], HOURS, [top_value, 0, 0, 0, 0, 0, 0])),
+          vector({"smart_5_raw": (0, top_value), "smart_9_raw": (11000, 11144), "smart_197_raw": (top_value, 0)}))
 
 base = window(daily([0, 0, 0, 0, 8, 8, 16], HOURS, ZEROS))
 

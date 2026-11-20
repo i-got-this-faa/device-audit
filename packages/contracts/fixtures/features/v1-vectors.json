@@ -961,6 +961,1051 @@
    }
   },
   {
+   "name": "log1p over the counter range, final 1",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 1
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 1,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 0.6931471805599453,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 0.6931471805599453,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -0.6931471805599453,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 2",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 2
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 2,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 1.0986122886681098,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 1.0986122886681098,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -1.0986122886681098,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 255",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 255
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 255,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 5.545177444479562,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 5.545177444479562,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -5.545177444479562,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 65535",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 65535
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 65535,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 11.090354888959125,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 11.090354888959125,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -11.090354888959125,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 1000000",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 1000000
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 1000000,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 13.815511557963774,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 13.815511557963774,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -13.815511557963774,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 2147483648",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 2147483648
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 2147483648,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 21.487562597823967,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 21.487562597823967,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -21.487562597823967,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 10000000000",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 10000000000
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 10000000000,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 23.025850930040455,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 23.025850930040455,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -23.025850930040455,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 1099511627776",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 1099511627776
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 1099511627776,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 27.725887222398722,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 27.725887222398722,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -27.725887222398722,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 10000000000000",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 10000000000000
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 10000000000000,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 29.933606208922694,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 29.933606208922694,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -29.933606208922694,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 4503599627370496",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 4503599627370496
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 4503599627370496,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 36.04365338911715,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 36.04365338911715,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -36.04365338911715,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
+   "name": "log1p over the counter range, final 9007199254740991",
+   "payload": {
+    "schema_version": "device-audit.feature-window.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "samples": [
+     {
+      "observed_at": "2013-11-01T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11000,
+      "smart_197_raw": 9007199254740991
+     },
+     {
+      "observed_at": "2013-11-02T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11024,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-03T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11048,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-04T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11072,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-05T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11096,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-06T00:00:00Z",
+      "smart_5_raw": 0,
+      "smart_9_raw": 11120,
+      "smart_197_raw": 0
+     },
+     {
+      "observed_at": "2013-11-07T00:00:00Z",
+      "smart_5_raw": 9007199254740991,
+      "smart_9_raw": 11144,
+      "smart_197_raw": 0
+     }
+    ]
+   },
+   "schema_valid": true,
+   "valid": true,
+   "rejection": null,
+   "expected": {
+    "schema_version": "device-audit.feature-vector.v1",
+    "feature_version": "hdd-smart-7d.v1",
+    "as_of": "2013-11-07T23:59:59Z",
+    "window_start": "2013-11-01",
+    "window_end": "2013-11-07",
+    "status": "complete",
+    "features": [
+     {
+      "name": "smart_5_raw.last",
+      "value": 36.7368005696771,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_5_raw.delta",
+      "value": 36.7368005696771,
+      "unit": "signed_log1p_count"
+     },
+     {
+      "name": "smart_9_raw.last",
+      "value": 9.31874624581997,
+      "unit": "log1p_hours"
+     },
+     {
+      "name": "smart_9_raw.delta",
+      "value": 4.976733742420574,
+      "unit": "signed_log1p_hours"
+     },
+     {
+      "name": "smart_197_raw.last",
+      "value": 0.0,
+      "unit": "log1p_count"
+     },
+     {
+      "name": "smart_197_raw.delta",
+      "value": -36.7368005696771,
+      "unit": "signed_log1p_count"
+     }
+    ]
+   }
+  },
+  {
    "name": "counter above the exact JSON integer range",
    "payload": {
     "schema_version": "device-audit.feature-window.v1",
