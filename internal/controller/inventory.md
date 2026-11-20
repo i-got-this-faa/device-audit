@@ -47,3 +47,25 @@ devices, exact source/enrollment/actor provenance, clearing to unknown metadata,
 reopening connections, independent concurrent writers, deferred commit failure,
 storage outages, denied updates and protected queries. Shared fixture review and
 a reviewed merge remain release gates.
+
+## Device list and latest state, API01 #28
+
+`GET /console/api/devices` and `GET /console/api/devices/{id}` return enrolled
+devices with their latest durable sample (see
+[device state v1](../../packages/contracts/device-state-v1.md)). Viewer or
+administrator scope is required.
+
+- `deployment_id` is required and must equal the controller's configured
+  deployment. A different value returns 403; a missing one returns 400.
+- The list takes `limit` (1 to 100, canonical decimal, default 50) and `after`
+  (the previous page's `next_after`). A larger limit, a repeated or unknown
+  parameter, or a malformed cursor returns 400; the page is never silently
+  clamped.
+- An unknown device returns 404. Store failures return 503 without diagnostics.
+- The latest sample is joined at the device's committed `last_sequence`, so the
+  list and detail agree and survive controller restarts. Revoked devices stay
+  listed with `revoked_at`.
+
+The list does not include inventory metadata revisions; read them with the
+inventory route. Fixture/candidate devices from `/v1/devices` are never listed.
+

@@ -177,6 +177,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 
 	var enrollment *controller.EnrollmentService
 	var inventory *controller.InventoryService
+	var deviceState *controller.DeviceStateService
 	var revocation *controller.RevocationService
 	var repository *controller.PostgresRepository
 	if *deploymentID != "" {
@@ -193,6 +194,10 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			return err
 		}
 		inventory, err = controller.NewInventoryService(repository, consoleAuth)
+		if err != nil {
+			return err
+		}
+		deviceState, err = controller.NewDeviceStateService(repository, consoleAuth)
 		if err != nil {
 			return err
 		}
@@ -213,6 +218,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		AuthStatus:     authStatus,
 		Enrollment:     enrollment,
 		Inventory:      inventory,
+		DeviceState:    deviceState,
 		Revocation:     revocation,
 		MeshStatus:     *transport,
 	})

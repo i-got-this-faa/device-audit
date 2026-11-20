@@ -544,6 +544,19 @@ This adds neither automatic cohorts nor network authorization. See the
 [contract](../packages/contracts/inventory-v1.md) and
 [API/storage boundary](../internal/controller/inventory.md).
 
+## Device list and latest state, API01 #28
+
+The controller serves a keyset-paginated, viewer-scoped device list and detail
+over the durable repository. Latest state is the evidence row at the device's
+committed `last_sequence`, so nothing is cached and a restart changes nothing.
+The tenant is the single configured deployment; the client must name it and a
+mismatch fails with 403 rather than returning an empty page. Page size is
+capped at 100 and an excess is rejected. Sensor availability distinguishes a
+reported null (`missing`) from an omitted metric (`not_reported`). See the
+[contract](../packages/contracts/device-state-v1.md) and
+[API boundary](../internal/controller/inventory.md). Not covered: filtering,
+sorting other than device ID, health verdicts, and the web console device view.
+
 ## Protected console navigation, WEB01 #29
 
 The 27 October 2026 implementation keeps the SRC04 template/ES-module choice.

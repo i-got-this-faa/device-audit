@@ -30,22 +30,24 @@ type Config struct {
 	AuthStatus     string
 	Enrollment     *EnrollmentService
 	Inventory      *InventoryService
+	DeviceState    *DeviceStateService
 	Revocation     *RevocationService
 	MeshStatus     string
 }
 
 type API struct {
-	mu         sync.Mutex
-	devices    map[string]Device
-	maxDevices int
-	database   string
-	schema     int
-	auth       *auth.Service
-	authStatus string
-	enrollment *EnrollmentService
-	inventory  *InventoryService
-	revocation *RevocationService
-	meshStatus string
+	mu          sync.Mutex
+	devices     map[string]Device
+	maxDevices  int
+	database    string
+	schema      int
+	auth        *auth.Service
+	authStatus  string
+	enrollment  *EnrollmentService
+	inventory   *InventoryService
+	deviceState *DeviceStateService
+	revocation  *RevocationService
+	meshStatus  string
 }
 
 func NewAPI(cfg Config) *API {
@@ -62,16 +64,17 @@ func NewAPI(cfg Config) *API {
 		cfg.MeshStatus = "not_configured"
 	}
 	return &API{
-		devices:    make(map[string]Device),
-		maxDevices: cfg.MaxDevices,
-		database:   cfg.DatabaseStatus,
-		schema:     cfg.SchemaVersion,
-		auth:       cfg.Auth,
-		authStatus: cfg.AuthStatus,
-		enrollment: cfg.Enrollment,
-		inventory:  cfg.Inventory,
-		revocation: cfg.Revocation,
-		meshStatus: cfg.MeshStatus,
+		devices:     make(map[string]Device),
+		maxDevices:  cfg.MaxDevices,
+		database:    cfg.DatabaseStatus,
+		schema:      cfg.SchemaVersion,
+		auth:        cfg.Auth,
+		authStatus:  cfg.AuthStatus,
+		enrollment:  cfg.Enrollment,
+		inventory:   cfg.Inventory,
+		deviceState: cfg.DeviceState,
+		revocation:  cfg.Revocation,
+		meshStatus:  cfg.MeshStatus,
 	}
 }
 
@@ -103,6 +106,9 @@ func (a *API) Handler() http.Handler {
 	}
 	if a.inventory != nil {
 		a.inventory.Register(mux)
+	}
+	if a.deviceState != nil {
+		a.deviceState.Register(mux)
 	}
 	if a.revocation != nil {
 		a.revocation.Register(mux)
