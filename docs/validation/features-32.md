@@ -15,6 +15,9 @@ endpoint collector, controller pipeline or training run was added.
 
 ## Fault checks
 
+Expected `log1p` values come from 50-digit `decimal` arithmetic in the
+generator, not from either language's libm.
+
 Each reference was mutated once to confirm the vectors detect a real defect:
 
 - Go: keeping the earliest instead of the latest reading of a day failed
@@ -39,7 +42,7 @@ git diff --check
 
 - `make check`: `go vet`, `go test -race ./...`, 55 Python tests including
   the 4 new feature tests, controller fake scenarios and `go fmt`. Passed.
-- `make contract-check`: 331 golden vectors (30 from this change), 79 wire cases (4 from this change)
+- `make contract-check`: 342 golden vectors (41 from this change), 79 wire cases (4 from this change)
   and 29 reader versions (2 from this change). Passed.
 - `make cross-build` built Windows amd64, then failed the Darwin arm64 build in
   `runtime/cgo` (`gcc: unrecognized option '-arch'`). The Nix shell sets
@@ -57,5 +60,6 @@ git diff --check
 - The Backblaze archive was not downloaded. The Backblaze-to-sample mapping is
   specified and its equivalence with ML01 complete history is argued from the
   committed null counts, not run over the archive. #102 runs it.
-- Go's `math.Log1p` and Python's `math.log1p` were compared only on the fixture
-  values, not over the whole counter range.
+- Go's `math.Log1p` and Python's `math.log1p` were checked at 11 counter values
+  from 1 to 2^53 − 1, as final value and as delta, against 50-digit decimal
+  `ln(1+x)`. Not every counter value was compared.
