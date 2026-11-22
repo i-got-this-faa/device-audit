@@ -1,0 +1,1018 @@
+{
+  "schema_version": "device-audit.model-manifest-fixtures.v1",
+  "vectors": [
+    {
+      "name": "valid_inference",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "rejection": "",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "valid_training",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": true,
+      "schema_valid": true,
+      "rejection": "",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "training",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "inference_only_cannot_train",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "2e4fb0542e1d80aadc32f7477780c7675ae6d4c093720ed6a392c259adc159131a4023f209e822e98351025678238ec3eb70b357c1a9173de3fbac52739f4507"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "purpose_unsupported",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "training",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013100000009696e666572656e6365"
+    },
+    {
+      "name": "runtime_version_mismatch",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "runtime_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.1.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "runtime_name_mismatch",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "runtime_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "other-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "unsupported_architecture",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "unsupported_architecture",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "other.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "runtime_with_no_architectures",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "unsupported_architecture",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "artifact_digest_mismatch",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "digest_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVsAA=="
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "empty_artifact_digest_mismatch",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "digest_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": ""
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "feature_order_swapped",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.delta",
+          "smart_5_raw.last",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "7e54fa73b6ebad4fb57715085b55e0df33348c3493e3474a4efa68a1020aeacc1367f16f7a4ac59b939fddb2b9576f551f92026d578f94f71fa1eaebdabd9700"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "feature_order_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000011736d6172745f355f7261772e64656c746100000010736d6172745f355f7261772e6c61737400000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "feature_order_reversed",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_197_raw.delta",
+          "smart_197_raw.last",
+          "smart_9_raw.delta",
+          "smart_9_raw.last",
+          "smart_5_raw.delta",
+          "smart_5_raw.last"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "62903a9dc50f4f47842f368a918552533c98b0a4c360ddec5f494ad46e7150aea8c5ebd3dd275db580c6778d6b5413d214a6207c680391ca5f1d92279b480002"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "feature_order_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000013736d6172745f3139375f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f355f7261772e6c617374000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "feature_missing",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "fcfc42c5b2d2764d72ce525c4f01596d18d7000c16079984e6da0069f8f8a8d587455afe688ab54d238f1370cafbd1c7f26a97748c50999af31d2f55e12e830a"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "feature_order_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013500000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c617374000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "feature_extra",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta",
+          "smart_187_raw.last"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "709cc2f29956417beedcf15403e57de5377918b594c3ece38b0295c24b48573fcf13925274260846de4fddec6ad49e5ef4db57985fce25bb9a6d3f8474854904"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "feature_order_mismatch",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013700000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c746100000012736d6172745f3138375f7261772e6c617374000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "unsupported_feature_version",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v2",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "c71bed3d4d5284133449aaa712e3e58339df93e791ffae490ef36a171baf0162545aeb9277cdcf29dae31bfc8952beae51b0ec13431341646982a50a6528230b"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "unsupported_feature_version",
+      "signature_valid": true,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763200000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "unsupported_manifest_version",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v2",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "unsupported_manifest_version",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "signed_field_changed_after_signing",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.2",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "invalid_signature",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3200000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "signed_by_untrusted_key",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:39f713d0a644253f04529421b9f51b9b08979d08295959c4f3990ee617f5139f",
+        "signature": "02a5b9c87afc088862e3f95d0665e78b4ad6c35e4fb8949ef1f32d861be65f206e57d692a3d68e86b7ce6de42c16261e337cb6b9ef3152edc9e5b9bcd2d46408"
+      },
+      "valid": false,
+      "schema_valid": true,
+      "rejection": "key_mismatch",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a33396637313364306136343432353366303435323934323162396635316239623038393739643038323935393539633466333939306565363137663531333966000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "signature_wrong_length",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": "00"
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67"
+    },
+    {
+      "name": "digest_uppercase",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "A19f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "zero_parameters",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 0,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "no_purposes",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "duplicate_purpose",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "inference",
+          "inference"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "unknown_purpose",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "purposes": [
+          "serving"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "empty_features",
+      "payload": {
+        "schema_version": "device-audit.model-manifest.v1",
+        "model_version": "synthetic.1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "architecture": "synthetic.v1",
+        "parameter_count": 6,
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [],
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "signature": ""
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    },
+    {
+      "name": "raw_weights_not_in_manifest",
+      "payload": {
+        "architecture": "synthetic.v1",
+        "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+        "feature_version": "hdd-smart-7d.v1",
+        "features": [
+          "smart_5_raw.last",
+          "smart_5_raw.delta",
+          "smart_9_raw.last",
+          "smart_9_raw.delta",
+          "smart_197_raw.last",
+          "smart_197_raw.delta"
+        ],
+        "model_version": "synthetic.1",
+        "parameter_count": 6,
+        "purposes": [
+          "inference",
+          "training"
+        ],
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "schema_version": "device-audit.model-manifest.v1",
+        "signature": "",
+        "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+        "weights_base64": "AAAAAAAAAAA="
+      },
+      "valid": false,
+      "schema_valid": false,
+      "rejection": "invalid_manifest",
+      "signature_valid": false,
+      "activation": {
+        "runtime_name": "device-audit-runtime",
+        "runtime_version": "1.0.0",
+        "architectures": [
+          "synthetic.v1"
+        ],
+        "purpose": "inference",
+        "artifact_base64": "c3ludGhldGljIG1vZGVsIGFydGlmYWN0LCBub3QgYSB0cmFpbmVkIG1vZGVs"
+      },
+      "canonical_hex": ""
+    }
+  ],
+  "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+}

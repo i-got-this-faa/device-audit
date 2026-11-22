@@ -270,6 +270,18 @@ feature version is rejected: Go returns an error matching
 `ErrUnsupportedFeatureVersion` and Python raises `UnsupportedFeatureVersion`.
 No endpoint collector reads SMART counters, so the endpoint vector is `incomplete` and the prediction `unknown`.
 
+## Model artifact manifest, CT10 #101
+
+[`device-audit.model-manifest.v1`](model-manifest-v1.md) is the signed record an
+activating process checks before it loads a model artifact. It binds the artifact
+SHA-256, architecture, parameter count, exact runtime name and version, the frozen
+feature version and feature order, and the inference/training purposes under one
+publisher Ed25519 signature. `ModelManifestV1.CheckActivation` in Go and
+`device_audit_models.manifest.check_compatibility` in Python refuse a mismatched
+runtime, feature ordering or digest, and an unknown or unsupported version, with
+one stable code each. Python does not verify signatures. The fixtures use a
+synthetic artifact; no model architecture is selected.
+
 ## Device revocation v1, #90
 
 [Device revocation](revocation-v1.md) defines an administrator request with an

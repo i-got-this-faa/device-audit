@@ -482,6 +482,24 @@
       "expected_python": "unsupported_schema"
     },
     {
+      "name": "valid/device-audit.model-manifest.v1",
+      "reader_version": "device-audit.model-manifest.v1",
+      "wire": "{\"schema_version\":\"device-audit.model-manifest.v1\",\"model_version\":\"synthetic.1\",\"artifact_sha256\":\"619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa\",\"architecture\":\"synthetic.v1\",\"parameter_count\":6,\"runtime_name\":\"device-audit-runtime\",\"runtime_version\":\"1.0.0\",\"feature_version\":\"hdd-smart-7d.v1\",\"features\":[\"smart_5_raw.last\",\"smart_5_raw.delta\",\"smart_9_raw.last\",\"smart_9_raw.delta\",\"smart_197_raw.last\",\"smart_197_raw.delta\"],\"purposes\":[\"inference\",\"training\"],\"signing_key_id\":\"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\",\"signature\":\"20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501\"}",
+      "expected_schema": "accepted",
+      "expected_go": "accepted",
+      "expected_python": "accepted",
+      "canonical_hex": "6465766963652d61756469742f7369676e61747572652f7631000000001e6465766963652d61756469742e6d6f64656c2d6d616e69666573742e76310000000b73796e7468657469632e3100000040363139663433636561313765303265626438633537623163656430393534356432623130336465316139616330323566383834386363383262333930626266610000000c73796e7468657469632e76310000000136000000146465766963652d61756469742d72756e74696d6500000005312e302e300000000f6864642d736d6172742d37642e763100000048656432353531393a32316665333164666131353461323631363236626638353430343666643232373162376265643462366162653435616135383837376566343766393732316239000000013600000010736d6172745f355f7261772e6c61737400000011736d6172745f355f7261772e64656c746100000010736d6172745f395f7261772e6c61737400000011736d6172745f395f7261772e64656c746100000012736d6172745f3139375f7261772e6c61737400000013736d6172745f3139375f7261772e64656c7461000000013200000009696e666572656e636500000008747261696e696e67",
+      "verification_key": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    },
+    {
+      "name": "unsupported/device-audit.model-manifest.v1",
+      "reader_version": "device-audit.model-manifest.v1",
+      "wire": "{\"schema_version\": \"device-audit.model-manifest.v999\", \"model_version\": \"synthetic.1\", \"artifact_sha256\": \"619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa\", \"architecture\": \"synthetic.v1\", \"parameter_count\": 6, \"runtime_name\": \"device-audit-runtime\", \"runtime_version\": \"1.0.0\", \"feature_version\": \"hdd-smart-7d.v1\", \"features\": [\"smart_5_raw.last\", \"smart_5_raw.delta\", \"smart_9_raw.last\", \"smart_9_raw.delta\", \"smart_197_raw.last\", \"smart_197_raw.delta\"], \"purposes\": [\"inference\", \"training\"], \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\", \"signature\": \"20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501\"}",
+      "expected_schema": "unsupported_schema",
+      "expected_go": "unsupported_schema",
+      "expected_python": "unsupported_schema"
+    },
+    {
       "name": "enrollment freshness sequence already consumed",
       "reader_version": "device-audit.enrollment.v1",
       "wire": "{\"challenge_id\": \"challenge:fixture-only-not-a-live-challenge\", \"deployment_id\": \"deployment:fixture-01\", \"device_id\": \"asset:fixture-01\", \"expires_at\": \"2026-10-15T12:10:00Z\", \"issued_at\": \"2026-10-15T12:00:00Z\", \"public_key\": \"d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a\", \"schema_version\": \"device-audit.enrollment.v1\", \"sequence\": 1, \"signature\": \"a9180bffc642e61947d87c61cea6a3a58299f92caed9b77e561b0eb6c251004277d45eb1d1fd0176ff1e4af737d006eb2b5afaddbfc528922707a3fe6df50500\", \"signing_key_id\": \"ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9\"}",

@@ -29,3 +29,9 @@ CT03's [frozen feature version](../packages/contracts/features-v1.md),
 `hdd-smart-7d.v1`, fixes the SMART counter order, seven-day window, `log1p`
 transform and missing-value rules. `features.py` is the Python reference; it
 matches the Go reference on the shared vectors within `1e-12`.
+
+CT10's [model manifest](../packages/contracts/model-manifest-v1.md) is the
+signed record a runtime checks before it activates an artifact. `manifest.py`
+checks structure, feature order, runtime, architecture, purpose and the artifact
+digest. It does not verify the Ed25519 signature; no cryptography library is a
+dependency here, so the caller verifies `signing_bytes` first.
