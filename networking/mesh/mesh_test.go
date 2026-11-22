@@ -1,7 +1,9 @@
 package mesh
 
 import (
+	"errors"
 	"testing"
+	"time"
 )
 
 func TestDevelopmentBindingAndInvalidMesh(t *testing.T) {
@@ -21,5 +23,19 @@ func TestDevelopmentBindingAndInvalidMesh(t *testing.T) {
 	}
 	if _, err := NewClient(ClientConfig{}); err == nil {
 		t.Fatalf("client error: %v", err)
+	}
+}
+
+func TestBoundedCloseReturnsWhenTeardownHangs(t *testing.T) {
+	release := make(chan struct{})
+	defer close(release)
+	start := time.Now()
+	err := boundedClose(func() error { <-release; return nil }, 50*time.Millisecond)
+	if !errors.Is(err, ErrCloseTimeout) || time.Since(start) > 2*time.Second {
+		t.Fatalf("hung teardown: err=%v after %s", err, time.Since(start))
+	}
+	closed := errors.New("closed")
+	if err := boundedClose(func() error { return closed }, time.Second); !errors.Is(err, closed) {
+		t.Fatalf("prompt teardown error lost: %v", err)
 	}
 }

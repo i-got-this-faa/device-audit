@@ -47,6 +47,13 @@ patent implementation needs it, without importing the entire fleet manager.
   this adapter through that relay with all UDP dropped on one host, as recorded
   in [relay-fallback-88.md](../docs/validation/relay-fallback-88.md). A
   deployed public relay is not qualified.
+- NET03 #54 restarts the relay and the controller, and partitions both for
+  90 s, while the endpoint service pipeline delivers over direct and
+  forced-DERP paths into PostgreSQL. See
+  [recovery-54.md](../docs/validation/recovery-54.md) for the limits and
+  timings. Real machines, LAN/WAN and restarts under real blocked UDP are not
+  covered. `mesh.Client.Close` is bounded to 5 s because an upstream teardown
+  hang otherwise stopped delivery.
 - Windows ACL checks cover the controller state directory when the mesh package
   tests run on Windows. The selected physical laptop, LocalService token and
   installed service remain unqualified.
