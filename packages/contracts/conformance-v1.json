@@ -186,6 +186,20 @@
         "device-audit.device-revocation-request.v1": "revocation-v1.schema.json",
         "device-audit.device-revocation.v1": "revocation-v1.schema.json"
       }
+    },
+    {
+      "name": "model-manifest-v1",
+      "fixture": "models/v1-vectors.json",
+      "payload_field": "payload",
+      "valid_field": "valid",
+      "schema_valid_field": "schema_valid",
+      "go_test": "TestModelManifestV1Vectors",
+      "python_tests": [
+        "test_manifest_contracts.ManifestContractTests"
+      ],
+      "schemas": {
+        "device-audit.model-manifest.v1": "model-manifest-v1.schema.json"
+      }
     }
   ]
 }
