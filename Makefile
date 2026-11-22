@@ -60,6 +60,7 @@ relay-fallback-proof:
 RECOVERY_PARTITION ?= 90s
 recovery-proof:
 	test -n "$(TEST_DATABASE_URL)" || { echo "TEST_DATABASE_URL is required for recovery-proof" >&2; exit 1; }
+	test "$$($(GO) env GOOS)" = linux || { echo "recovery-proof runs only on Linux" >&2; exit 1; }
 	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" DEVICE_AUDIT_RECOVERY_PROOF=1 DEVICE_AUDIT_RECOVERY_PARTITION=$(RECOVERY_PARTITION) $(GO) test -count=1 -v -timeout=40m -run '^TestRelayRestartAndPartitionRecovery$$' ./apps/endpoint-agent
 # Synthetic sampler cost at the two candidate cadences. This is not a Windows
 # sensor or service-token measurement. Output files are not overwritten.

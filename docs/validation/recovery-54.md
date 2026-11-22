@@ -45,32 +45,42 @@ relay is closed and restarted on the same port with the same key.
 Phases, in order:
 
 1. Steady delivery. In derp mode the relay's non-Disco packet counter must rise.
-2. Relay restart. In direct mode an established session must keep storing
-   evidence with the relay down. In derp mode nothing may be stored during a
-   15 s outage, and delivery must resume after the relay returns.
-3. Controller crash and restart with the relay up.
+2. Relay restart. In direct mode a sample taken after the relay stopped must
+   be stored before the relay restarts. In derp mode nothing may be stored
+   during a 15 s outage, and a sample taken after the outage began must be
+   stored after the relay returns.
+3. Controller crash and restart with the relay up. A sample taken after the
+   replacement is ready must be stored, so the killed process cannot satisfy
+   the check.
 4. Long partition: relay and controller both down for
    `RECOVERY_PARTITION` (default 90 s, longer than the 1-minute retry cap).
    Nothing may be stored. The service log must report the unavailable relay
    within the limit and must not stop delivery. The controller is then
    restarted while the relay is still down. It must report the relay
-   unavailable and keep running, and nothing may be stored for 15 s. Then the
-   relay returns and the whole backlog must be stored within the limit.
-5. derp mode only: the endpoint's network key is removed from relay admission
-   and the relay restarted. Nothing may be stored for 40 s, and the failure
-   must be logged. The key is restored without a relay restart (admission is
+   unavailable and keep running, and nothing may be stored for 15 s. The
+   spool must hold new records from the outage. Their lowest and highest
+   sequences are read before the relay returns. Then the relay returns, and
+   every sequence in that range must be stored within the limit.
+5. derp mode only: the endpoint's network key is taken out of relay admission
+   and the relay restarted. Nothing may be stored for 40 s, counted from a
+   baseline taken while the relay was stopped. A relay failure must be logged
+   after the restricted relay started, and it must not be a refused
+   connection. The key is restored without a relay restart (admission is
    re-read on each connection) and delivery must resume.
-6. Drain once. Wait for an empty spool, kill the service, then require
-   contiguous stored sequences (`count = max - min + 1`), each verified against
-   the device signing key, and a retired spool head matching the highest stored
-   sequence.
+6. Drain once. Wait for an empty spool, kill the service, then require the
+   first stored sequence to follow the enrollment receipt, contiguous stored
+   sequences (`count = max - min + 1`), each verified against the device
+   signing key, and a retired spool head matching the highest stored sequence.
 
 ## Documented limits
 
 | Limit | Value | Basis |
 | --- | --- | --- |
-| Lost path reported as `self-hosted DERP relay unavailable` | 40 s | 15 s HTTP timeout on the in-flight request + 5 s session teardown bound + retry delay + 10 s relay preflight |
+| Lost path reported as `self-hosted DERP relay unavailable` | 40 s from the next delivery attempt; up to 60 s more if a capped retry delay is already pending | 15 s HTTP timeout on the in-flight request + 5 s session teardown bound + 10 s relay preflight + the short retry delay after a reset. A retry delay already running when the path is lost is at most the 1-minute cap. The test enters each partition from steady delivery, so it checks only the 40 s case. |
 | Restored path to the whole backlog stored | 90 s | 1-minute retry cap + 30 s for preflight, request and Tailcat session setup |
+
+These limits were checked in the same-host Linux run below. They are not
+guarantees for deployed LAN, WAN or Windows service recovery.
 
 A short relay outage need not log a retry. A request already in flight
 can finish after Tailcat reconnects within its 15 s timeout.
@@ -97,34 +107,37 @@ with real blocked UDP after a peer crash is established. Controller-side
 
 22 November 2026, from `b578bde` plus this change, Linux amd64 (CachyOS kernel
 7.3), Go 1.27.4, disposable PostgreSQL 17.12 cluster on loopback.
-`make recovery-proof` with the default 90 s partition, without `-race`:
+`make recovery-proof` with the default 90 s partition, without `-race`. This
+run used the test after review tightened its checks.
 
 ```text
-direct steady: first record stored 5.129s after service start; relay non-disco packets +6
-direct relay restart: established direct session stored a record 4.999s into the relay outage
-direct relay restart: relay back after 9.964s
-direct controller restart: process killed, restarted in 81ms, next record stored 25.51s after restart
-direct long partition: relay unavailable first logged 15.82s into the partition; 7 retries logged in 1m30s
-direct long partition: 1m30s with relay and controller down, then 15s with only the relay down; 22 queued records stored 49.648s after relay restart (limit 1m30s)
-direct long partition: total outage 2m35s
-direct drain once: sequences 2..41 stored once each (40 rows), spool empty, no delivery stop
-derp steady: first record stored 5.128s after service start; relay non-disco packets +15
-derp relay restart: no evidence stored during 15s outage (0 logged retries); next record stored 2.815s after relay restart
-derp controller restart: process killed, restarted in 30ms, next record stored 27.843s after restart
-derp long partition: relay unavailable first logged 25.071s into the partition; 7 retries logged in 1m30s
-derp long partition: 1m30s with relay and controller down, then 15s with only the relay down; 21 queued records stored 27.234s after relay restart (limit 1m30s)
-derp long partition: total outage 2m12s
-derp relay admission: endpoint key removed, nothing stored for 40s, relay unavailable logged after 22.568s; key restored without relay restart, next record stored 10.052s later
-derp drain once: sequences 2..48 stored once each (47 rows), spool empty, no delivery stop
---- PASS: TestRelayRestartAndPartitionRecovery (439.07s)
-    --- PASS: TestRelayRestartAndPartitionRecovery/direct (200.70s)
-    --- PASS: TestRelayRestartAndPartitionRecovery/derp (238.37s)
+direct steady: first record stored 5.131s after service start; relay non-disco packets +6
+direct relay restart: established direct session stored a record sampled after the relay stopped, 5.033s into the outage
+direct relay restart: relay back after 9.962s
+direct controller restart: process killed, replacement ready in 28ms, record sampled after readiness stored 25.967s later
+direct long partition: relay unavailable first logged 19.812s into the partition; 7 retries logged in 1m30s
+direct long partition: 1m30s with relay and controller down, then 15s with only the relay down; 21 queued records (sequences 11..31) stored 45.127s after relay restart (limit 1m30s)
+direct long partition: total outage 2m30s
+direct drain once: sequences 2..40 stored once each (39 rows), spool empty, no delivery stop
+derp steady: first record stored 5.13s after service start; relay non-disco packets +15
+derp relay restart: no evidence stored during 15s outage (0 logged retries); next record stored 2.714s after relay restart
+derp controller restart: process killed, replacement ready in 29ms, record sampled after readiness stored 25.834s later
+derp long partition: relay unavailable first logged 22.055s into the partition; 7 retries logged in 1m30s
+derp long partition: 1m30s with relay and controller down, then 15s with only the relay down; 21 queued records (sequences 12..32) stored 10.754s after relay restart (limit 1m30s)
+derp long partition: total outage 1m56s
+derp relay admission: running relay refused the key: self-hosted DERP relay unavailable: region 900 host relay.device-audit.test port 37591: connection closed (relay admission denied or relay failed): derp.Recv: EOF; evidence not sent
+derp relay admission: endpoint key removed, nothing stored for 40s, relay unavailable logged after 21.311s; key restored without relay restart, next record stored 3.517s later
+derp drain once: sequences 2..43 stored once each (42 rows), spool empty, no delivery stop
+--- PASS: TestRelayRestartAndPartitionRecovery (409.97s)
+    --- PASS: TestRelayRestartAndPartitionRecovery/direct (196.54s)
+    --- PASS: TestRelayRestartAndPartitionRecovery/derp (213.43s)
 ```
 
-The "direct" path is inferred, not read from Tailcat. Evidence kept
-reaching storage while the relay was down. Before the fix, two derp-mode runs
-failed in phase 3 as described above. An earlier run with a 45 s
-partition also passed both modes after the fix.
+The "direct" path is inferred, not read from Tailcat. A sample taken after
+the relay stopped reached storage before it restarted. Before the fix, two
+derp-mode runs failed in phase 3 as described above. Two earlier full runs
+(one with a 45 s partition, one with 90 s, on the test before review) also
+passed both modes after the fix.
 
 Also passed on the same tree: `make check`, `make cross-build`,
 `make database-check`, `make relay-fallback-proof` (14 UDP packets dropped in the

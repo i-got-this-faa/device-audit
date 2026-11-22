@@ -12,12 +12,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"net"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -134,9 +136,10 @@ func runRecoveryController(t *testing.T, path string) {
 	if json.NewEncoder(os.Stdout).Encode(report) != nil {
 		t.Fatal("report readiness")
 	}
-	// The parent ends this process with SIGKILL, like a crash.
-	_ = server.Serve(ln)
-	select {}
+	// The parent ends this process with SIGKILL, like a crash. Any return
+	// is unexpected; fail so the parent reports it instead of timing out.
+	err = server.Serve(ln)
+	t.Fatalf("controller mesh server stopped serving: %v", err)
 }
 
 // runRecoveryService runs the production service pipeline with fixture
@@ -154,13 +157,32 @@ func runRecoveryService(t *testing.T, path string) {
 }
 
 type recoveryProcess struct {
-	cmd  *exec.Cmd
-	done chan struct{}
+	cmd    *exec.Cmd
+	done   chan struct{}
+	killed atomic.Bool
+	mu     sync.Mutex
+	output strings.Builder // controller stdout after readiness
 }
 
 func (p *recoveryProcess) kill() {
+	p.killed.Store(true)
 	_ = p.cmd.Process.Signal(syscall.SIGKILL)
 	<-p.done
+}
+
+// failure describes a process that exited without being killed, or "".
+func (p *recoveryProcess) failure() string {
+	if p == nil || p.killed.Load() {
+		return ""
+	}
+	select {
+	case <-p.done:
+	default:
+		return ""
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return fmt.Sprintf("controller exited unexpectedly (%v):\n%s", p.cmd.ProcessState, p.output.String())
 }
 
 type recoveryHarness struct {
@@ -172,6 +194,7 @@ type recoveryHarness struct {
 	env          []string
 	controller   string // config path
 	evidenceDir  string
+	ctl          *recoveryProcess
 
 	relayConfig relay.Config
 	relayAddr   string
@@ -221,6 +244,10 @@ func (h *recoveryHarness) startController() (*recoveryProcess, recoveryControlle
 			}
 		}
 		for s.Scan() {
+			p.mu.Lock()
+			p.output.Write(s.Bytes())
+			p.output.WriteByte('\n')
+			p.mu.Unlock()
 		}
 		_ = cmd.Wait()
 		close(p.done)
@@ -228,6 +255,7 @@ func (h *recoveryHarness) startController() (*recoveryProcess, recoveryControlle
 	h.t.Cleanup(p.kill)
 	select {
 	case r := <-reports:
+		h.ctl = p
 		return p, r
 	case <-p.done:
 		h.t.Fatal("controller process exited before it was ready")
@@ -304,27 +332,87 @@ func (h *recoveryHarness) serviceLog() string {
 // waitStored waits until at least count rows exist and returns the elapsed time.
 func (h *recoveryHarness) waitStored(what string, count uint64, timeout time.Duration) time.Duration {
 	h.t.Helper()
+	return h.waitFor(what, timeout, func() (uint64, uint64) { return h.stored().count, count })
+}
+
+// waitCollectedAfter waits for count rows whose samples were taken after since,
+// so a delivery already in flight before since cannot satisfy it.
+func (h *recoveryHarness) waitCollectedAfter(what string, since time.Time, count uint64, timeout time.Duration) time.Duration {
+	h.t.Helper()
+	return h.waitFor(what, timeout, func() (uint64, uint64) {
+		var n uint64
+		if err := h.db.QueryRowContext(h.ctx, "SELECT count(*) FROM device_evidence WHERE deployment_id=$1 AND device_id=$2 AND collected_at > $3", h.deploymentID, h.deviceID, since).Scan(&n); err != nil {
+			h.t.Fatal(err)
+		}
+		return n, count
+	})
+}
+
+// waitRange waits until every sequence in low..high is stored.
+func (h *recoveryHarness) waitRange(what string, low, high uint64, timeout time.Duration) time.Duration {
+	h.t.Helper()
+	return h.waitFor(what, timeout, func() (uint64, uint64) {
+		var n uint64
+		if err := h.db.QueryRowContext(h.ctx, "SELECT count(*) FROM device_evidence WHERE deployment_id=$1 AND device_id=$2 AND sequence BETWEEN $3 AND $4", h.deploymentID, h.deviceID, low, high).Scan(&n); err != nil {
+			h.t.Fatal(err)
+		}
+		return n, high - low + 1
+	})
+}
+
+// waitFor polls observe until have >= want. An observation counts only if its
+// query finished within timeout, so a late commit cannot pass the limit.
+func (h *recoveryHarness) waitFor(what string, timeout time.Duration, observe func() (have, want uint64)) time.Duration {
+	h.t.Helper()
 	start := time.Now()
-	for h.stored().count < count {
-		if time.Since(start) > timeout {
-			h.t.Fatalf("%s: %d rows after %s, want %d\nservice log:\n%s", what, h.stored().count, timeout, count, h.serviceLog())
+	for {
+		have, want := observe()
+		elapsed := time.Since(start)
+		if have >= want && elapsed <= timeout {
+			return elapsed
+		}
+		if failure := h.ctl.failure(); failure != "" {
+			h.t.Fatalf("%s: %s", what, failure)
+		}
+		if elapsed > timeout {
+			h.t.Fatalf("%s: %d of %d after %s\nservice log:\n%s", what, have, want, timeout, h.serviceLog())
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	return time.Since(start)
+}
+
+// queuedRange returns the lowest and highest sequences waiting in the spool.
+func (h *recoveryHarness) queuedRange() (low, high uint64, n int) {
+	h.t.Helper()
+	files, err := filepath.Glob(filepath.Join(h.evidenceDir, "spool-*.json"))
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	for _, f := range files {
+		var seq uint64
+		if _, err := fmt.Sscanf(filepath.Base(f), "spool-%016d.json", &seq); err != nil {
+			h.t.Fatalf("unexpected spool record %s", f)
+		}
+		if n == 0 || seq < low {
+			low = seq
+		}
+		high = max(high, seq)
+		n++
+	}
+	return low, high, n
 }
 
 // holdNoDelivery asserts that nothing reaches storage for d. It returns how
 // long the service log took, after offset, to report the unavailable relay,
 // or -1 if it never did.
-func (h *recoveryHarness) holdNoDelivery(what string, d time.Duration, offset int) time.Duration {
+// before is the row count taken while the path was already down.
+func (h *recoveryHarness) holdNoDelivery(what string, d time.Duration, offset int, before uint64) time.Duration {
 	h.t.Helper()
-	before := h.stored()
 	start := time.Now()
 	visible := time.Duration(-1)
 	for time.Since(start) < d {
-		if now := h.stored(); now.count != before.count {
-			h.t.Fatalf("%s: evidence was stored without an admitted path (%d -> %d rows)", what, before.count, now.count)
+		if now := h.stored(); now.count != before {
+			h.t.Fatalf("%s: evidence was stored without an admitted path (%d -> %d rows)", what, before, now.count)
 		}
 		if offset >= 0 && visible < 0 && strings.Contains(h.logSince(offset), mesh.ErrRelayUnavailable.Error()) {
 			visible = time.Since(start)
@@ -332,6 +420,16 @@ func (h *recoveryHarness) holdNoDelivery(what string, d time.Duration, offset in
 		time.Sleep(250 * time.Millisecond)
 	}
 	return visible
+}
+
+// firstLine returns the first log line containing marker, or "".
+func firstLine(log, marker string) string {
+	for line := range strings.Lines(log) {
+		if strings.Contains(line, marker) {
+			return strings.TrimSpace(line)
+		}
+	}
+	return ""
 }
 
 // logSince returns service log lines added after offset.
@@ -498,36 +596,39 @@ func recoveryScenario(t *testing.T, configured string, forced bool, partition ti
 
 	// Relay restart. A direct session keeps delivering through the outage;
 	// a forced-DERP session has no path and must stall, then reconnect.
-	before := h.stored().count
 	offset := len(h.serviceLog())
 	h.stopRelay()
 	outage := time.Now()
 	if forced {
-		h.holdNoDelivery("relay down, forced DERP", shortOutage, offset)
+		h.holdNoDelivery("relay down, forced DERP", shortOutage, offset, h.stored().count)
 		h.startRelay()
-		reconnect := h.waitStored("delivery after relay restart", before+1, recoveryLimit)
+		reconnect := h.waitCollectedAfter("delivery after relay restart", outage, 1, recoveryLimit)
 		// A request already in flight may finish once Tailcat reconnects,
 		// inside its 15 s HTTP timeout, so a short outage need not log a retry.
 		retries := strings.Count(h.logSince(offset), "retry in")
 		t.Logf("derp relay restart: no evidence stored during %s outage (%d logged retries); next record stored %s after relay restart", shortOutage, retries, reconnect.Round(time.Millisecond))
 	} else {
-		during := h.waitStored("direct delivery with the relay down", before+1, 30*time.Second)
-		t.Logf("direct relay restart: established direct session stored a record %s into the relay outage", during.Round(time.Millisecond))
+		// Only a sample taken after the relay stopped proves the direct path.
+		during := h.waitCollectedAfter("direct delivery with the relay down", outage, 1, 30*time.Second)
+		t.Logf("direct relay restart: established direct session stored a record sampled after the relay stopped, %s into the outage", during.Round(time.Millisecond))
+		restart := time.Now()
 		h.startRelay()
-		h.waitStored("delivery after relay restart", h.stored().count+1, recoveryLimit)
+		h.waitCollectedAfter("delivery after relay restart", restart, 1, recoveryLimit)
 		t.Logf("direct relay restart: relay back after %s", time.Since(outage).Round(time.Millisecond))
 	}
 
 	// Controller crash and restart with the relay up.
-	before = h.stored().count
 	ctl.kill()
 	killed := time.Now()
 	ctl, ready = h.startController()
 	if ready.RelayErr != "" || ready.Address != address {
 		t.Fatalf("controller restart changed address or failed relay preflight: %q", ready.RelayErr)
 	}
-	reconnect := h.waitStored("delivery after controller restart", before+1, recoveryLimit)
-	t.Logf("%s controller restart: process killed, restarted in %s, next record stored %s after restart", mode, time.Since(killed).Round(time.Millisecond)-reconnect.Round(time.Millisecond), reconnect.Round(time.Millisecond))
+	// Only a sample taken after the replacement is ready can have been
+	// stored by it rather than by the killed process.
+	replaced := time.Now()
+	reconnect := h.waitCollectedAfter("delivery after controller restart", replaced, 1, recoveryLimit)
+	t.Logf("%s controller restart: process killed, replacement ready in %s, record sampled after readiness stored %s later", mode, replaced.Sub(killed).Round(time.Millisecond), reconnect.Round(time.Millisecond))
 
 	// Long partition: relay and controller both down. Sampling continues
 	// into the spool, nothing is stored and the failure is logged.
@@ -535,8 +636,8 @@ func recoveryScenario(t *testing.T, configured string, forced bool, partition ti
 	h.stopRelay()
 	ctl.kill()
 	partitioned := time.Now()
-	before = h.stored().count
-	visible := h.holdNoDelivery("long partition", partition, offset)
+	before := h.stored().count
+	visible := h.holdNoDelivery("long partition", partition, offset, before)
 	log := h.logSince(offset)
 	if visible < 0 || visible > visibleLimit || !strings.Contains(log, "evidence not sent") {
 		t.Fatalf("partition was not reported as an unavailable self-hosted relay:\n%s", log)
@@ -552,31 +653,40 @@ func recoveryScenario(t *testing.T, configured string, forced bool, partition ti
 	if !strings.Contains(ready.RelayErr, mesh.ErrRelayUnavailable.Error()) || ready.Address != address {
 		t.Fatalf("controller did not report the unavailable relay: %q", ready.RelayErr)
 	}
-	h.holdNoDelivery("controller up, relay down", shortOutage, -1)
-	backlog := h.queued()
-	h.startRelay()
-	restored := h.stored().count
-	if restored != before {
-		t.Fatalf("evidence stored before the relay returned: %d -> %d", before, restored)
+	h.holdNoDelivery("controller up, relay down", shortOutage, -1, before)
+	low, high, backlog := h.queuedRange()
+	// Sampling every 5 s must have queued new evidence during the outage.
+	if minimum := int((partition + shortOutage) / (10 * time.Second)); backlog < minimum || high <= h.stored().high {
+		t.Fatalf("partition queued %d records (%d..%d), want at least %d newer than stored", backlog, low, high, minimum)
 	}
-	drained := h.waitStored("partition backlog", before+uint64(backlog), recoveryLimit)
-	t.Logf("%s long partition: %s with relay and controller down, then %s with only the relay down; %d queued records stored %s after relay restart (limit %s)",
-		mode, partition, shortOutage, backlog, drained.Round(time.Millisecond), recoveryLimit)
+	if held := h.stored().count; held != before {
+		t.Fatalf("evidence stored while the relay was down: %d -> %d", before, held)
+	}
+	h.startRelay()
+	drained := h.waitRange("partition backlog", low, high, recoveryLimit)
+	t.Logf("%s long partition: %s with relay and controller down, then %s with only the relay down; %d queued records (sequences %d..%d) stored %s after relay restart (limit %s)",
+		mode, partition, shortOutage, backlog, low, high, drained.Round(time.Millisecond), recoveryLimit)
 	t.Logf("%s long partition: total outage %s", mode, time.Since(partitioned).Round(time.Second))
 
 	if forced {
 		// The relay drops the endpoint's network key. Admission is re-read on
 		// each connection, so a restart forces the endpoint to reconnect. The
 		// controller key stays admitted.
-		offset = len(h.serviceLog())
 		h.stopRelay()
+		before = h.stored().count
 		h.writeAdmission(pin)
 		h.startRelay()
-		denied := h.holdNoDelivery("endpoint key removed from relay admission", visibleLimit, offset)
-		if denied < 0 {
-			t.Fatalf("relay admission denial was not reported:\n%s", h.logSince(offset))
+		// Failures from the stopped relay are logged before this offset, so
+		// a report after it comes from the running relay refusing the key.
+		offset = len(h.serviceLog())
+		denied := h.holdNoDelivery("endpoint key removed from relay admission", visibleLimit, offset, before)
+		line := firstLine(h.logSince(offset), mesh.ErrRelayUnavailable.Error())
+		// The preflight reaches the relay, which closes the connection after
+		// the handshake; a stopped relay would refuse the TCP connection.
+		if denied < 0 || !strings.Contains(line, "relay admission denied") || strings.Contains(line, "connection refused") {
+			t.Fatalf("relay admission denial was not reported by the running relay:\n%s", h.logSince(offset))
 		}
-		before = h.stored().count
+		t.Logf("derp relay admission: running relay refused the key: %s", line[strings.Index(line, mesh.ErrRelayUnavailable.Error()):])
 		h.writeAdmission(h.admitted...)
 		readmitted := h.waitStored("delivery after relay readmission", before+1, recoveryLimit)
 		t.Logf("derp relay admission: endpoint key removed, nothing stored for %s, relay unavailable logged after %s; key restored without relay restart, next record stored %s later", visibleLimit, denied.Round(time.Millisecond), readmitted.Round(time.Millisecond))
@@ -587,6 +697,9 @@ func recoveryScenario(t *testing.T, configured string, forced bool, partition ti
 	waitFor(t, "an empty spool", 60*time.Second, func() bool { return h.queued() == 0 })
 	service.kill()
 	final := h.stored()
+	if final.low != accepted.LastSequence+1 {
+		t.Fatalf("first stored sequence %d, want %d after the enrollment receipt", final.low, accepted.LastSequence+1)
+	}
 	if final.count != final.high-final.low+1 {
 		t.Fatalf("stored sequences %d..%d have gaps or duplicates: %d rows", final.low, final.high, final.count)
 	}
