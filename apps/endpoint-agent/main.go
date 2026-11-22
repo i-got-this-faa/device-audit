@@ -49,6 +49,8 @@ func main() {
 	spoolDeliver := flag.Bool("spool-drain", false, "deliver the queued evidence over the configured mesh and retry transient failures")
 	signedProbe := flag.Bool("run-assigned-probe", false, "run one signed diagnostic assignment from stdin for the admitted identity")
 	diagnosticKey := flag.String("diagnostic-controller-key-file", "", "pinned controller Ed25519 diagnostic assignment public key PEM")
+	features := flag.Bool("features", false, "read telemetry v2 payloads, one per line, from stdin and print the frozen feature vector as of --as-of")
+	asOf := flag.String("as-of", "", "RFC 3339 time that ends the --features window")
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
 	flag.Parse()
 	if *probeWorker {
@@ -93,6 +95,15 @@ func main() {
 		}
 		err := runSpoolCommand(ctx, *serviceConfigPath, *controllerAckKeyFile, operation, os.Stdin, os.Stdout, os.Stderr)
 		if err != nil {
+			fail(err)
+		}
+		return
+	}
+	if *features || *asOf != "" {
+		if !*features || *asOf == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--features runs alone and requires --as-of"))
+		}
+		if err := runFeatures(*asOf, os.Stdin, os.Stdout); err != nil {
 			fail(err)
 		}
 		return

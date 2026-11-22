@@ -159,10 +159,39 @@ SMART 197, a power-on-hours reset, the largest exact counter and each input
 and vector rejection, including `unsupported_feature_version`. The other
 owner reviews these vectors before #101, #102 or #105 merges.
 
+## Pipelines, ML07 #102
+
+Two pipelines build the input window from real data and call the references; they
+restate no rule.
+
+- **Training**, [`training_features.py`](../../models/src/device_audit_models/training_features.py):
+  `training_vectors` walks the ML01 example stream and gives each example its
+  vector. `window` maps one daily row to one sample at 00:00:00Z. `model_input`
+  returns the six values only for a `complete` vector.
+- **Endpoint**, [`packages/health`](../health/preprocess.go): `Preprocess` takes
+  timestamped `SMARTReading`s and the `as_of` time. It keeps each counter's
+  latest reading per UTC day before it builds the window, because the contract
+  caps a window at 10,080 samples and a 15 s sampler yields 40,320 a week. The
+  result equals rule 3 over all readings. `ModelInput` gates the vector.
+  `endpoint-agent --features --as-of <time>` runs it over `--sample` output.
+
+[`fixtures/features/pipeline-cases.json`](fixtures/features/pipeline-cases.json)
+holds nine cases of daily rows with hand-written expected vectors, and both
+pipelines must match them within the tolerance. They cover a complete week, the
+excluded SMART columns, rows after the anchor and before the window, a missing
+day row, a null sensor column, a null first day, a power-on-hours reset, a
+remapped SMART 197 and no rows. Regenerate with
+`python3 packages/contracts/fixtures/features/generate_pipeline.py`.
+
+The endpoint reads no SMART counter, so `ReadingFromTelemetry` returns all-nil
+readings and the endpoint vector is `incomplete` with `no_observation`. The
+Backblaze archive is not downloaded for tests: the training stream is run on
+artificial frames in the archive's column layout.
+
 ## Not claimed
 
 These rules do not make a model, a SMART collector or an endpoint prediction.
 The Backblaze source is a 2013 datacenter HDD population; it says nothing about
-laptop drives, NVMe devices or any other component. Fixtures and references
-are not production preprocessing evidence until #102 and #105 run them on real
-inputs.
+laptop drives, NVMe devices or any other component. The pipelines are
+preprocessing evidence on synthetic and fixture inputs. #105 still has to run the
+controller path, and no real SMART counter has passed through either pipeline.

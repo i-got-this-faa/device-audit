@@ -1,0 +1,1027 @@
+{
+  "schema_version": "device-audit.feature-pipeline-cases.v1",
+  "feature_version": "hdd-smart-7d.v1",
+  "columns": [
+    "smart_5_raw",
+    "smart_9_raw",
+    "smart_187_raw",
+    "smart_197_raw",
+    "smart_198_raw"
+  ],
+  "tolerance": 1e-12,
+  "cases": [
+    {
+      "name": "complete week",
+      "anchor": "2013-11-07",
+      "note": "Seven rows with every selected counter known.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "excluded columns are ignored",
+      "anchor": "2013-11-07",
+      "note": "SMART 187 and 198 hold values; the feature version does not read them.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": 900,
+          "smart_197_raw": 0,
+          "smart_198_raw": 7
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "future rows are never evidence",
+      "anchor": "2013-11-07",
+      "note": "Rows after the anchor day, as a late-arriving upload would add them, change nothing.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-08",
+          "smart_5_raw": 9999,
+          "smart_9_raw": 99999,
+          "smart_187_raw": null,
+          "smart_197_raw": 9999,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-09",
+          "smart_5_raw": 9999,
+          "smart_9_raw": 99999,
+          "smart_187_raw": null,
+          "smart_197_raw": 9999,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rows before the window are ignored",
+      "anchor": "2013-11-07",
+      "note": "History older than seven days is not read.",
+      "rows": [
+        {
+          "date": "2013-10-30",
+          "smart_5_raw": 500,
+          "smart_9_raw": 1,
+          "smart_187_raw": null,
+          "smart_197_raw": 500,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-10-31",
+          "smart_5_raw": 500,
+          "smart_9_raw": 2,
+          "smart_187_raw": null,
+          "smart_197_raw": 500,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing day row is sparse",
+      "anchor": "2013-11-07",
+      "note": "One daily row is absent, so no counter has all seven days and nothing is filled.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "incomplete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": null,
+            "unit": "log1p_count",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_count",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": null,
+            "unit": "log1p_hours",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_hours",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": null,
+            "unit": "log1p_count",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_count",
+            "missing_reason": "incomplete_history"
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing sensor column",
+      "anchor": "2013-11-07",
+      "note": "SMART 9 is null on every day: it is not zero, and the vector is incomplete.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": null,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "incomplete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": null,
+            "unit": "log1p_hours",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_hours",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "null on the first day",
+      "anchor": "2013-11-07",
+      "note": "One null day makes that counter incomplete_history; the other counters stay known.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": null,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "incomplete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": null,
+            "unit": "log1p_count",
+            "missing_reason": "incomplete_history"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_count",
+            "missing_reason": "incomplete_history"
+          }
+        ]
+      }
+    },
+    {
+      "name": "power-on hours reset",
+      "anchor": "2013-11-07",
+      "note": "A counter reset is real evidence: the delta stays negative and no reset rule applies.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 5,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 29,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 53,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 3.9889840465642745,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": -9.30091207016057,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": 0.0,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pending sectors remapped",
+      "anchor": "2013-11-07",
+      "note": "SMART 197 can fall; the decrease is kept.",
+      "rows": [
+        {
+          "date": "2013-11-01",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11000,
+          "smart_187_raw": null,
+          "smart_197_raw": 5,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-02",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11024,
+          "smart_187_raw": null,
+          "smart_197_raw": 5,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-03",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11048,
+          "smart_187_raw": null,
+          "smart_197_raw": 5,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-04",
+          "smart_5_raw": 0,
+          "smart_9_raw": 11072,
+          "smart_187_raw": null,
+          "smart_197_raw": 3,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-05",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11096,
+          "smart_187_raw": null,
+          "smart_197_raw": 3,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-06",
+          "smart_5_raw": 8,
+          "smart_9_raw": 11120,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        },
+        {
+          "date": "2013-11-07",
+          "smart_5_raw": 16,
+          "smart_9_raw": 11144,
+          "smart_187_raw": null,
+          "smart_197_raw": 0,
+          "smart_198_raw": null
+        }
+      ],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "complete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": 2.833213344056216,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": 2.833213344056216,
+            "unit": "signed_log1p_count"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": 9.31874624581997,
+            "unit": "log1p_hours"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": 4.976733742420574,
+            "unit": "signed_log1p_hours"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": 0.0,
+            "unit": "log1p_count"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": -1.791759469228055,
+            "unit": "signed_log1p_count"
+          }
+        ]
+      }
+    },
+    {
+      "name": "no rows",
+      "anchor": "2013-11-07",
+      "note": "A device with no history gives an incomplete vector, never a zero vector.",
+      "rows": [],
+      "expected": {
+        "schema_version": "device-audit.feature-vector.v1",
+        "feature_version": "hdd-smart-7d.v1",
+        "as_of": "2013-11-07T23:59:59Z",
+        "window_start": "2013-11-01",
+        "window_end": "2013-11-07",
+        "status": "incomplete",
+        "features": [
+          {
+            "name": "smart_5_raw.last",
+            "value": null,
+            "unit": "log1p_count",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_5_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_count",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_9_raw.last",
+            "value": null,
+            "unit": "log1p_hours",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_9_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_hours",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_197_raw.last",
+            "value": null,
+            "unit": "log1p_count",
+            "missing_reason": "no_observation"
+          },
+          {
+            "name": "smart_197_raw.delta",
+            "value": null,
+            "unit": "signed_log1p_count",
+            "missing_reason": "no_observation"
+          }
+        ]
+      }
+    }
+  ]
+}
