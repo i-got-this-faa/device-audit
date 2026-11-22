@@ -122,6 +122,25 @@ Restoring an older state directory can reopen used local sequences; the
 controller's durable mark still rejects them as `replay`. The signature proves
 integrity and key possession, not sensor truth.
 
+## Feature preprocessing, ML07 #102
+
+```sh
+endpoint-agent --sample --device-id <admitted device ID> --sampling-duration 1m \
+  | endpoint-agent --features --as-of 2026-11-23T12:00:00Z
+```
+
+`--features` reads one `device-audit.telemetry.v2` payload per line, as
+`--sample` prints them, and prints the frozen `hdd-smart-7d.v1`
+[feature vector](../../packages/contracts/features-v1.md) for the seven UTC days
+ending at `--as-of`. It reads no collector, needs no state directory and signs
+nothing. A line over 256 KiB, an invalid payload or an unknown field stops it
+with no output.
+
+Telemetry v2 carries no SMART counter and no endpoint collector reads one, so
+the vector is always `incomplete` with `no_observation` on all six features. That
+is the declared outcome, not an error; a model must not read it. The command
+exists to run the endpoint pipeline on real output. It does not predict health.
+
 ## Endpoint telemetry, TEL05 #91
 
 ```sh

@@ -1061,6 +1061,34 @@ that #31, #54 and #32 can close. This is a scope decision, not a result.
   patent, prediction or privacy claim follows. Anyone merging #101, #102 or #105
   must get the shared-vector approval first.
 
+## Feature preprocessing pipelines, ML07 #102 (23 November 2026)
+
+Training and endpoint preprocessing now build the CT03 input window from their
+own data and call the frozen references. They add no rule and no fitted state.
+
+- **Training:** `training_features.training_vectors` gives each ML01 example its
+  vector. A Backblaze daily row is one sample at 00:00:00Z. ML01 requires seven
+  daily rows but not non-null counters, so a kept example can still be
+  `incomplete`; `model_input` refuses it. The policy history must equal the
+  seven-day feature window or the stream stops.
+- **Endpoint:** `health.Preprocess` keeps each counter's latest reading per UTC
+  day before it builds the window. A 15 s sampler yields 40,320 readings a week
+  against the contract's 10,080-sample cap, and the reduction is exactly the
+  daily value rule, so the vector is unchanged. Readings after `as_of` are never
+  read, at sub-second resolution. `endpoint-agent --features` runs it over
+  `--sample` output.
+- **Shared cases:** nine daily-row cases with hand-written expected vectors cover
+  a sparse window, a null sensor, a null first day, a counter reset, a remapped
+  SMART 197, rows after the anchor and rows before the window. Go and Python
+  match them within `1e-12`.
+
+The endpoint still reads no SMART counter, so every endpoint vector is
+`incomplete` with `no_observation` and no known prediction follows. A SMART
+collector, its Windows permission model and the NVMe mapping have no issue. The
+Backblaze archive was not downloaded; the training stream ran on artificial
+frames in its column layout. The [validation notes](validation/preprocessing-102.md)
+record the checks. Another owner's review of the shared vectors is still required
+before #105 merges.
 ## Model artifact manifest v1, CT10 #101 (23 November 2026)
 
 [`device-audit.model-manifest.v1`](../packages/contracts/model-manifest-v1.md)

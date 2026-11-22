@@ -30,6 +30,11 @@ CT03's [frozen feature version](../packages/contracts/features-v1.md),
 transform and missing-value rules. `features.py` is the Python reference; it
 matches the Go reference on the shared vectors within `1e-12`.
 
+ML07's `training_features.py` feeds the ML01 example stream through that
+reference (`training_vectors`) and gates model input to complete vectors
+(`model_input`). Its endpoint twin is `packages/health`. Both match
+`packages/contracts/fixtures/features/pipeline-cases.json`. No SMART collector
+exists, so no real endpoint counter has passed through either path.
 CT10's [model manifest](../packages/contracts/model-manifest-v1.md) is the
 signed record a runtime checks before it activates an artifact. `manifest.py`
 checks structure, feature order, runtime, architecture, purpose and the artifact

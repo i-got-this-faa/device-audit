@@ -98,6 +98,9 @@ class Policy:
 class Observation:
     failure: int
     features_sha256: str
+    # Kept so training preprocessing can build CT03 windows; the digest above is
+    # what partition manifests and example hashes use.
+    values: tuple[int | None, ...] = ()
 
     @classmethod
     def from_values(cls, failure: int, values: tuple[int | None, ...]) -> Observation:
@@ -106,7 +109,7 @@ class Observation:
         if len(values) != len(FEATURES) or any(v is not None and (type(v) is not int or v < 0) for v in values):
             raise ValueError("SMART fields must be nullable nonnegative integers")
         # Failure, serial, future observations and model identity are never features.
-        return cls(failure, hashlib.sha256(canonical(values)).hexdigest())
+        return cls(failure, hashlib.sha256(canonical(values)).hexdigest(), values)
 
 
 @dataclass(frozen=True)
