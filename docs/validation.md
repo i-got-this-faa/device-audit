@@ -4,6 +4,11 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [NET03 relay restart and long-partition recovery, 22 November 2026](validation/recovery-54.md)
+records same-host direct and forced-DERP recovery from relay restart, controller
+crash and a 90 s partition with the spool draining once, and a fixed stuck mesh
+teardown. The real-machine LAN/WAN item stays open.
+
 Follow-up: [INT02 first real-device integration gate, 20 November 2026](validation/integration-gate-31.md)
 records the same-host failure-path evidence and keeps the two-Windows-machine
 direct and forced-DERP gates open; only one physical Windows endpoint exists.

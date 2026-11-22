@@ -376,6 +376,9 @@ head. It can report revocation specifically when it receives a verified
 preserved with the explicit archive command.
 
 See the [delivery validation](../../docs/validation/spool-drain-96.md).
+Relay restart, controller restart and long-partition recovery, with
+measured limits, are in [recovery-54.md](../../docs/validation/recovery-54.md)
+(`make recovery-proof`).
 ## Verification
 
 ```sh

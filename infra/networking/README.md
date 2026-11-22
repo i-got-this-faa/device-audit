@@ -119,3 +119,13 @@ private namespace with all UDP dropped. Results and remaining gaps are in
 [relay-fallback-88.md](../../docs/validation/relay-fallback-88.md). Public DNS,
 a public CA certificate, real host firewalls, NAT/WAN, the selected Windows
 laptop and automatic export of revocations to the admission file are still open.
+
+`make recovery-proof` (NET03 #54, needs `TEST_DATABASE_URL`) restarts this
+relay and a mesh controller, and partitions both, while the endpoint service
+delivers. It runs on one host with direct and forced-DERP paths. Limits and
+timings are in [recovery-54.md](../../docs/validation/recovery-54.md). That
+same-host Linux run checked two limits. After a restored path, the backlog was
+stored within 90 s. When the configured relay became unavailable during the
+partition, the loss was logged as `self-hosted DERP relay unavailable` within
+40 s. These are checks from the fixture run, not guarantees for deployed LAN,
+WAN or Windows service recovery.

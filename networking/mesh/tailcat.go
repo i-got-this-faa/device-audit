@@ -160,7 +160,33 @@ func NewClient(cfg ClientConfig) (Client, error) {
 	return &client{n, h}, nil
 }
 func (c *client) HTTPClient() *http.Client { return c.http }
-func (c *client) Close() error             { c.http.CloseIdleConnections(); return c.node.Close() }
+
+// Close waits at most closeTimeout. Upstream wireguard-go can block in
+// Device.Close after the peer path is lost (seen in forced-DERP runs after a
+// controller crash). The endpoint drops a failed session before it retries,
+// so an unbounded wait would stop delivery with nothing logged.
+func (c *client) Close() error {
+	c.http.CloseIdleConnections()
+	return boundedClose(c.node.Close, closeTimeout)
+}
+
+const closeTimeout = 5 * time.Second
+
+// ErrCloseTimeout means teardown is still running in the background.
+var ErrCloseTimeout = errors.New("mesh session teardown timed out; it continues in the background")
+
+func boundedClose(close func() error, timeout time.Duration) error {
+	done := make(chan error, 1)
+	go func() { done <- close() }()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case err := <-done:
+		return err
+	case <-timer.C:
+		return ErrCloseTimeout
+	}
+}
 
 func publicKey(text string) (key.NodePublic, error) {
 	raw, err := contracts.NetworkPublicKeyV1(text)
