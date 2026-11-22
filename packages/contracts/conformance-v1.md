@@ -22,17 +22,17 @@ No new production dependency or Python signature library is introduced.
 
 ## Catalogue and evidence
 
-`conformance-v1.json` lists twelve source suites, their payload/expectation fields,
-schema files, Go golden-test names and Python reader tests. It covers 331 existing
+`conformance-v1.json` lists thirteen source suites, their payload/expectation fields,
+schema files, Go golden-test names and Python reader tests. It covers 367
 vectors across telemetry v1/v2, prediction, lifecycle, signed envelopes,
-diagnostics, federation, audit, bootstrap, inventory, revocation and CT03 features. The
+diagnostics, federation, audit, bootstrap, inventory, revocation, CT03 features and CT10 model manifests. The
 command checks all declared schemas and all fixture expectations, then runs the
 actual Go contract tests without cached results and the listed Python tests. It verifies the number of passed Go golden
 subtests against each source file. An omitted fixture/schema, empty suite,
 duplicate reader version, missing Go reader or failing Python test fails the run.
 This catalogue is test metadata, not an application wire registry.
 
-The twelve golden suites retain their existing contract-specific assertions.
+The thirteen golden suites retain their existing contract-specific assertions.
 Go checks typed decoding and semantic rules, signatures and applicable context.
 Python tests check schema shape, plus the independently implemented envelope
 reader, canonical signing bytes, finite binary model weights, update digests and

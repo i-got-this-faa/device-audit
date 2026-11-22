@@ -35,3 +35,8 @@ reference (`training_vectors`) and gates model input to complete vectors
 (`model_input`). Its endpoint twin is `packages/health`. Both match
 `packages/contracts/fixtures/features/pipeline-cases.json`. No SMART collector
 exists, so no real endpoint counter has passed through either path.
+CT10's [model manifest](../packages/contracts/model-manifest-v1.md) is the
+signed record a runtime checks before it activates an artifact. `manifest.py`
+checks structure, feature order, runtime, architecture, purpose and the artifact
+digest. It does not verify the Ed25519 signature; no cryptography library is a
+dependency here, so the caller verifies `signing_bytes` first.

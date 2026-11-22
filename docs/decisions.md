@@ -1089,3 +1089,26 @@ Backblaze archive was not downloaded; the training stream ran on artificial
 frames in its column layout. The [validation notes](validation/preprocessing-102.md)
 record the checks. Another owner's review of the shared vectors is still required
 before #105 merges.
+## Model artifact manifest v1, CT10 #101 (23 November 2026)
+
+[`device-audit.model-manifest.v1`](../packages/contracts/model-manifest-v1.md)
+freezes what a model artifact declares and what an activating process checks
+before it loads the artifact for inference or as a training base. One publisher
+Ed25519 signature binds the artifact SHA-256, architecture, parameter count,
+exact runtime name and version, the frozen feature version with its feature
+order, and the inference/training purposes. The publisher key is configured on
+the activating process; it is separate from device, network and chain keys.
+
+Runtime match is exact, with no range or fallback. The feature list is checked
+against the order the feature version freezes, not trusted from the manifest.
+An unknown manifest version, an unsupported feature version, an unsupported
+architecture, a runtime mismatch, a missing purpose and a digest mismatch each
+refuse with their own code before anything is loaded. Go and Python read the
+same 25 signed vectors. Python checks everything except the signature, because
+`models` has no cryptography dependency.
+
+The architecture is an opaque ID: no model architecture is selected, the fixture
+artifact is synthetic and no active-manifest, rollback, expiry or revocation
+state exists. The [validation notes](validation/model-manifest-101.md) record the
+checks. Another owner's review of the vectors is still required before a consumer
+merges.
