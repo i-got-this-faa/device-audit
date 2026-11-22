@@ -1042,3 +1042,21 @@ This is a planning gap: #102 and #105 can implement the pipeline, but a known
 endpoint prediction needs a SMART collector, its Windows permission model and
 a decision on NVMe drives, none of which has an issue. The
 [validation notes](validation/features-32.md) record the checks.
+
+## Real-device acceptance deferred for #31, #54 and #32 (23 November 2026)
+
+The project owner descoped the items that need hardware or a second approver so
+that #31, #54 and #32 can close. This is a scope decision, not a result.
+
+- **Deferred, not met:** two Windows machines enrolling over direct and
+  forced-DERP paths (#31); real target-machine LAN/WAN and forced-DERP timings
+  (#54); other-owner approval of the shared feature vectors (#32). These need a
+  second physical machine, a deployed relay and controller (#73), and a second
+  reviewer. None exists.
+- **What stands:** same-host Linux evidence in
+  [integration-gate-31.md](validation/integration-gate-31.md),
+  [recovery-54.md](validation/recovery-54.md) and
+  [features-32.md](validation/features-32.md). It does not qualify Windows.
+- **Consequence:** the first two target-window gates stay open. No production,
+  patent, prediction or privacy claim follows. Anyone merging #101, #102 or #105
+  must get the shared-vector approval first.
