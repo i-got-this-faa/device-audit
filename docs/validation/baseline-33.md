@@ -15,9 +15,9 @@ health label, ML05 score, publisher signature or chain write was added.
 ## Fit
 
 Spec `ml02.logistic-baseline.v1`, SHA-256 `385053369c33ace73fc5af33885a68381bbc287a00211c8675eafd346380550a`.
-Seed 33. Optimizer draws 0. Fifteen Newton steps, L2 1 on standardized weights, balanced class weights, population scaling, negative keep rate 1/1. The final logged gradient infinity-norm was `2.065e-11`.
+Seed 33. Optimizer draws 0. Fifteen Newton steps, L2 1 on standardized weights, balanced class weights, population scaling, negative keep rate 1/1. The objective is weighted negative log likelihood plus `(l2/2) * ||weights||^2`. The intercept is unpenalized. The final logged gradient infinity-norm was `2.866e-11`.
 
-Artifact SHA-256 `3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a`.
+The first packaged artifact, SHA-256 `3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a`, added L2 only to the Hessian. At a zero start that term is zero, so the one-step check still passed and that digest does not implement the declared objective. The packaged files were regenerated after the gradient gained `l2 * weight`. The spec file did not change. The replacement artifact SHA-256 is `e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8`.
 
 Split example digests, matching `partitions.json`:
 
@@ -30,7 +30,7 @@ Split example digests, matching `partitions.json`:
 Policy SHA-256 `f5e1080c971001622a220d6843f3a0463084db79ea4e685a83c41a15bebfeff8`.
 Manifest SHA-256 `a786dfefa4254308b65d7fd2a9d5a785976b2dc22b8ab26892e4b2f60a1be025`.
 
-The second training run, after the resource clock was moved to the end of the fit, rewrote provenance and reproduced the same artifact digest. Observed resources on this Linux host, Python 3.12.3, one logical processor: wall 434,372 ms, peak RSS 260,431,872 bytes. Both are inside the ML05 central-training budget (1,800 s, 4 GiB, 4 processors). This is not an endpoint measurement.
+Observed resources on this Linux host, Python 3.12.3, one logical processor: wall 438,297 ms, peak RSS 261,038,080 bytes. Both are inside the ML05 central-training budget (1,800 s, 4 GiB, 4 processors). This is not an endpoint measurement.
 
 ## Commands and results
 
@@ -44,13 +44,13 @@ python3 tools/ci/path_filters_test.py -q
 make model-check
 ```
 
-`train` printed `PASS train artifact_sha256=3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a positive_rows=1646 negative_rows=1879883 wall_ms=434372`.
+`train` printed `PASS train artifact_sha256=e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8 positive_rows=1646 negative_rows=1879883 wall_ms=438297`.
 
-`verify` printed `PASS exact artifact_sha256=3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a` and exited 0. The Newton gradient sequence matched the training run.
+`verify` printed `PASS exact artifact_sha256=e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8` and exited 0. The Newton gradient sequence matched the training run, ending at `2.866e-11`.
 
-`path_filters_test.py`: 28 tests passed.
+`path_filters_test.py`: 28 tests passed. The filter script was not changed for the gradient correction.
 
-`make model-check`: 88 tests passed. Go was not changed, so `make check` was not run.
+`make model-check`: 89 tests passed. Go was not changed, so `make check` was not run.
 
 ## Not tested
 

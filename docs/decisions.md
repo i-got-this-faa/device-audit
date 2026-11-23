@@ -1121,10 +1121,14 @@ Central training fits one L2-regularized logistic regression on the frozen
 [`models/baseline/training-spec.json`](../models/baseline/training-spec.json):
 15 Newton steps from a zero start, L2 of 1 on the standardized weights only,
 balanced class weights, population standard deviation from the fit rows, and
-no negative subsampling. The seed is 33. The optimizer draws no random numbers;
-example order is the ML01 anchor-then-device order. These choices were written
-down before the fit and were not revised after seeing coefficients. Validation
-and test rows are refused. There is no split argument that can select them.
+no negative subsampling. The penalty is `(l2/2) * ||weights||^2`, so each
+Newton step adds `l2 * weight` to the gradient and `l2` to the Hessian
+diagonal. The intercept is unpenalized. The seed is 33. The optimizer draws
+no random numbers; example order is the ML01 anchor-then-device order. These
+choices were written down before the fit and were not revised after seeing
+coefficients. The first packaged coefficients omitted the gradient term and
+were replaced; the spec file did not change. Validation and test rows are
+refused. There is no split argument that can select them.
 
 The learned parameters are the artifact. Provenance stores the dataset digest,
 the three split digests, the seed, the feature version, the spec and the

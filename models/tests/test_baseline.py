@@ -9,6 +9,7 @@ from datetime import date, timedelta
 import hashlib
 import inspect
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -68,6 +69,22 @@ class NewtonTests(unittest.TestCase):
         beta = baseline._newton(values, labels, 1.0, 1.0, iterations=1, l2=1.0, clip=40.0)
         self.assertEqual(beta[0], 0.0)
         self.assertAlmostEqual(beta[1], 2.0 / 3.0)
+        self.assertEqual(beta[2:], [0.0, 0.0, 0.0, 0.0, 0.0])
+
+    def test_second_step_penalizes_the_weight_in_the_gradient(self):
+        values = array("d", [1, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0])
+        labels = array("B", [1, 0])
+        beta = baseline._newton(values, labels, 1.0, 1.0, iterations=2, l2=1.0, clip=40.0)
+        first = 2.0 / 3.0
+        probability = 1.0 / (1.0 + math.exp(-first))
+        curve = probability * (1.0 - probability)
+        # Data gradient plus l2 * current weight. The Hessian diagonal gains l2.
+        gradient = 2.0 * (probability - 1.0) + first
+        hessian = 2.0 * curve + 1.0
+        expected = first - gradient / hessian
+        self.assertAlmostEqual(beta[0], 0.0)
+        self.assertAlmostEqual(beta[1], expected)
+        self.assertAlmostEqual(expected, 0.675, places=3)
         self.assertEqual(beta[2:], [0.0, 0.0, 0.0, 0.0, 0.0])
 
 

@@ -78,4 +78,8 @@ tolerance window, held-out refusal and the committed digests. The
 `dataset-reproduction` CI job downloads the archive, verifies the ML01 manifest,
 then runs `verify`. The host run that produced these files is recorded in
 [the validation note](../../docs/validation/baseline-33.md). On that run `verify`
-printed `PASS exact` for artifact `3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a`.
+printed `PASS exact` for artifact
+`e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8`.
+That digest includes the L2 term in both the gradient and the Hessian. An earlier
+artifact, `3589078fbd4d8a1e2e797677439679c7d15f22b822d0a76852e4fb4400b15e3a`,
+added L2 only to the Hessian and was replaced.

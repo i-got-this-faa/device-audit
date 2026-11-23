@@ -217,6 +217,8 @@ def _newton(values: array, labels: array, negative_weight: float, positive_weigh
             for column in range(row):
                 hessian[row][column] = hessian[column][row]
             if row:
+                # (l2/2) * beta^2 contributes l2*beta to the gradient and l2 to the Hessian.
+                gradient[row] += l2 * beta[row]
                 hessian[row][row] += l2
         step = _solve(hessian, gradient)
         for index in range(DIM):
