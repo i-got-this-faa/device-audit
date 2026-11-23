@@ -1,7 +1,8 @@
 # Bespoke prediction and local training
 
-The user selected a custom model, not Jev. Python/PyTorch was proposed, not
-finalized. This Python package has no ML framework dependency yet.
+The user selected a custom model, not Jev. Python/PyTorch was proposed and was
+not adopted. This package has no ML framework dependency. ML02 fits one
+standard-library logistic baseline; a larger architecture remains open.
 
 `interfaces.py` defines prediction and local-training boundaries.
 `federated.py` provides a tested sample-count-weighted vector average with
@@ -40,3 +41,9 @@ signed record a runtime checks before it activates an artifact. `manifest.py`
 checks structure, feature order, runtime, architecture, purpose and the artifact
 digest. It does not verify the Ed25519 signature; no cryptography library is a
 dependency here, so the caller verifies `signing_bytes` first.
+
+ML02's [logistic baseline](baseline/README.md) trains on the ML01 train
+partition only, through `training_features`, and writes an artifact plus a
+provenance record. The artifact is not publisher-signed, so CT10 activation
+still refuses it. Held-out partitions are not a fitting option. #103 owns
+scoring it against the ML05 gates.

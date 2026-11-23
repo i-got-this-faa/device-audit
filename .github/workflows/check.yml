@@ -213,7 +213,7 @@ jobs:
     needs: changes
     if: needs.changes.result == 'success' && needs.changes.outputs.dataset_reproduction == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -232,3 +232,9 @@ jobs:
           --archive "$RUNNER_TEMP/backblaze-2013.zip"
           --policy models/datasets/backblaze-2013/policy.json
           --verify models/datasets/backblaze-2013/partitions.json
+      - name: Reproduce the ML02 logistic baseline
+        env:
+          PYTHONPATH: models/src
+        run: >-
+          python -m device_audit_models.baseline verify
+          --archive "$RUNNER_TEMP/backblaze-2013.zip"

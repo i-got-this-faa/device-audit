@@ -9,7 +9,7 @@ path is ``packages/health`` in Go, and both read the shared cases in
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator
 
 from . import features, partitions
 
@@ -38,12 +38,18 @@ def window(anchor: date, history: Iterable[tuple[date, partitions.Observation]])
 
 
 def training_vectors(days: Iterable[tuple[date, dict[str, partitions.Observation]]],
-                     policy: partitions.Policy, excluded: dict[str, int]) -> Iterator[tuple[partitions.Example, dict]]:
+                     policy: partitions.Policy, excluded: dict[str, int],
+                     include: Callable[[partitions.Example], bool] | None = None,
+                     ) -> Iterator[tuple[partitions.Example, dict | None]]:
     """Yield each ML01 example with its CT03 vector.
 
     A vector can be ``incomplete`` even though ML01 kept the example, because ML01
     only requires seven daily rows, not non-null counters. Pass it through
     ``model_input`` so an incomplete vector never reaches a model.
+
+    ``include`` does not change which examples exist. When it returns false the
+    example is still yielded and ``features.compute`` is not called; the vector
+    is ``None``. ``None`` is a skipped window, not an incomplete vector.
     """
     if policy.history_days != features.WINDOW_DAYS:
         raise ValueError(f"policy history of {policy.history_days} days differs from the {features.WINDOW_DAYS}-day feature window")
@@ -58,6 +64,9 @@ def training_vectors(days: Iterable[tuple[date, dict[str, partitions.Observation
             yield day, observations
 
     for example in partitions.examples(frames(), policy, excluded):
+        if include is not None and not include(example):
+            yield example, None
+            continue
         start = date.fromisoformat(example.feature_start)
         history = [(start + DAY * n, retained[start + DAY * n][example.device_key]) for n in range(policy.history_days)]
         yield example, features.compute(window(date.fromisoformat(example.anchor), history))
