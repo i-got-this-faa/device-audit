@@ -1138,3 +1138,39 @@ Backblaze 2013 archive, not a synthetic substitute and not Jev. It does not
 sign a CT10 manifest, assign health, pass ML05, or write anything to a chain.
 Endpoint qualification and a larger architecture stay open. Details and the
 reproduction command are in the [baseline note](../models/baseline/README.md).
+
+## Controller feature extraction, ML09 #105 (23 November 2026)
+
+`BuildDeviceFeatures` gives the controller the same CT03 vector the endpoint
+builds. It reads one device's persisted sample references for the seven UTC days
+ending on the day of `as_of`, stops at `as_of`, and calls `health.Preprocess`.
+There is no second implementation, so the endpoint, training and controller
+share one set of rules and one tolerance.
+
+- **Provenance.** The vector names the feature version and its window dates. The
+  result adds the deployment, the device, the number of samples read and the
+  highest evidence sequence read, so a caller can say which evidence a vector
+  held. It is an internal Go type, not a wire contract. No route serves it, and
+  a consumer that needs one must freeze a contract first.
+- **Time axis.** The window is bound on `collected_at`, as the frozen rules
+  require. `received_at` is not read. A late-arriving sample that was collected
+  inside the window therefore enters a vector computed after it arrived, and a
+  vector computed earlier would not have held it. Reproducing an old vector from
+  later storage needs a received-at rule that no issue asks for.
+- **Cost.** `PostgresRepository.FeatureEvidence` reads only `sequence` and
+  `collected_at` in one query and decodes no payload, because no payload holds a
+  counter. A first version reused the paged history read: on 37,441 samples (a
+  15 s sampler's week) it took 6.4 to 8.2 s and allocated 450 MB, because every
+  page re-checked the device and decoded every payload. The single query takes
+  about 0.24 s and allocates 11 MB on the same window. When a SMART counter
+  exists, the reference must gain it, and a per-day latest-reading query is the
+  next step if that cost matters.
+- **Not done.** Telemetry v2 carries no SMART counter, so every controller vector
+  is `incomplete` with `no_observation` and no known prediction follows. A stored
+  payload cannot carry a known value, so the shared golden cases run through the
+  controller's window with a test-supplied reading function. The historical
+  type, count and recurrence comparisons and the health thresholds are #106.
+
+The [validation notes](validation/controller-features-105.md) record the checks.
+Another owner's review of the shared vectors is still required before this
+merges.
