@@ -4,6 +4,13 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [ML10 fault history comparison, 24 November 2026](validation/fault-history-106.md)
+classifies fault types as recurrent, isolated, baseline-only or insufficient
+history over bounded windows. Every persisted report is `unclassified`.
+
+Follow-up: [FED07 model artifact registry, 24 November 2026](validation/model-registry-112.md)
+stores signed artifacts immutably; the database refuses an unapproved active model.
+
 Follow-up: [ML09 controller feature extraction, 23 November 2026](validation/controller-features-105.md)
 runs the endpoint's CT03 preprocessing over persisted evidence with window
 provenance. Telemetry v2 holds no SMART counter, so every controller vector is

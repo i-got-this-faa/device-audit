@@ -1174,3 +1174,65 @@ share one set of rules and one tolerance.
 The [validation notes](validation/controller-features-105.md) record the checks.
 Another owner's review of the shared vectors is still required before this
 merges.
+
+## Fault history comparison, ML10 #106 (24 November 2026)
+
+`health.CompareFaultHistory` compares fault reports in the current seven UTC
+days ending at `as_of` with the 21 days before them.
+`PostgresRepository.DeviceFaultHistory` reads those 28 days from persisted
+evidence.
+
+- **Windows.** The current window is the CT03 feature days, so a fault result
+  and a feature vector built at one `as_of` cover the same week. 28 days fit the
+  31-day history read bound. Both windows use `collected_at`, like #105.
+- **Coverage.** A UTC day with at least one persisted sample is sampled. A
+  window is sufficient when two thirds of its days are sampled. Missing days
+  are unobserved, never fault-free, so an empty fault list does not mean a
+  healthy baseline unless both windows are sufficient.
+- **Classes.** `recurrent`: reports on two or more current days, or in both
+  windows. `isolated`: one current report day, no baseline report, both windows
+  sufficient. `baseline_only`: no current report in a sufficient current window.
+  Everything else is `insufficient_history`. A burst on one day is counted but
+  is not recurrence.
+- **Duplicates.** A report is keyed by its evidence digest. The same digest in a
+  later sample is a duplicate, counted separately and never a second fault; one
+  digest under two types is an error.
+- **Count change.** Reports per day in each window, compared exactly. It is
+  `unknown` unless both windows are sufficient.
+- **Fault type.** Telemetry v2 log references have no type, so every persisted
+  report is `unclassified`. A typed fault needs a contract change and a
+  classifier; neither has an issue yet.
+
+The result is an internal Go type with no route and no health state. #35 owns
+health rules and must not treat "no report" as "no fault": an empty
+`log_references` list does not show that error collection ran. The thresholds
+are provisional. The [validation notes](validation/fault-history-106.md) record
+the checks.
+
+## Model artifact registry, FED07 #112 (24 November 2026)
+
+The controller stores signed model artifacts in PostgreSQL (migration 007) and
+serves them through fresh-admin console routes
+([contract](../packages/contracts/model-registry-v1.md),
+[routes](../internal/controller/model-registry.md)).
+
+- **Trust.** An upload must verify against the publisher key named by
+  `--model-publisher-key-file`, a key separate from device, mesh, TLS,
+  acknowledgement and chain keys. The artifact is hashed after the manifest is
+  authenticated. A console session authorizes the upload; it does not make an
+  unsigned artifact trusted.
+- **Storage.** Bytes live in a `bytea` column up to the 16 MiB ML05 inference
+  budget, so the registry needs no second store and commits bytes and metadata
+  together. Artifacts and approvals are immutable by trigger. A version names
+  one digest and a digest names one version.
+- **References.** `active` and `candidate` are rows. The active row has a
+  foreign key to an approval of the same digest, so the database refuses an
+  unapproved active model even if a code path forgets to check. Only an
+  artifact that declares `inference` can be active.
+- **Approval.** An administrator records it with an evaluation digest and a
+  policy version. It is the seam FED10 #115 must replace with an evaluation
+  gate; the registry does not check the evaluation.
+
+Not done: publisher-key issuance and rotation, artifact revocation, reference
+history, endpoint download over the mesh and #55's access matrix. The
+[validation notes](validation/model-registry-112.md) record the checks.

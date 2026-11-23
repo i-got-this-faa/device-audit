@@ -38,6 +38,12 @@ telemetry ingestion remains separate work.
 - `005_inventory_revisions.sql` appends complete inventory snapshots with
   enrollment digest, observation source, authenticated administrator provenance
   and optimistic revision checks. See [the inventory API](../../internal/controller/inventory.md).
+- `006_device_revocations.sql` adds one revocation audit record per enrollment.
+- `007_model_registry.sql` adds `model_artifacts`, `model_approvals` and
+  `model_references`. Triggers refuse any update or delete of an artifact or
+  approval. The active slot has a foreign key to an approval of the same
+  artifact digest, so the database itself refuses an unapproved active model.
+  See [the model registry](../../internal/controller/model-registry.md).
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -61,7 +67,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 6 and the configured
+- health output for a connected database, schema version 7 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

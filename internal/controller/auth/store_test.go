@@ -20,8 +20,8 @@ func TestPostgresStoreLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 6 {
-		t.Fatalf("schema version=%d want 6", version)
+	if version != 7 {
+		t.Fatalf("schema version=%d want 7", version)
 	}
 	store := NewPostgresStore(db)
 	now := time.Now().UTC().Truncate(time.Microsecond)
