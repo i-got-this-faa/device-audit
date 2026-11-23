@@ -293,6 +293,11 @@ class PackagedArtifactTests(unittest.TestCase):
     def test_packaged_provenance_is_the_pinned_backblaze_study(self):
         artifact_bytes = baseline.DEFAULT_ARTIFACT.read_bytes()
         provenance_bytes = baseline.DEFAULT_PROVENANCE.read_bytes()
+        spec_bytes = baseline.DEFAULT_SPEC.read_bytes()
+        # Git for Windows with core.autocrlf rewrites these unless .gitattributes pins LF.
+        self.assertNotIn(b"\r", artifact_bytes)
+        self.assertNotIn(b"\r", provenance_bytes)
+        self.assertNotIn(b"\r", spec_bytes)
         artifact = baseline.load_artifact(artifact_bytes)
         provenance = json.loads(provenance_bytes)
         self.assertEqual(provenance_bytes, baseline.canonical(provenance))

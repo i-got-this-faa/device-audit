@@ -57,5 +57,5 @@ make model-check
 - The model was not scored on validation or test. #103 owns the ML05 gates. No health label was produced.
 - No CT10 publisher signature was created, so the artifact cannot be activated.
 - No endpoint, Windows host or SMART collector ran. The feature contract still has no endpoint counter.
-- Cross-platform libm differences were not measured here. The tolerance (`1e-8` absolute, `1e-7` relative) is what `verify` accepts when bytes differ; this host's rerun is the exact-bytes case.
-- The GitHub `dataset-reproduction` job has not run in this session. It is the other-host rerun.
+- Cross-platform libm differences were not measured here. The tolerance (`1e-8` absolute, `1e-7` relative) is what `verify` accepts when bytes differ. This host's rerun and the GitHub `dataset-reproduction` job on `bd4db12` both printed `PASS exact` for `e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8`. That job used Python 3.12.16 on Ubuntu and the same gradient sequence, ending at `2.866e-11`.
+- `windows-check` on that commit failed before Newton: Git for Windows checked the artifact and provenance out with CRLF, so `load_artifact` refused them as non-canonical. `.gitattributes` now pins `models/**/*.json` to LF. The packaged test also rejects a carriage return in those bytes. Merging #105 did not change the feature rules, the partitions, or this artifact.
