@@ -114,6 +114,33 @@ class ExampleStreamTests(unittest.TestCase):
             list(training_features.training_vectors([], partitions.Policy.load(config), {}))
 
 
+class IncludeHookTests(unittest.TestCase):
+    def setUp(self):
+        config = json.loads((ROOT / "models/datasets/backblaze-2013/policy.json").read_text(encoding="utf-8"))
+        for split, month in zip(config["splits"], (1, 2, 3)):
+            split.update(start=f"2024-{month:02}-01", end=f"2024-{month:02}-28")
+        self.policy = partitions.Policy.load(config)
+        self.device = next(key for key in (self.policy.device_key(f"synthetic-{n}") for n in range(1000))
+                           if self.policy.cohort(key).name == "train")
+
+    def frames(self):
+        for offset in range(40):
+            day = date(2024, 1, 1) + DAY * offset
+            yield day, {self.device: partitions.Observation.from_values(0, (offset, 1000 + offset, None, offset, None))}
+
+    def test_skipping_a_window_does_not_change_the_examples_or_the_kept_vector(self):
+        full = list(training_features.training_vectors(self.frames(), self.policy, {}))
+        kept = list(training_features.training_vectors(
+            self.frames(), self.policy, {}, include=lambda example: example.anchor == "2024-01-10"))
+        self.assertEqual([example.anchor for example, _ in full], [example.anchor for example, _ in kept])
+        for (left_example, left_vector), (right_example, right_vector) in zip(full, kept):
+            self.assertEqual(left_example, right_example)
+            if left_example.anchor == "2024-01-10":
+                self.assertEqual(left_vector, right_vector)
+            else:
+                self.assertIsNone(right_vector)
+
+
 class ModelInputTests(unittest.TestCase):
     def test_only_a_complete_vector_is_model_input(self):
         complete = next(c["expected"] for c in CASES["cases"] if c["name"] == "complete week")

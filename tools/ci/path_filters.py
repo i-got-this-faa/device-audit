@@ -131,8 +131,13 @@ DATABASE = (
 )
 DATASET_REPRODUCTION = (
     "models/src/device_audit_models/partitions.py",
+    "models/src/device_audit_models/baseline.py",
+    "models/src/device_audit_models/training_features.py",
+    "models/src/device_audit_models/features.py",
     "models/src/device_audit_models/__init__.py",
     "models/datasets/backblaze-2013/**",
+    "models/baseline/**",
+    "models/evaluation/ml05-policy.json",
     CHECK_WORKFLOW,
     FILTER_SCRIPT,
 )

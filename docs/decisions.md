@@ -11,10 +11,10 @@ discussion can drift and does not automatically become product scope.
 | Go controller | Handoff 15/17 | Selected |
 | Go endpoint agent | Handoff 17 | Selected |
 | Tailcat / userspace WireGuard / DERP | Current request, handoff 15/17, Shepherd spec 14 | Pinned admitted application adapter; deployed qualification remains open |
-| Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected; architecture and endpoint qualification open. #22 selects only a historical HDD study. |
+| Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected. #33 packages a standard-library L2 logistic baseline on the ML01 study. A larger architecture and endpoint qualification remain open. The artifact is not an ML05 pass. |
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Base Mainnet policy selected under #47; contract/deployment implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
-| Python + PyTorch | Assistant marked proposed in handoff 17 | Python interfaces included; no PyTorch dependency or model architecture selected |
+| Python + PyTorch | Assistant marked proposed in handoff 17 | Python standard library only. #33 selects a logistic baseline and does not add PyTorch. |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and migrations implemented in #19; #83 adds a separate transactional signed-device repository, with HTTP integration pending |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
@@ -1107,11 +1107,37 @@ refuse with their own code before anything is loaded. Go and Python read the
 same 25 signed vectors. Python checks everything except the signature, because
 `models` has no cryptography dependency.
 
-The architecture is an opaque ID: no model architecture is selected, the fixture
-artifact is synthetic and no active-manifest, rollback, expiry or revocation
-state exists. The [validation notes](validation/model-manifest-101.md) record the
-checks. Another owner's review of the vectors is still required before a consumer
-merges.
+The manifest contract leaves architecture an opaque ID. Its fixture artifact is
+synthetic, and no active-manifest, rollback, expiry or revocation state exists.
+The [validation notes](validation/model-manifest-101.md) record the checks.
+Another owner's review of the vectors is still required before a consumer
+merges. #33's logistic baseline is a separate unsigned artifact; it is not one
+of these fixtures and it cannot activate through this manifest.
+
+## Logistic baseline artifact, ML02 #33 (23 November 2026)
+
+Central training fits one L2-regularized logistic regression on the frozen
+`hdd-smart-7d.v1` features. The declared spec is
+[`models/baseline/training-spec.json`](../models/baseline/training-spec.json):
+15 Newton steps from a zero start, L2 of 1 on the standardized weights only,
+balanced class weights, population standard deviation from the fit rows, and
+no negative subsampling. The penalty is `(l2/2) * ||weights||^2`, so each
+Newton step adds `l2 * weight` to the gradient and `l2` to the Hessian
+diagonal. The intercept is unpenalized. The seed is 33. The optimizer draws
+no random numbers; example order is the ML01 anchor-then-device order. These
+choices were written down before the fit and were not revised after seeing
+coefficients. The first packaged coefficients omitted the gradient term and
+were replaced; the spec file did not change. Validation and test rows are
+refused. There is no split argument that can select them.
+
+The learned parameters are the artifact. Provenance stores the dataset digest,
+the three split digests, the seed, the feature version, the spec and the
+artifact digest. A rerun must match the artifact bytes or stay inside absolute
+tolerance `1e-8` and relative tolerance `1e-7`. The run uses the pinned
+Backblaze 2013 archive, not a synthetic substitute and not Jev. It does not
+sign a CT10 manifest, assign health, pass ML05, or write anything to a chain.
+Endpoint qualification and a larger architecture stay open. Details and the
+reproduction command are in the [baseline note](../models/baseline/README.md).
 
 ## Controller feature extraction, ML09 #105 (23 November 2026)
 

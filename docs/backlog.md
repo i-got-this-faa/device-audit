@@ -16,7 +16,8 @@ source reconciliation identifies planned acceptance work, not completion.
 4. **Real Windows telemetry:** implement read-only sensor/log collectors,
    explicit missing sensors, preprocessing, sampling and resource budgets.
 5. **Bespoke model baseline:** select datasets/labels/features/horizon, train
-   and evaluate, version artifacts, measure endpoint inference cost.
+   and evaluate, version artifacts, measure endpoint inference cost. #33
+   records the training artifact; evaluation and endpoint cost remain open.
 6. **Autonomous local diagnostics:** health-specific scheduled/event-triggered
    workflows, typed probe catalog, evidence references and retry/deadline limits.
 7. **Federated training:** two-device local training, authenticated compatible

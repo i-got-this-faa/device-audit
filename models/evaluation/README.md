@@ -4,7 +4,8 @@ Decision for #86, declared on 17 November 2026 **before any model was fitted**.
 [`ml05-policy.json`](ml05-policy.json) holds the numbers.
 `device_audit_models.evaluation` checks reports against it. The module computes
 no metric, trains nothing and does not create a validated model. #103 computes
-the metrics. #33 trains. #104 measures inference on the target laptop.
+the metrics. #33 trains the [logistic baseline](../baseline/README.md) and does
+not score it. #104 measures inference on the target laptop.
 
 The policy covers the ML01 [Backblaze 2013 HDD event study](../datasets/backblaze-2013/README.md).
 It pins the partition policy (canonical SHA-256 `f5e1080c…eff8`) and the exact

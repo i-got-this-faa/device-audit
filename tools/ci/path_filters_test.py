@@ -103,6 +103,16 @@ class ClassifyTests(unittest.TestCase):
         )
         self.assertEqual(self.selected("check", ".github/workflows/service-budget.yml"), set())
 
+    def test_baseline_training_reproduces_from_the_archive(self):
+        self.assertEqual(
+            self.selected("check", "models/src/device_audit_models/baseline.py"),
+            {"windows_check", "check", "dataset_reproduction"},
+        )
+        self.assertEqual(
+            self.selected("check", "models/baseline/training-spec.json"),
+            {"windows_check", "check", "dataset_reproduction"},
+        )
+
     def test_partitions_skip_postgres(self):
         self.assertEqual(
             self.selected("check", "models/src/device_audit_models/partitions.py"),
