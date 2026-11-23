@@ -1,11 +1,15 @@
 package controller
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"net/http"
+	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,63 +18,57 @@ import (
 	"github.com/i-got-this-faa/device-audit/packages/health"
 )
 
-// pagedHistory serves fixed samples in pages of two, recording each window it is asked for.
-type pagedHistory struct {
-	samples      []contracts.HistorySampleV1
-	from, to     time.Time
-	pages        int
-	failOnPage   int
-	badNextAfter bool
+// fakeEvidence serves references like PostgresRepository: [from, to), ordered by
+// (collected_at, sequence). It records the window it was asked for.
+type fakeEvidence struct {
+	refs     []evidenceRef
+	from, to time.Time
+	err      error
 }
 
-func (h *pagedHistory) TelemetryHistory(_ context.Context, _ string, from, to time.Time, after *historyCursor, limit int) (contracts.TelemetryHistoryV1, error) {
-	h.from, h.to = from, to
-	h.pages++
-	if h.failOnPage == h.pages {
-		return contracts.TelemetryHistoryV1{}, ErrRepositoryUnavailable
+func (f *fakeEvidence) FeatureEvidence(_ context.Context, _ string, from, to time.Time) (string, []evidenceRef, error) {
+	f.from, f.to = from, to
+	if f.err != nil {
+		return "", nil, f.err
 	}
-	start := 0
-	if after != nil {
-		for start < len(h.samples) && h.samples[start].Sequence != after.sequence {
-			start++
+	var in []evidenceRef
+	for _, r := range f.refs {
+		if !r.CollectedAt.Before(from) && r.CollectedAt.Before(to) {
+			in = append(in, r)
 		}
-		start++
 	}
-	end := min(start+2, len(h.samples))
-	page := contracts.TelemetryHistoryV1{DeploymentID: "deployment:features", Samples: h.samples[start:end]}
-	if end < len(h.samples) {
-		next := historyCursor{collectedAt: h.samples[end-1].CollectedAt, sequence: h.samples[end-1].Sequence}.String()
-		if h.badNextAfter {
-			next = "not-a-cursor"
+	slices.SortFunc(in, func(a, b evidenceRef) int {
+		if c := a.CollectedAt.Compare(b.CollectedAt); c != 0 {
+			return c
 		}
-		page.NextAfter = &next
-	}
-	return page, nil
+		return cmp.Compare(a.Sequence, b.Sequence)
+	})
+	return "deployment:features", in, nil
 }
 
-func historySamples(base time.Time, sequences ...uint64) []contracts.HistorySampleV1 {
-	var out []contracts.HistorySampleV1
+func evidenceRefs(base time.Time, sequences ...uint64) []evidenceRef {
+	var out []evidenceRef
 	for i, seq := range sequences {
-		out = append(out, contracts.HistorySampleV1{Sequence: seq, CollectedAt: base.Add(time.Duration(i) * time.Hour)})
+		out = append(out, evidenceRef{Sequence: seq, CollectedAt: base.Add(time.Duration(i) * time.Hour)})
 	}
 	return out
 }
 
 func TestBuildDeviceFeaturesAsksOnlyForTheSevenDayWindowEndingAtAsOf(t *testing.T) {
 	asOf := time.Date(2026, 11, 20, 13, 14, 15, 678_901_234, time.FixedZone("UTC+5", 5*3600))
-	history := &pagedHistory{samples: historySamples(time.Date(2026, 11, 18, 0, 0, 0, 0, time.UTC), 2, 3, 4, 5, 6)}
-	got, err := BuildDeviceFeatures(context.Background(), history, "device:a", asOf)
+	evidence := &fakeEvidence{refs: evidenceRefs(time.Date(2026, 11, 18, 0, 0, 0, 0, time.UTC), 2, 3, 4, 5, 6)}
+	got, err := BuildDeviceFeatures(context.Background(), evidence, "device:a", asOf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	// 2026-11-20T13:14:15+05:00 is 08:14:15 UTC; the window starts six UTC days earlier.
 	wantFrom := time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC)
 	wantTo := time.Date(2026, 11, 20, 8, 14, 15, 678_901_000, time.UTC).Add(time.Microsecond)
-	if !history.from.Equal(wantFrom) || !history.to.Equal(wantTo) {
-		t.Fatalf("asked for [%s, %s), want [%s, %s)", history.from, history.to, wantFrom, wantTo)
+	if !evidence.from.Equal(wantFrom) || !evidence.to.Equal(wantTo) {
+		t.Fatalf("asked for [%s, %s), want [%s, %s)", evidence.from, evidence.to, wantFrom, wantTo)
 	}
-	if history.pages != 3 || got.SamplesRead != 5 || got.LastSequence != 6 || got.DeploymentID != "deployment:features" {
-		t.Fatalf("pages %d, read %d, last sequence %d, deployment %q", history.pages, got.SamplesRead, got.LastSequence, got.DeploymentID)
+	if got.SamplesRead != 5 || got.LastSequence != 6 || got.DeploymentID != "deployment:features" {
+		t.Fatalf("read %d, last sequence %d, deployment %q", got.SamplesRead, got.LastSequence, got.DeploymentID)
 	}
 	if got.Vector.FeatureVersion != contracts.FeatureVersionHDDSMART7DV1 || got.Vector.WindowStart != "2026-11-14" || got.Vector.WindowEnd != "2026-11-20" {
 		t.Fatalf("window provenance %+v", got.Vector)
@@ -78,12 +76,12 @@ func TestBuildDeviceFeaturesAsksOnlyForTheSevenDayWindowEndingAtAsOf(t *testing.
 }
 
 func TestBuildDeviceFeaturesNeverFillsAMissingCounter(t *testing.T) {
-	for name, samples := range map[string][]contracts.HistorySampleV1{
+	for name, refs := range map[string][]evidenceRef{
 		"no persisted evidence": nil,
-		"a sample on every day": historySamples(time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC), 2, 3, 4, 5, 6, 7, 8),
+		"a sample on every day": evidenceRefs(time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC), 2, 3, 4, 5, 6, 7, 8),
 	} {
 		t.Run(name, func(t *testing.T) {
-			got, err := BuildDeviceFeatures(context.Background(), &pagedHistory{samples: samples}, "device:a", time.Date(2026, 11, 20, 23, 59, 59, 0, time.UTC))
+			got, err := BuildDeviceFeatures(context.Background(), &fakeEvidence{refs: refs}, "device:a", time.Date(2026, 11, 20, 23, 59, 59, 0, time.UTC))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -103,17 +101,9 @@ func TestBuildDeviceFeaturesNeverFillsAMissingCounter(t *testing.T) {
 }
 
 func TestBuildDeviceFeaturesFailsWithoutAPartialVector(t *testing.T) {
-	samples := historySamples(time.Date(2026, 11, 19, 0, 0, 0, 0, time.UTC), 2, 3, 4, 5)
-	for name, history := range map[string]*pagedHistory{
-		"second page unavailable": {samples: samples, failOnPage: 2},
-		"corrupt next cursor":     {samples: samples, badNextAfter: true},
-	} {
-		t.Run(name, func(t *testing.T) {
-			got, err := BuildDeviceFeatures(context.Background(), history, "device:a", time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC))
-			if err == nil || !reflect.DeepEqual(got, DeviceFeatures{}) {
-				t.Fatalf("got %+v, %v; want an error and no vector", got, err)
-			}
-		})
+	got, err := BuildDeviceFeatures(context.Background(), &fakeEvidence{err: ErrRepositoryUnavailable}, "device:a", time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC))
+	if !errors.Is(err, ErrRepositoryUnavailable) || !reflect.DeepEqual(got, DeviceFeatures{}) {
+		t.Fatalf("got %+v, %v; want the repository error and no vector", got, err)
 	}
 }
 
@@ -186,4 +176,83 @@ func TestBuildDeviceFeaturesMatchesTheEndpointOverPersistedEvidence(t *testing.T
 	if _, err := BuildDeviceFeatures(context.Background(), b.repo, "device:unknown", asOf); !errors.Is(err, ErrRepositoryNotFound) {
 		t.Fatalf("unknown device: %v", err)
 	}
+}
+
+// The shared CT03 cases run through the controller's window with known
+// counters. Sequences run against collection order, so arrival order is wrong
+// for every row and the vector must not depend on it.
+func TestBuildDeviceFeaturesMatchesTheSharedPipelineCases(t *testing.T) {
+	data, err := os.ReadFile("../../packages/contracts/fixtures/features/pipeline-cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var file struct {
+		FeatureVersion string `json:"feature_version"`
+		Cases          []struct {
+			Name   string `json:"name"`
+			Anchor string `json:"anchor"`
+			Rows   []struct {
+				Date        string `json:"date"`
+				SMART5Raw   *int64 `json:"smart_5_raw"`
+				SMART9Raw   *int64 `json:"smart_9_raw"`
+				SMART197Raw *int64 `json:"smart_197_raw"`
+			} `json:"rows"`
+			Expected contracts.FeatureVectorV1 `json:"expected"`
+		} `json:"cases"`
+	}
+	if err := json.Unmarshal(data, &file); err != nil {
+		t.Fatal(err)
+	}
+	if file.FeatureVersion != contracts.FeatureVersionHDDSMART7DV1 || len(file.Cases) == 0 {
+		t.Fatal("missing or incompatible pipeline cases")
+	}
+	for _, c := range file.Cases {
+		t.Run(c.Name, func(t *testing.T) {
+			asOf, err := time.Parse(time.RFC3339, c.Anchor+"T23:59:59Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+			counters := map[uint64]health.SMARTReading{}
+			var refs []evidenceRef
+			for i, r := range c.Rows {
+				collected, err := time.Parse(time.RFC3339, r.Date+"T12:00:00Z")
+				if err != nil {
+					t.Fatal(err)
+				}
+				seq := uint64(1000 - i)
+				refs = append(refs, evidenceRef{Sequence: seq, CollectedAt: collected})
+				counters[seq] = health.SMARTReading{ObservedAt: collected, SMART5Raw: r.SMART5Raw, SMART9Raw: r.SMART9Raw, SMART197Raw: r.SMART197Raw}
+			}
+			got, err := buildDeviceFeatures(context.Background(), &fakeEvidence{refs: refs}, "device:a", asOf,
+				func(r evidenceRef) health.SMARTReading { return counters[r.Sequence] })
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := got.Vector.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			if !closeFeatureVectors(got.Vector, c.Expected) {
+				t.Fatalf("got %+v\nwant %+v", got.Vector, c.Expected)
+			}
+		})
+	}
+}
+
+// closeFeatureVectors holds values to the recorded tolerance and every other field exactly.
+func closeFeatureVectors(a, b contracts.FeatureVectorV1) bool {
+	if len(a.Features) != len(b.Features) {
+		return false
+	}
+	a.Features, b.Features = slices.Clone(a.Features), slices.Clone(b.Features)
+	for i := range a.Features {
+		x, y := a.Features[i], b.Features[i]
+		if (x.Value == nil) != (y.Value == nil) {
+			return false
+		}
+		if x.Value != nil && math.Abs(*x.Value-*y.Value) > contracts.FeatureTolerance+contracts.FeatureTolerance*math.Abs(*y.Value) {
+			return false
+		}
+		a.Features[i].Value, b.Features[i].Value = nil, nil
+	}
+	return reflect.DeepEqual(a, b)
 }

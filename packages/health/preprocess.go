@@ -29,13 +29,6 @@ func ReadingFromTelemetry(t contracts.TelemetryV2) SMARTReading {
 	return SMARTReading{ObservedAt: t.CollectedAt}
 }
 
-// ReadingFromHistory is the controller's counterpart of ReadingFromTelemetry for
-// a persisted sample. History keeps telemetry v2 metrics, which hold no SMART
-// counter, so the reading is all nil for the same reason.
-func ReadingFromHistory(s contracts.HistorySampleV1) SMARTReading {
-	return SMARTReading{ObservedAt: s.CollectedAt}
-}
-
 // Preprocess returns the frozen feature vector for what the endpoint held at
 // asOf. The contract caps a window at 10,080 samples, far fewer than a 15 s
 // sampler yields in seven days, so this keeps only each counter's latest
