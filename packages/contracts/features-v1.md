@@ -183,6 +183,15 @@ day row, a null sensor column, a null first day, a power-on-hours reset, a
 remapped SMART 197 and no rows. Regenerate with
 `python3 packages/contracts/fixtures/features/generate_pipeline.py`.
 
+- **Controller**, [`internal/controller/features.go`](../../internal/controller/features.go):
+  `BuildDeviceFeatures` reads the device's persisted samples with
+  `collected_at` from the first window day through `as_of` and runs the same
+  `health.Preprocess` as the endpoint. It restates no rule. Sequence order and
+  arrival order do not matter, and a sample collected after `as_of` is never
+  requested. The result carries the vector, whose `feature_version`,
+  `window_start`, `window_end` and `as_of` name the window, plus the deployment,
+  device, count of samples read and highest sequence read. No endpoint serves it.
+
 The endpoint reads no SMART counter, so `ReadingFromTelemetry` returns all-nil
 readings and the endpoint vector is `incomplete` with `no_observation`. The
 Backblaze archive is not downloaded for tests: the training stream is run on
