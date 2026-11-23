@@ -1112,3 +1112,35 @@ artifact is synthetic and no active-manifest, rollback, expiry or revocation
 state exists. The [validation notes](validation/model-manifest-101.md) record the
 checks. Another owner's review of the vectors is still required before a consumer
 merges.
+
+## Controller feature extraction, ML09 #105 (23 November 2026)
+
+`BuildDeviceFeatures` gives the controller the same CT03 vector the endpoint
+builds. It pages one device's persisted samples for the seven UTC days ending on
+the day of `as_of`, stops at `as_of`, and calls `health.Preprocess`. There is no
+second implementation, so the endpoint, training and controller share one set of
+rules and one tolerance.
+
+- **Provenance.** The vector names the feature version and its window dates. The
+  result adds the deployment, the device, the number of samples read and the
+  highest evidence sequence read, so a caller can say which evidence a vector
+  held. It is an internal Go type, not a wire contract. No route serves it, and
+  a consumer that needs one must freeze a contract first.
+- **Time axis.** The window is bound on `collected_at`, as the frozen rules
+  require. `received_at` is not read. A late-arriving sample that was collected
+  inside the window therefore enters a vector computed after it arrived, and a
+  vector computed earlier would not have held it. Reproducing an old vector from
+  later storage needs a received-at rule that no issue asks for.
+- **Cost.** Each call reads every sample of the window, 100 per page. A 15 s
+  sampler is about 40,000 samples, so about 400 queries. That is acceptable for
+  an all-nil window and is the wrong shape once a counter exists. A per-day
+  latest-reading query belongs with the SMART collector.
+- **Not done.** Telemetry v2 carries no SMART counter, so every controller vector
+  is `incomplete` with `no_observation` and no known prediction follows. Golden
+  vectors with known values cannot pass through persisted telemetry. They run
+  through `health.Preprocess`, which the controller calls. The historical
+  type, count and recurrence comparisons and the health thresholds are #106.
+
+The [validation notes](validation/controller-features-105.md) record the checks.
+Another owner's review of the shared vectors is still required before this
+merges.

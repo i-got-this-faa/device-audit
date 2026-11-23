@@ -4,6 +4,11 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [ML09 controller feature extraction, 23 November 2026](validation/controller-features-105.md)
+runs the endpoint's CT03 preprocessing over persisted evidence with window
+provenance. Telemetry v2 holds no SMART counter, so every controller vector is
+`incomplete`.
+
 Follow-up: [NET03 relay restart and long-partition recovery, 22 November 2026](validation/recovery-54.md)
 records same-host direct and forced-DERP recovery from relay restart, controller
 crash and a 90 s partition with the spool draining once, and a fixed stuck mesh
