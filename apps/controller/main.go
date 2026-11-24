@@ -88,6 +88,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	deploymentID := flags.String("deployment-id", defaults.DeploymentID, "enable durable bootstrap enrollment for this configured deployment")
 	tlsCertFile := flags.String("tls-cert-file", defaults.TLSCertFile, "TLS certificate PEM file for the controller listener")
 	tlsKeyFile := flags.String("tls-key-file", defaults.TLSKeyFile, "TLS private-key PEM file for the controller listener")
+	publisherKeyFile := flags.String("model-publisher-key-file", "", "PKIX PEM Ed25519 public key that model manifests must verify against; enables the model registry")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -190,6 +191,19 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	var inventory *controller.InventoryService
 	var deviceState *controller.DeviceStateService
 	var revocation *controller.RevocationService
+	var modelRegistry *controller.ModelRegistryService
+	if *publisherKeyFile != "" {
+		if repository == nil || consoleAuth == nil {
+			return errors.New("the model registry requires --deployment-id, a durable database and administrator authentication")
+		}
+		publisherKey, err := loadPublisherKey(*publisherKeyFile)
+		if err != nil {
+			return err
+		}
+		if modelRegistry, err = controller.NewModelRegistryService(repository, consoleAuth, publisherKey); err != nil {
+			return err
+		}
+	}
 	if repository != nil {
 		var err error
 		enrollment, err = controller.NewEnrollmentService(repository, consoleAuth)
@@ -223,6 +237,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		Inventory:      inventory,
 		DeviceState:    deviceState,
 		Revocation:     revocation,
+		ModelRegistry:  modelRegistry,
 		MeshStatus:     *transport,
 	})
 	if tlsConfig != nil {
@@ -320,6 +335,27 @@ func loadAcknowledgementKey(path string) (ed25519.PrivateKey, error) {
 	}
 	keyID, _ := contracts.SigningKeyIDV1(key.Public().(ed25519.PublicKey))
 	slog.Info("evidence acknowledgement key loaded", "controller_key_id", keyID)
+	return key, nil
+}
+
+// loadPublisherKey reads the model publisher's public key, the trust root for
+// uploaded manifests. It is not a device, mesh, TLS, acknowledgement or chain key.
+func loadPublisherKey(path string) (ed25519.PublicKey, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, errors.New("read --model-publisher-key-file")
+	}
+	block, _ := pem.Decode(data)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, errors.New("--model-publisher-key-file must be a PKIX PEM public key")
+	}
+	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
+	key, ok := parsed.(ed25519.PublicKey)
+	if err != nil || !ok {
+		return nil, errors.New("--model-publisher-key-file must hold an Ed25519 public key")
+	}
+	keyID, _ := contracts.SigningKeyIDV1(key)
+	slog.Info("model publisher key loaded", "publisher_key_id", keyID)
 	return key, nil
 }
 

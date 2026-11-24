@@ -282,6 +282,14 @@ runtime, feature ordering or digest, and an unknown or unsupported version, with
 one stable code each. Python does not verify signatures. The fixtures use a
 synthetic artifact; no model architecture is selected.
 
+## Model artifact registry v1, FED07 #112
+
+[The registry contract](model-registry-v1.md) defines the signed upload, the
+stored entry, the digest-bound approval and the `active`/`candidate` references.
+An upload verifies against the controller's configured publisher key before its
+bytes are hashed. Only an approved inference artifact can be active. Go only;
+no schema or Python reader yet.
+
 ## Device revocation v1, #90
 
 [Device revocation](revocation-v1.md) defines an administrator request with an

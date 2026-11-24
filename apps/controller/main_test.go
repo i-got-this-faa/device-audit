@@ -98,7 +98,7 @@ func TestRunReportsConfiguredSchema(t *testing.T) {
 	if health == nil {
 		t.Fatal("controller did not become healthy")
 	}
-	if health["database"] != "connected" || health["schema_version"] != float64(6) || health["auth"] != "not_configured" || health["sample_storage"] != "memory" {
+	if health["database"] != "connected" || health["schema_version"] != float64(7) || health["auth"] != "not_configured" || health["sample_storage"] != "memory" {
 		t.Fatalf("health=%v", health)
 	}
 	cancel()
@@ -151,7 +151,7 @@ func TestRunReportsConfiguredAuth(t *testing.T) {
 	if health == nil {
 		t.Fatal("controller did not become healthy")
 	}
-	if health["auth"] != "oidc" || health["schema_version"] != float64(6) {
+	if health["auth"] != "oidc" || health["schema_version"] != float64(7) {
 		t.Fatalf("health=%v", health)
 	}
 	response, err := client.Get(base + "/console")
@@ -370,6 +370,44 @@ func TestLoadAcknowledgementKeyAcceptsOnlyEd25519PKCS8(t *testing.T) {
 	for name, path := range map[string]string{"ecdsa": write("ecdsa.pem", ecdsaKey), "missing": filepath.Join(dir, "absent.pem")} {
 		if _, err := loadAcknowledgementKey(path); err == nil {
 			t.Fatalf("%s acknowledgement key accepted", name)
+		}
+	}
+}
+
+func TestRunRejectsModelRegistryWithoutDurableConsole(t *testing.T) {
+	err := run(context.Background(), []string{"--listen", freeAddress(t), "--model-publisher-key-file", filepath.Join(t.TempDir(), "absent.pem")}, environment{})
+	if err == nil || !strings.Contains(err.Error(), "model registry requires") {
+		t.Fatalf("model registry error: %v", err)
+	}
+}
+
+func TestLoadPublisherKeyAcceptsOnlyEd25519PKIX(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, blockType string, key any) string {
+		t.Helper()
+		der, err := x509.MarshalPKIXPublicKey(key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, pem.EncodeToMemory(&pem.Block{Type: blockType, Bytes: der}), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	public, _, _ := ed25519.GenerateKey(nil)
+	loaded, err := loadPublisherKey(write("publisher.pem", "PUBLIC KEY", public))
+	if err != nil || !loaded.Equal(public) {
+		t.Fatalf("Ed25519 key=%v err=%v", loaded != nil, err)
+	}
+	ecdsaKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	for name, path := range map[string]string{
+		"ecdsa":      write("ecdsa.pem", "PUBLIC KEY", &ecdsaKey.PublicKey),
+		"wrong type": write("private.pem", "PRIVATE KEY", public),
+		"missing":    filepath.Join(dir, "absent.pem"),
+	} {
+		if _, err := loadPublisherKey(path); err == nil {
+			t.Fatalf("%s publisher key accepted", name)
 		}
 	}
 }

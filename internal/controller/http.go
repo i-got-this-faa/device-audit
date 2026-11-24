@@ -32,6 +32,7 @@ type Config struct {
 	Inventory      *InventoryService
 	DeviceState    *DeviceStateService
 	Revocation     *RevocationService
+	ModelRegistry  *ModelRegistryService
 	MeshStatus     string
 }
 
@@ -47,6 +48,7 @@ type API struct {
 	inventory   *InventoryService
 	deviceState *DeviceStateService
 	revocation  *RevocationService
+	models      *ModelRegistryService
 	meshStatus  string
 }
 
@@ -74,6 +76,7 @@ func NewAPI(cfg Config) *API {
 		inventory:   cfg.Inventory,
 		deviceState: cfg.DeviceState,
 		revocation:  cfg.Revocation,
+		models:      cfg.ModelRegistry,
 		meshStatus:  cfg.MeshStatus,
 	}
 }
@@ -85,6 +88,10 @@ func (a *API) Handler() http.Handler {
 		if a.enrollment != nil {
 			enrollment = "configured"
 		}
+		modelRegistry := "not_configured"
+		if a.models != nil {
+			modelRegistry = "configured"
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status":         "ok",
 			"mode":           "development",
@@ -94,6 +101,7 @@ func (a *API) Handler() http.Handler {
 			"auth":           a.authStatus,
 			"mesh":           a.meshStatus,
 			"enrollment":     enrollment,
+			"model_registry": modelRegistry,
 		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
@@ -112,6 +120,9 @@ func (a *API) Handler() http.Handler {
 	}
 	if a.revocation != nil {
 		a.revocation.Register(mux)
+	}
+	if a.models != nil {
+		a.models.Register(mux)
 	}
 	return mux
 }
