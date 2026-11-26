@@ -54,6 +54,13 @@ func (s *PostgresRepository) OpenRound(ctx context.Context, round contracts.Fede
 	}
 	defer tx.Rollback()
 	if err := s.checkRoundParticipants(ctx, tx, round); err != nil {
+		if errors.Is(err, federated.ErrParticipantNotEligible) {
+			// An identical request may have committed since the first lookup.
+			tx.Rollback()
+			if record, found, lookupErr := s.repeatedRound(ctx, round); found || lookupErr != nil {
+				return record, false, lookupErr
+			}
+		}
 		return federated.RoundRecord{}, false, err
 	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO federated_rounds (deployment_id, round_id, candidate_id, base_model_version,
@@ -249,19 +256,21 @@ func (s *PostgresRepository) AcceptParticipant(ctx context.Context, roundID, dev
 		return federated.RoundRecord{}, false, repositoryUnavailable(err)
 	}
 	if acceptedAt != nil {
-		tx.Rollback()
+		if status == federated.RoundOpen && !s.now().UTC().Before(deadline) {
+			if _, err := s.closeExpired(ctx, tx, roundID); err != nil {
+				return federated.RoundRecord{}, false, err
+			}
+			if err := repositoryCommit(tx); err != nil {
+				return federated.RoundRecord{}, false, err
+			}
+		} else {
+			tx.Rollback()
+		}
 		record, err := s.loadRound(ctx, roundID)
 		return record, false, err
 	}
 	if status == federated.RoundOpen && !s.now().UTC().Before(deadline) {
-		// Record the closing before refusing; this commit must not be lost.
-		if _, err := s.closeExpired(ctx, tx, roundID); err != nil {
-			return federated.RoundRecord{}, false, err
-		}
-		if err := repositoryCommit(tx); err != nil {
-			return federated.RoundRecord{}, false, err
-		}
-		return federated.RoundRecord{}, false, fmt.Errorf("%w: the deadline passed", federated.ErrRoundNotOpen)
+		return s.refuseExpired(ctx, tx, roundID)
 	}
 	if status != federated.RoundOpen {
 		return federated.RoundRecord{}, false, fmt.Errorf("%w: round is %s", federated.ErrRoundNotOpen, status)
@@ -274,8 +283,13 @@ func (s *PostgresRepository) AcceptParticipant(ctx context.Context, roundID, dev
 	if revokedAt != nil {
 		return federated.RoundRecord{}, false, fmt.Errorf("%w: %s is revoked", federated.ErrParticipantNotEligible, deviceID)
 	}
+	// The enrollment lock can wait on a revocation, so read the clock again.
+	admittedAt := s.now().UTC().Truncate(time.Microsecond)
+	if !admittedAt.Before(deadline) {
+		return s.refuseExpired(ctx, tx, roundID)
+	}
 	if _, err := tx.ExecContext(ctx, `UPDATE federated_round_participants SET accepted_at=$4
-		WHERE deployment_id=$1 AND round_id=$2 AND device_id=$3`, s.deploymentID, roundID, deviceID, s.now().UTC().Truncate(time.Microsecond)); err != nil {
+		WHERE deployment_id=$1 AND round_id=$2 AND device_id=$3`, s.deploymentID, roundID, deviceID, admittedAt); err != nil {
 		return federated.RoundRecord{}, false, repositoryUnavailable(err)
 	}
 	if err := repositoryCommit(tx); err != nil {
@@ -283,6 +297,18 @@ func (s *PostgresRepository) AcceptParticipant(ctx context.Context, roundID, dev
 	}
 	record, err := s.loadRound(ctx, roundID)
 	return record, err == nil, err
+}
+
+// refuseExpired records the closing of a round whose deadline passed, commits
+// it so the refusal does not lose it, and answers ErrRoundNotOpen.
+func (s *PostgresRepository) refuseExpired(ctx context.Context, tx *sql.Tx, roundID string) (federated.RoundRecord, bool, error) {
+	if _, err := s.closeExpired(ctx, tx, roundID); err != nil {
+		return federated.RoundRecord{}, false, err
+	}
+	if err := repositoryCommit(tx); err != nil {
+		return federated.RoundRecord{}, false, err
+	}
+	return federated.RoundRecord{}, false, fmt.Errorf("%w: the deadline passed", federated.ErrRoundNotOpen)
 }
 
 // CancelRound moves an open round to cancelled and records the actor. A repeat
@@ -306,13 +332,8 @@ func (s *PostgresRepository) CancelRound(ctx context.Context, roundID string, by
 		tx.Rollback()
 		return s.loadRound(ctx, roundID)
 	case status == federated.RoundOpen && !s.now().UTC().Before(deadline):
-		if _, err := s.closeExpired(ctx, tx, roundID); err != nil {
-			return federated.RoundRecord{}, err
-		}
-		if err := repositoryCommit(tx); err != nil {
-			return federated.RoundRecord{}, err
-		}
-		return federated.RoundRecord{}, fmt.Errorf("%w: the deadline passed", federated.ErrRoundNotOpen)
+		_, _, err := s.refuseExpired(ctx, tx, roundID)
+		return federated.RoundRecord{}, err
 	case status != federated.RoundOpen:
 		return federated.RoundRecord{}, fmt.Errorf("%w: round is %s", federated.ErrRoundNotOpen, status)
 	}
@@ -349,10 +370,16 @@ func (s *PostgresRepository) loadRound(ctx context.Context, roundID string) (fed
 	if !repositoryIDPattern.MatchString(roundID) {
 		return federated.RoundRecord{}, federated.ErrRoundNotFound
 	}
+	// One read-only snapshot, so status, admissions and transitions agree.
+	snapshot, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
+	if err != nil {
+		return federated.RoundRecord{}, repositoryUnavailable(err)
+	}
+	defer snapshot.Rollback()
 	var record federated.RoundRecord
 	var encoded []byte
 	var status string
-	err := s.db.QueryRowContext(ctx, `SELECT record, status FROM federated_rounds WHERE deployment_id=$1 AND round_id=$2`,
+	err = snapshot.QueryRowContext(ctx, `SELECT record, status FROM federated_rounds WHERE deployment_id=$1 AND round_id=$2`,
 		s.deploymentID, roundID).Scan(&encoded, &status)
 	if errors.Is(err, sql.ErrNoRows) {
 		return federated.RoundRecord{}, federated.ErrRoundNotFound
@@ -365,7 +392,7 @@ func (s *PostgresRepository) loadRound(ctx context.Context, roundID string) (fed
 	}
 	record.Status = federated.RoundStatus(status)
 
-	accepted, err := s.db.QueryContext(ctx, `SELECT device_id, signing_key_id, accepted_at FROM federated_round_participants
+	accepted, err := snapshot.QueryContext(ctx, `SELECT device_id, signing_key_id, accepted_at FROM federated_round_participants
 		WHERE deployment_id=$1 AND round_id=$2 AND accepted_at IS NOT NULL ORDER BY accepted_at, device_id`, s.deploymentID, roundID)
 	if err != nil {
 		return federated.RoundRecord{}, repositoryUnavailable(err)
@@ -383,7 +410,7 @@ func (s *PostgresRepository) loadRound(ctx context.Context, roundID string) (fed
 		return federated.RoundRecord{}, repositoryUnavailable(err)
 	}
 
-	events, err := s.db.QueryContext(ctx, `SELECT from_status, to_status, reason, at, actor_issuer, actor_subject FROM federated_round_events
+	events, err := snapshot.QueryContext(ctx, `SELECT from_status, to_status, reason, at, actor_issuer, actor_subject FROM federated_round_events
 		WHERE deployment_id=$1 AND round_id=$2 ORDER BY id`, s.deploymentID, roundID)
 	if err != nil {
 		return federated.RoundRecord{}, repositoryUnavailable(err)

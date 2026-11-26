@@ -381,9 +381,15 @@ func TestFederatedRoundDatabaseRefusesInvalidTransitions(t *testing.T) {
 		"admit into a cancelled round": `UPDATE federated_round_participants SET accepted_at=now() WHERE round_id='round:2' AND device_id='device:a'`,
 		"admit an ineligible device":   `UPDATE federated_round_participants SET accepted_at=now() WHERE round_id='round:1' AND device_id='device:d'`,
 		"make an ineligible one fit":   `UPDATE federated_round_participants SET eligibility='eligible', reason=NULL WHERE round_id='round:1' AND device_id='device:d'`,
-		"delete a participant":         `DELETE FROM federated_round_participants WHERE round_id='round:1'`,
-		"rewrite history":              `UPDATE federated_round_events SET reason='deadline'`,
-		"delete history":               `DELETE FROM federated_round_events`,
+		"admit at the deadline": `UPDATE federated_round_participants p SET accepted_at=(SELECT deadline FROM federated_rounds r WHERE r.round_id=p.round_id)
+			WHERE round_id='round:1' AND device_id='device:b'`,
+		"admit before the round opened": `UPDATE federated_round_participants p SET accepted_at=(SELECT opened_at - interval '1 second' FROM federated_rounds r WHERE r.round_id=p.round_id)
+			WHERE round_id='round:1' AND device_id='device:b'`,
+		"insert a participant already admitted": `INSERT INTO federated_round_participants (deployment_id, round_id, device_id, signing_key_id, eligibility, accepted_at)
+			SELECT 'deployment:enrollment-test', 'round:1', device_id, signing_key_id, 'eligible', now() FROM device_enrollments WHERE device_id='device:c'`,
+		"delete a participant": `DELETE FROM federated_round_participants WHERE round_id='round:1'`,
+		"rewrite history":      `UPDATE federated_round_events SET reason='deadline'`,
+		"delete history":       `DELETE FROM federated_round_events`,
 		"participant that never enrolled": `INSERT INTO federated_round_participants (deployment_id, round_id, device_id, signing_key_id, eligibility)
 			SELECT deployment_id, round_id, 'device:ghost', signing_key_id, 'eligible' FROM federated_round_participants WHERE round_id='round:1' LIMIT 1`,
 	}
@@ -398,5 +404,54 @@ func TestFederatedRoundDatabaseRefusesInvalidTransitions(t *testing.T) {
 	}
 	if _, err := b.db.Exec(`UPDATE federated_round_participants SET accepted_at=now() WHERE round_id='round:1' AND device_id='device:a'`); err == nil {
 		t.Error("database allowed a second admission time")
+	}
+}
+
+// A repeat after the deadline returns the stored admission and records the
+// closing the round was owed.
+func TestFederatedRoundRepeatAdmissionAfterDeadlineClosesRound(t *testing.T) {
+	b := newRoundBed(t)
+	ctx := context.Background()
+	if _, _, err := b.repo.OpenRound(ctx, b.round("round:1"), b.actor); err != nil {
+		t.Fatal(err)
+	}
+	admitted, _, err := b.repo.AcceptParticipant(ctx, "round:1", "device:a", b.devices[0].keyID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b.clock.Advance(time.Hour)
+	record, created, err := b.repo.AcceptParticipant(ctx, "round:1", "device:a", b.devices[0].keyID)
+	if err != nil || created || record.Status != federated.RoundClosed || len(record.Transitions) != 2 ||
+		!reflect.DeepEqual(record.Accepted, admitted.Accepted) {
+		t.Fatalf("repeat after deadline = %+v created=%v err=%v", record, created, err)
+	}
+}
+
+// The enrollment lock can wait on a revocation past the deadline. The clock is
+// read again after it, and an admission never records a time at or after it.
+func TestFederatedRoundDeadlineCrossedAfterEnrollmentLock(t *testing.T) {
+	b := newRoundBed(t)
+	ctx := context.Background()
+	round := b.round("round:1")
+	if _, _, err := b.repo.OpenRound(ctx, round, b.actor); err != nil {
+		t.Fatal(err)
+	}
+	deadline := mustParseRoundTime(round.Deadline)
+	var reads atomic.Int32
+	racing, err := NewPostgresRepository(ctx, b.db, RepositoryConfig{DeploymentID: b.repo.deploymentID, Now: func() time.Time {
+		if reads.Add(1) == 1 {
+			return deadline.Add(-time.Second) // the early check still sees an open round
+		}
+		return deadline
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := racing.AcceptParticipant(ctx, "round:1", "device:a", b.devices[0].keyID); !errors.Is(err, federated.ErrRoundNotOpen) {
+		t.Fatalf("accept across the deadline: %v", err)
+	}
+	record, err := b.repo.Round(ctx, "round:1")
+	if err != nil || record.Status != federated.RoundClosed || len(record.Accepted) != 0 || len(record.Transitions) != 2 {
+		t.Fatalf("round = %+v err=%v", record, err)
 	}
 }

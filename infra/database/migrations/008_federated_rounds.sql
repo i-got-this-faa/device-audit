@@ -1,7 +1,7 @@
 -- FED01 #40: durable federated round state and participant eligibility.
 -- A round is written once. Only its status can change, and only from open to
 -- closed or cancelled. A participant row can only gain accepted_at, and only
--- while its round is open. Nothing is deleted.
+-- inside its open round's window. Nothing is deleted.
 
 -- Migration 001 declared candidate federated_rounds and model_updates tables
 -- that no code reads or writes. The round schema below replaces them; FED03 #43
@@ -98,14 +98,29 @@ CREATE TRIGGER federated_rounds_status_guard BEFORE UPDATE ON federated_rounds
 
 CREATE FUNCTION federated_participant_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+    -- Compare the stored admission time, not now(): the controller reads its
+    -- own clock, and an expired round can still be open until it is touched.
     IF to_jsonb(NEW) - 'accepted_at' IS DISTINCT FROM to_jsonb(OLD) - 'accepted_at'
         OR OLD.accepted_at IS NOT NULL OR NEW.accepted_at IS NULL
         OR NOT EXISTS (SELECT 1 FROM federated_rounds
-            WHERE deployment_id = OLD.deployment_id AND round_id = OLD.round_id AND status = 'open') THEN
-        RAISE EXCEPTION 'a participant is admitted once, while its round is open' USING ERRCODE = 'integrity_constraint_violation';
+            WHERE deployment_id = OLD.deployment_id AND round_id = OLD.round_id AND status = 'open'
+                AND NEW.accepted_at >= opened_at AND NEW.accepted_at < deadline) THEN
+        RAISE EXCEPTION 'a participant is admitted once, inside its open round window' USING ERRCODE = 'integrity_constraint_violation';
     END IF;
     RETURN NEW;
 END
 $$;
 CREATE TRIGGER federated_round_participants_guard BEFORE UPDATE ON federated_round_participants
     FOR EACH ROW EXECUTE FUNCTION federated_participant_guard();
+
+-- The snapshot is inserted without an admission; only the guarded update admits.
+CREATE FUNCTION federated_participant_insert_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.accepted_at IS NOT NULL THEN
+        RAISE EXCEPTION 'a participant is admitted by update, not insert' USING ERRCODE = 'integrity_constraint_violation';
+    END IF;
+    RETURN NEW;
+END
+$$;
+CREATE TRIGGER federated_round_participants_insert_guard BEFORE INSERT ON federated_round_participants
+    FOR EACH ROW EXECUTE FUNCTION federated_participant_insert_guard();
