@@ -1236,3 +1236,34 @@ serves them through fresh-admin console routes
 Not done: publisher-key issuance and rotation, artifact revocation, reference
 history, endpoint download over the mesh and #55's access matrix. The
 [validation notes](validation/model-registry-112.md) record the checks.
+
+## Durable federated round state, FED01 #40 (26 November 2026)
+
+The controller records each round, its participant snapshot and its transitions
+in PostgreSQL (migration 008) behind `federated.Coordinator`
+([lifecycle](../internal/controller/federated-rounds.md)).
+
+- **States.** `open`, then `closed` at the exclusive deadline or `cancelled` by
+  an administrator. There is no `aggregating` or `promoted` state: those belong
+  to FED10 #115 and would claim work nothing does. A trigger refuses any other
+  change, so a closed or cancelled round never reopens.
+- **Registered base.** A round names a stored artifact by version and digest
+  through a foreign key, and the controller checks training purpose, feature
+  version and parameter count against its manifest. It does not require the
+  base to be approved or active: the digest is what the round fixes.
+- **Eligibility.** The snapshot is stored as given and each participant must be
+  an enrolled device with that key. Revocation is read again at admission under
+  the lock `RevokeDevice` takes, so the snapshot cannot override it.
+- **Idempotence.** An identical `OpenRound` returns the stored round at any
+  status; different content under the same round or candidate ID is a conflict.
+  An admitted participant is returned unchanged after close; that is a record,
+  not a new transition.
+- **Closing is lazy.** Nothing runs at the deadline. The next call closes the
+  round and records it once; `CloseExpiredRounds` is there for a scheduler.
+- **Replaced tables.** Migration 001 held unused `federated_rounds` and
+  `model_updates` candidates. 008 drops them, and fails first if either has a
+  row. FED03 #43 adds its own update table.
+
+Not done: HTTP routes, participant selection, update admission, quorum
+assessment, promotion and a scheduler. The
+[validation notes](validation/federated-rounds-40.md) record the checks.
