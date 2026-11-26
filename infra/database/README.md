@@ -44,10 +44,19 @@ telemetry ingestion remains separate work.
   approval. The active slot has a foreign key to an approval of the same
   artifact digest, so the database itself refuses an unapproved active model.
   See [the model registry](../../internal/controller/model-registry.md).
+- `008_federated_rounds.sql` adds `federated_rounds`, `federated_round_participants`
+  and `federated_round_events`. A round changes only from `open` to `closed` or
+  `cancelled`, and a participant is admitted once, only while its round is open;
+  triggers refuse everything else. Participants reference an enrolled device and
+  key, and the base references a stored model artifact. It replaces the unused
+  candidate `federated_rounds` and `model_updates` tables from migration 001 and
+  fails without dropping them if either holds a row. See
+  [the round lifecycle](../../internal/controller/federated-rounds.md).
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
-- Migrations are forward-only. The runner never drops or recreates tables.
+- Migrations are forward-only. The runner never drops or recreates tables;
+  only a migration file can, and 008 does so for two unused empty tables.
 
 ## Reproduce the migration checks
 
@@ -67,7 +76,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 7 and the configured
+- health output for a connected database, schema version 8 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

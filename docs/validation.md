@@ -4,6 +4,10 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [FED01 durable federated round state, 26 November 2026](validation/federated-rounds-40.md)
+records rounds, participant admission and deadline closing in PostgreSQL. No
+endpoint trains and no update is admitted.
+
 Follow-up: [ML10 fault history comparison, 24 November 2026](validation/fault-history-106.md)
 classifies fault types as recurrent, isolated, baseline-only or insufficient
 history over bounded windows. Every persisted report is `unclassified`.
