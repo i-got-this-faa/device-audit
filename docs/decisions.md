@@ -18,7 +18,7 @@ discussion can drift and does not automatically become product scope.
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and migrations implemented in #19; #83 adds a separate transactional signed-device repository, with HTTP integration pending |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
-| Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 owns resolution; selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
+| Asset-system integration | Supplied specification [0022] page 4, [00109] page 25, and Figure 2 page 31; explicit blocked disposition recorded by #14 | Blocked because no external system/vendor, adapter contract, fields, credentials, retention or acceptance evidence is selected. Internal inventory remains a subset. #138 retains the block; later selection requires an approved owned, dependency-linked rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | Independent network observation | SRC05 finds no defined observer/source/trust boundary in [0051], p.10, [0074], p.18, [0078], p.19 or FIG.2, p.31; #14 records an explicit block | Blocked because the source, permissions, trust boundary, retention and acceptance evidence are unselected. Endpoint telemetry, network identity and chain verification imply no independent observer. #138 owns resolution and any approved rebaseline. See [release scope](roadmap/release-scope.md#conditional-scope-decisions). |
 | ML01 dataset/labels/partitions (#22) | Pinned Backblaze 2013 source, custom publisher terms and reproducible manifest | Select a historical HDD recorded-event study with a seven-day horizon, disjoint device cohorts and purged chronological evidence intervals. CPU/GPU/other component labels and matching endpoint SMART telemetry are absent; endpoint failure-prediction claims remain blocked. See the [decision and reproduction commands](../models/datasets/backblaze-2013/README.md). |
 | ML05 evaluation and resource thresholds (#86) | Declared 17 November 2026 before any fit; pins the ML01 policy and manifest | Numerical baseline, false-positive, calibration and horizon gates, a once-only device-clustered held-out procedure, and endpoint inference/training budgets tied to the measured laptop. Missing labels or measurements block rather than relax a threshold. See [ML05 thresholds](../models/evaluation/README.md). |
@@ -1273,3 +1273,17 @@ in PostgreSQL (migration 008) behind `federated.Coordinator`
 Not done: HTTP routes, participant selection, update admission, quorum
 assessment, promotion and a scheduler. The
 [validation notes](validation/federated-rounds-40.md) record the checks.
+
+
+## Conditional release scope, CAP02 #138
+
+The [V1 disposition matrix](roadmap/release-scope.md#conditional-scope-decisions)
+reconciles the [SRC05 source register](source/patent-map.md#broader-embodiments-unmatched-passages-and-retained-exclusions)
+with the SRC02 platform decision, SRC03 single-organization deployment,
+SRC04 console and identity choice, CHAIN01 blinded Base commitment policy
+and ML06 held-out failure. It keeps external asset integration and independent
+observation blocked and classifies unmatched broader embodiments explicitly.
+Release gates continue to require measured evidence. MDM, automatic
+remediation and arbitrary deployment remain excluded. Any later expansion
+requires an approved rebaseline with an owner, dependencies and acceptance
+evidence.
