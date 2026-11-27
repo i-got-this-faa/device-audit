@@ -86,7 +86,7 @@ func runWindowsProbeProcess(ctx context.Context, req workflows.Request, executab
 	}
 	defer input.Close()
 	// A small allowance is for the local failure wrapper, not evidence.
-	output := &limitedProbeOutput{limit: int(req.Budget.MaxOutputBytes) + 512, cancel: cancel}
+	output := &limitedWorkerOutput{limit: int(req.Budget.MaxOutputBytes) + 512, cancel: cancel}
 	cmd.Stdout = output
 	cmd.WaitDelay = time.Second
 	if cmd.Start() != nil {
@@ -182,21 +182,4 @@ func waitForProbeJob(job, port windows.Handle, cpu time.Duration, memoryThreshol
 
 func probeWorkerError(detail string) *workflows.Failure {
 	return &workflows.Failure{Reason: workflows.ReasonProbeError, Detail: detail}
-}
-
-type limitedProbeOutput struct {
-	data     []byte
-	limit    int
-	exceeded bool
-	cancel   context.CancelFunc
-}
-
-func (w *limitedProbeOutput) Write(p []byte) (int, error) {
-	if len(p) > w.limit-len(w.data) {
-		w.exceeded = true
-		w.cancel()
-		return 0, errors.New("probe worker output limit reached")
-	}
-	w.data = append(w.data, p...)
-	return len(p), nil
 }

@@ -152,26 +152,34 @@ func postMeshEvidence(ctx context.Context, client *http.Client, key ed25519.Publ
 	return ack, nil
 }
 
-// loadControllerPublicKey reads a pinned Ed25519 key in PKIX PEM format.
 func loadControllerPublicKey(path string) (ed25519.PublicKey, error) {
+	key, err := loadPinnedEd25519Key(path)
+	if err != nil {
+		return nil, fmt.Errorf("controller %w", err)
+	}
+	return key, nil
+}
+
+// loadPinnedEd25519Key reads a configured Ed25519 trust root in PKIX PEM format.
+func loadPinnedEd25519Key(path string) (ed25519.PublicKey, error) {
 	const maxKey = 16 << 10
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.New("controller key file is unreadable")
+		return nil, errors.New("key file is unreadable")
 	}
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, maxKey+1))
 	if err != nil || len(data) > maxKey {
-		return nil, errors.New("controller key file is unreadable or too large")
+		return nil, errors.New("key file is unreadable or too large")
 	}
 	block, _ := pem.Decode(data)
 	if block == nil || block.Type != "PUBLIC KEY" {
-		return nil, errors.New("controller key file must be a PEM public key")
+		return nil, errors.New("key file must be a PEM public key")
 	}
 	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
 	key, ok := parsed.(ed25519.PublicKey)
 	if err != nil || !ok {
-		return nil, errors.New("controller key file must hold an Ed25519 public key")
+		return nil, errors.New("key file must hold an Ed25519 public key")
 	}
 	return key, nil
 }
