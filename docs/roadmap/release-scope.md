@@ -59,15 +59,15 @@ decision or missing evidence.
 | Model and evidence explanations | Included / excluded | Inspectable evidence and existing dashboard explanation work stay in scope. LIME, SHAP and generated explanations are excluded. A model explanation claim requires provenance from a qualified model. |
 | Team scoring, patch-delay penalties and gamification | Excluded | Device health and sustainability scoring remain device-level work. Staff monitoring, incentives, and patch deployment are excluded. |
 | Refurbishment and disposal marketplace | Excluded | Evidence-backed lifecycle analysis remains in scope. Vendor recommendations, transactions and marketplace adapters are excluded. |
-| External asset-system integration | Blocked | No vendor, adapter contract, fields, credentials, retention policy or acceptance run is selected. Internal inventory and authorized console views remain included. |
-| Independent network observation | Blocked | The source does not resolve the observer, provenance, permissions, trust boundary, retention or acceptance criteria. Existing endpoint measurements and mesh transport remain in scope. |
+| External asset-system integration | Blocked | No vendor, adapter contract, fields, credentials, retention policy or acceptance run is selected. Internal inventory and authorized console views remain included. Release owner @jR4dh3y owns any later rebaseline for this block. |
+| Independent network observation | Blocked | The source does not resolve the observer, provenance, permissions, trust boundary, retention or acceptance criteria. Existing endpoint measurements and mesh transport remain in scope. Release owner @jR4dh3y owns any later rebaseline for this block. |
 | Blockchain audit and AI cybersecurity | Included / blocked / excluded | #47 selects Base Mainnet for blinded commitments. Release anchoring depends on deployment, signer and finality evidence in the chain work. Raw logs and device identifiers stay off-chain. Broad AI cybersecurity automation is excluded. |
 | Retained handoff exclusions | Excluded | Jev, Shepherd configuration management, Nix build workers, MDM, package deployment, unrestricted shell agents and automatic remediation remain outside V1. |
 
 Each blocked row remains unavailable for an applicable release claim. Closing
 this reconciliation records the disposition. An unresolved source conflict
 keeps the corresponding release gate blocked. The
-[measured capability matrix](../validation.md) supplies the separate
+[measured capability matrix](../requirements.md#measured-release-capability-matrix-cap01-58) supplies the separate
 evidence-based release gate.
 
 CAP02 selects no additional capability. A later selection requires the
