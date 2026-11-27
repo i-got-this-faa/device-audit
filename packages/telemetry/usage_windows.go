@@ -30,6 +30,15 @@ func sampleProcessOS() (osSample, error) {
 	}
 	cpu := filetimeTicksToDuration(uint32(kernel.HighDateTime), uint32(kernel.LowDateTime)) +
 		filetimeTicksToDuration(uint32(user.HighDateTime), uint32(user.LowDateTime))
+	rss, peak, err := WindowsProcessWorkingSet(handle)
+	if err != nil {
+		return osSample{}, err
+	}
+	return osSample{CPU: cpu, RSS: rss, PeakRSS: peak}, nil
+}
+
+// WindowsProcessWorkingSet returns current and peak resident bytes from the OS.
+func WindowsProcessWorkingSet(handle windows.Handle) (current, peak uint64, err error) {
 	psapi := windows.NewLazySystemDLL("psapi.dll")
 	proc := psapi.NewProc("GetProcessMemoryInfo")
 	var counters processMemoryCounters
@@ -37,9 +46,9 @@ func sampleProcessOS() (osSample, error) {
 	r, _, callErr := proc.Call(uintptr(handle), uintptr(unsafe.Pointer(&counters)), uintptr(counters.cb))
 	if r == 0 {
 		if callErr != nil {
-			return osSample{}, fmt.Errorf("telemetry: process memory: %w", callErr)
+			return 0, 0, fmt.Errorf("telemetry: process memory: %w", callErr)
 		}
-		return osSample{}, fmt.Errorf("telemetry: process memory read failed")
+		return 0, 0, fmt.Errorf("telemetry: process memory read failed")
 	}
-	return osSample{CPU: cpu, RSS: uint64(counters.WorkingSetSize), PeakRSS: uint64(counters.PeakWorkingSetSize)}, nil
+	return uint64(counters.WorkingSetSize), uint64(counters.PeakWorkingSetSize), nil
 }

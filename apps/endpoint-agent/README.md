@@ -481,3 +481,8 @@ service log. The evidence reference identifies the signed telemetry snapshot
 that triggered the inference. No prediction transport or model promotion is
 introduced in this change. Issue #104 owns physical Windows LocalService
 resource and interference measurements.
+
+On Windows the worker is also restricted to 250 ms CPU and a 64 MiB working
+set. The parent discards responses taking over 1 s and terminates the child
+at the 2 s timeout. The [Windows budget harness](../../tools/inference/README.md)
+records how to measure these limits alongside real 60-second sensor sampling.

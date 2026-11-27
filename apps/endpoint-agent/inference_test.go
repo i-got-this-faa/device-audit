@@ -10,9 +10,12 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"io"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -172,12 +175,20 @@ func TestInferenceWorkerEnforcesActivationAndEvaluation(t *testing.T) {
 
 func TestInferenceSubprocess(t *testing.T) {
 	if len(os.Args) > 1 && os.Args[len(os.Args)-2] == "--" {
+		mode := os.Args[len(os.Args)-1]
+		if mode != "infer" {
+			if _, err := io.ReadAll(os.Stdin); err != nil {
+				os.Exit(44)
+			}
+		}
 		switch os.Args[len(os.Args)-1] {
 		case "crash":
 			os.Exit(42)
 		case "hang":
 			time.Sleep(time.Minute)
 			os.Exit(43)
+		case "memory", "cpu":
+			exhaustInferenceTestBudget(mode)
 		case "infer":
 			os.Exit(runInferenceWorker(os.Stdin, os.Stdout, os.Stderr))
 		}
@@ -190,13 +201,31 @@ func TestInferenceSubprocess(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("GORACE", "atexit_sleep_ms=0")
+	worker := os.Args[0]
+	modes := []string{"crash", "hang"}
+	if runtime.GOOS == "windows" {
+		worker = filepath.Join(t.TempDir(), "inference-worker.test.exe")
+		if data, err := exec.Command("go", "test", "-c", "-race=false", "-o", worker, ".").CombinedOutput(); err != nil {
+			t.Fatalf("build isolated worker: %v %s", err, data)
+		}
+		modes = append(modes, "memory", "cpu")
+	}
 	child := func(mode string) inferenceRunner {
 		return func(ctx context.Context, _ inferenceRequest) (inferenceResult, error) {
-			return runInferenceProcess(ctx, req, os.Args[0], "-test.run=^TestInferenceSubprocess$", "--", mode)
+			result, usage, err := measureInferenceProcess(ctx, req, worker, "-test.run=^TestInferenceSubprocess$", "--", mode)
+			if mode == "hang" && !errors.Is(err, context.DeadlineExceeded) ||
+				mode == "memory" && !errors.Is(err, errInferenceMemory) ||
+				mode == "cpu" && !errors.Is(err, errInferenceCPU) {
+				t.Errorf("%s budget: %v, %+v", mode, err, usage)
+			}
+			if mode == "infer" && runtime.GOOS == "windows" && (usage.PeakRSS == 0 || usage.Latency <= 0) {
+				t.Errorf("missing Windows accounting: %+v", usage)
+			}
+			return result, err
 		}
 	}
 	sample := inferenceSample{deviceID: "fixture-device", digest: strings.Repeat("a", 64), at: at}
-	for _, mode := range []string{"crash", "hang"} {
+	for _, mode := range modes {
 		got := predictSample(t.Context(), req.Config, sample, at, child(mode))
 		if got.Validate() != nil || got.Health.Status != "unknown" || got.Health.UnknownReason != "model_unavailable" || got.Model != nil {
 			t.Fatalf("%s reply = %+v", mode, got)
