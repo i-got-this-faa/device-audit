@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"sort"
 	"sync"
@@ -32,6 +33,32 @@ func (s *sweepStarts) record(source string, at time.Time) {
 	}
 	s.previous[source] = at
 	s.count[source]++
+}
+
+// snapshot includes sources that have stopped starting sweeps and returns
+// independent counters because a provider may still run after cancellation.
+func (s *sweepStarts) snapshot(at time.Time) (map[string]int, time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delay := s.maxDelay
+	for _, previous := range s.previous {
+		delay = max(delay, at.Sub(previous)-inferenceSweepCadence)
+	}
+	return maps.Clone(s.count), delay
+}
+
+func TestInferenceSweepSnapshot(t *testing.T) {
+	starts := sweepStarts{previous: make(map[string]time.Time), count: make(map[string]int)}
+	start := time.Now()
+	starts.record("stalled", start)
+	starts.record("stalled", start.Add(inferenceSweepCadence))
+	starts.record("healthy", start)
+	starts.record("healthy", start.Add(2*inferenceSweepCadence))
+	counts, delay := starts.snapshot(start.Add(4 * inferenceSweepCadence))
+	starts.record("stalled", start.Add(4*inferenceSweepCadence))
+	if counts["stalled"] != 2 || counts["healthy"] != 2 || delay != 2*inferenceSweepCadence {
+		t.Fatalf("counts=%v delay=%s", counts, delay)
+	}
 }
 
 // TestMeasureInferenceWindows is an opt-in physical-host harness. It replays
@@ -162,14 +189,15 @@ func TestMeasureInferenceWindows(t *testing.T) {
 	default:
 	}
 	waitSweep()
+	counts, maxDelay := starts.snapshot(time.Now())
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
 	sort.Float64s(latencies)
-	var maxSweepDelay any = float64(starts.maxDelay) / float64(time.Millisecond)
+	var maxSweepDelay any = float64(maxDelay) / float64(time.Millisecond)
 	for _, schedule := range cfg.Sources {
-		if starts.count[schedule.Source] < 2 {
+		if counts[schedule.Source] < 2 {
 			maxSweepDelay = nil
 			break
 		}
@@ -178,7 +206,7 @@ func TestMeasureInferenceWindows(t *testing.T) {
 		"schema_version": "device-audit.resource-report.v1", "budget": "endpoint_inference",
 		"policy_sha256": inferencePolicy, "host": host, "artifact_bytes": artifactBytes,
 		"artifact_sha256": manifest.ArtifactSHA256, "request_sha256": fmt.Sprintf("%x", sha256.Sum256(request)),
-		"model_version": manifest.ModelVersion, "sweep_starts_by_source": starts.count,
+		"model_version": manifest.ModelVersion, "sweep_starts_by_source": counts,
 		"go_version": telemetry.CurrentHost().GoVersion, "os_version": telemetry.CurrentHost().OSVersion,
 		"predictions": count - len(failures), "attempts": attempts, "failures": failures,
 		"prediction_interval_seconds": minInterval.Seconds(),
