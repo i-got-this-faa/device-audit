@@ -2,8 +2,15 @@
 
 package main
 
-import "os/exec"
+import (
+	"bytes"
+	"context"
+	"os/exec"
+)
 
-func configureInferenceProcess(cmd *exec.Cmd) {
+func runInferenceChild(_ context.Context, cmd *exec.Cmd, data []byte) (inferenceUsage, error) {
 	cmd.Env = append(cmd.Environ(), "GOMAXPROCS=1")
+	cmd.Stdin = bytes.NewReader(data)
+	err := cmd.Run()
+	return inferenceUsage{}, err
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -20,12 +19,32 @@ import (
 )
 
 const (
-	inferenceCadence = time.Hour
-	inferenceTimeout = 2 * time.Second
-	inferencePolicy  = "9a5d1e1e490b81b701cd86fb739d80a3b4bdbe2330c489d38265ec40e84e3d48"
-	inferenceHorizon = 168
-	maxModelMetadata = 128 << 10
+	inferenceCadence    = time.Hour
+	inferenceTimeout    = 2 * time.Second
+	inferenceMaxLatency = time.Second
+	inferencePolicy     = "9a5d1e1e490b81b701cd86fb739d80a3b4bdbe2330c489d38265ec40e84e3d48"
+	inferenceHorizon    = 168
+	maxModelMetadata    = 128 << 10
 )
+
+var (
+	errInferenceCPU     = errors.New("cpu_budget")
+	errInferenceMemory  = errors.New("memory_budget")
+	errInferenceLatency = errors.New("latency_budget")
+	errInferenceOutput  = errors.New("output_budget")
+)
+
+func inferenceFailureCode(err error) string {
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return "timeout"
+	case errors.Is(err, errInferenceCPU), errors.Is(err, errInferenceMemory),
+		errors.Is(err, errInferenceLatency), errors.Is(err, errInferenceOutput):
+		return err.Error()
+	default:
+		return "worker_unavailable"
+	}
+}
 
 type inferenceConfig struct {
 	ManifestFile     string `json:"manifest_file"`
@@ -128,29 +147,7 @@ func infer(req inferenceRequest) (inferenceResult, error) {
 		}
 		return inferenceResult{}, err
 	}
-	c := req.Config
-	manifestBytes, err := readInferenceFile(c.ManifestFile, maxModelMetadata)
-	if err != nil {
-		return inferenceResult{}, err
-	}
-	var manifest contracts.ModelManifestV1
-	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
-		return inferenceResult{}, err
-	}
-	key, err := loadPinnedEd25519Key(c.PublisherKeyFile)
-	if err != nil {
-		return inferenceResult{}, err
-	}
-	artifact, err := readInferenceFile(c.ArtifactFile, contracts.ModelArtifactMaxBytesV1)
-	if err != nil {
-		return inferenceResult{}, err
-	}
-	if err := manifest.CheckActivation(contracts.ModelActivationV1{
-		Runtime: health.EndpointInferenceRuntime(), Purpose: "inference", Artifact: artifact, TrustedKey: key,
-	}); err != nil {
-		return inferenceResult{}, err
-	}
-	report, err := approvedEvaluation(c, manifest)
+	manifest, artifact, report, err := loadInferenceBundle(req.Config)
 	if err != nil {
 		return inferenceResult{}, err
 	}
@@ -171,6 +168,35 @@ func infer(req inferenceRequest) (inferenceResult, error) {
 		Model:  &contracts.ModelReferenceV2{Version: manifest.ModelVersion, SHA256: manifest.ArtifactSHA256},
 		Health: contracts.HealthV2{Status: status, Probability: &p, ProbabilityUnit: "probability", HorizonHours: &report.HorizonHours},
 	}, nil
+}
+
+func loadInferenceBundle(c inferenceConfig) (contracts.ModelManifestV1, []byte, inferenceEvaluation, error) {
+	var manifest contracts.ModelManifestV1
+	manifestBytes, err := readInferenceFile(c.ManifestFile, maxModelMetadata)
+	if err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	key, err := loadPinnedEd25519Key(c.PublisherKeyFile)
+	if err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	artifact, err := readInferenceFile(c.ArtifactFile, contracts.ModelArtifactMaxBytesV1)
+	if err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	if err := manifest.CheckActivation(contracts.ModelActivationV1{
+		Runtime: health.EndpointInferenceRuntime(), Purpose: "inference", Artifact: artifact, TrustedKey: key,
+	}); err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	report, err := approvedEvaluation(c, manifest)
+	if err != nil {
+		return manifest, nil, inferenceEvaluation{}, err
+	}
+	return manifest, artifact, report, nil
 }
 
 func runInferenceWorker(in io.Reader, out, stderr io.Writer) int {
@@ -203,26 +229,47 @@ func executeInferenceWorker(ctx context.Context, req inferenceRequest) (inferenc
 }
 
 func runInferenceProcess(ctx context.Context, req inferenceRequest, path string, args ...string) (inferenceResult, error) {
-	ctx, cancel := context.WithCancel(ctx)
+	result, _, err := measureInferenceProcess(ctx, req, path, args...)
+	return result, err
+}
+
+type inferenceUsage struct {
+	Latency time.Duration
+	CPU     time.Duration
+	PeakRSS uint64
+}
+
+func measureInferenceProcess(ctx context.Context, req inferenceRequest, path string, args ...string) (inferenceResult, inferenceUsage, error) {
+	start := time.Now()
+	ctx, cancel := context.WithTimeout(ctx, inferenceTimeout)
 	defer cancel()
 	data, err := json.Marshal(req)
 	if err != nil {
-		return inferenceResult{}, err
+		return inferenceResult{}, inferenceUsage{}, err
 	}
 	cmd := exec.CommandContext(ctx, path, args...)
-	cmd.Stdin = bytes.NewReader(data)
 	cmd.WaitDelay = 100 * time.Millisecond
 	output := &limitedWorkerOutput{limit: 4096, cancel: cancel}
 	cmd.Stdout = output
-	configureInferenceProcess(cmd)
-	if err := cmd.Run(); err != nil || output.exceeded {
-		return inferenceResult{}, errors.New("inference worker failed")
+	usage, err := runInferenceChild(ctx, cmd, data)
+	usage.Latency = time.Since(start)
+	if output.exceeded {
+		return inferenceResult{}, usage, errInferenceOutput
+	}
+	if ctx.Err() != nil {
+		return inferenceResult{}, usage, ctx.Err()
+	}
+	if err != nil {
+		return inferenceResult{}, usage, err
+	}
+	if usage.Latency > inferenceMaxLatency {
+		return inferenceResult{}, usage, errInferenceLatency
 	}
 	var result inferenceResult
 	if err := json.Unmarshal(output.data, &result); err != nil {
-		return inferenceResult{}, errors.New("invalid inference worker reply")
+		return inferenceResult{}, usage, errors.New("invalid inference worker reply")
 	}
-	return result, nil
+	return result, usage, nil
 }
 
 type inferenceSample struct {

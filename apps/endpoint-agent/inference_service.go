@@ -26,6 +26,13 @@ func startServiceInference(ctx context.Context, config *inferenceConfig, run inf
 	worker := &serviceInference{
 		queue: make(chan inferenceSample, 1), cancel: cancel, done: make(chan struct{}),
 	}
+	loggedRun := func(ctx context.Context, req inferenceRequest) (inferenceResult, error) {
+		result, err := run(ctx, req)
+		if err != nil {
+			logf("endpoint inference unavailable: %s", inferenceFailureCode(err))
+		}
+		return result, err
+	}
 	go func() {
 		defer close(worker.done)
 		for {
@@ -36,7 +43,7 @@ func startServiceInference(ctx context.Context, config *inferenceConfig, run inf
 				if ctx.Err() != nil {
 					return
 				}
-				prediction := predictSample(ctx, *config, sample, time.Now().UTC(), run)
+				prediction := predictSample(ctx, *config, sample, time.Now().UTC(), loggedRun)
 				if data, err := json.Marshal(prediction); err == nil && ctx.Err() == nil {
 					logf("endpoint inference: %s", data)
 				}
