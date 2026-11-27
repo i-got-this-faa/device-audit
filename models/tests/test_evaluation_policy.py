@@ -196,7 +196,9 @@ class EvaluationGateTests(unittest.TestCase):
                                  [g["value"] for g in self.policy["gates"]])
 
     def test_unavailable_metrics_block(self):
-        for change in ({"calibration_slope": None}, {"roc_auc": {"point": 0.8, "lower": None, "upper": 0.9}},
+        for change in ({"calibration_slope": None},
+                       {"calibration_slope": {"point": 1.0}},
+                       {"roc_auc": {"point": 0.8, "lower": None, "upper": 0.9}},
                        {"event_recall_within_horizon": {"point": float("nan"), "lower": 0.2, "upper": 0.5}}):
             report = copy.deepcopy(self.report)
             report["metrics"].update(change)

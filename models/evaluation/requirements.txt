@@ -1,0 +1,2 @@
+# Offline ML06 metric computation and device-clustered resampling.
+numpy==2.5.5

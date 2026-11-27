@@ -361,6 +361,11 @@ def fit_examples(pairs: Iterator[tuple[partitions.Example, dict | None]], policy
 
 def predict_probability(artifact: dict, values: list[float]) -> float:
     """Probability from a loaded artifact. This does not assign a health label."""
+    return _sigmoid(predict_logit(artifact, values))
+
+
+def predict_logit(artifact: dict, values: list[float]) -> float:
+    """Clipped predictor before sigmoid rounding at the probability limits."""
     if len(values) != WIDTH or any(type(value) not in (int, float) or isinstance(value, bool)
                                    or not math.isfinite(value) for value in values):
         raise TrainingRefusal("prediction requires the six finite frozen features")
@@ -375,7 +380,7 @@ def predict_probability(artifact: dict, values: list[float]) -> float:
         score = clip
     elif score < -clip:
         score = -clip
-    return _sigmoid(score)
+    return score
 
 
 def load_artifact(payload: bytes) -> dict:
@@ -451,7 +456,7 @@ def provenance_document(spec: dict, spec_sha256: str, dataset: dict, splits: dic
     }
 
 
-def _bind_study(policy_json: dict, manifest_bytes: bytes, evaluation: dict) -> tuple[dict, str, str]:
+def bind_study(policy_json: dict, manifest_bytes: bytes, evaluation: dict) -> tuple[dict, str, str]:
     study = evaluation["study"]
     # ML05 pins the canonical policy object, not the policy file's whitespace.
     policy_sha = hashlib.sha256(partitions.canonical(policy_json)).hexdigest()
@@ -508,7 +513,7 @@ def _train_include(example: partitions.Example) -> bool:
 def train_archive(archive: Path, policy_json: dict, manifest_bytes: bytes, evaluation: dict, spec: dict,
                   spec_bytes: bytes) -> tuple[bytes, dict]:
     started = time.perf_counter()
-    manifest, policy_sha, manifest_sha = _bind_study(policy_json, manifest_bytes, evaluation)
+    manifest, policy_sha, manifest_sha = bind_study(policy_json, manifest_bytes, evaluation)
     policy = partitions.Policy.load(policy_json)
     if partitions.sha256_file(archive) != policy.source["sha256"]:
         raise TrainingRefusal("archive SHA-256 does not match the pinned dataset")

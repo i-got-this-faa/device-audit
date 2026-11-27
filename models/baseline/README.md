@@ -5,12 +5,10 @@ train partition and saved as an artifact plus a provenance record. The
 hyperparameters in [`training-spec.json`](training-spec.json) were fixed before
 the fit. They were not searched on validation or test.
 
-This is not a hosted Jev model, not a synthetic stand-in, and not an evaluated
-predictor. #103 scores it against the [ML05 gates](../evaluation/README.md).
-Nothing here assigns `healthy`, `degraded` or `critical`. The artifact has no
-publisher signature, so a CT10 activation check cannot accept it. No raw log,
-serial number or device key is written to a chain; the provenance stores
-digests and counts.
+The [ML06 report](../evaluation/results/logistic-baseline.backblaze-2013.v1.json)
+records this artifact's held-out result against the ML05 gates. The artifact
+is unsigned and remains ineligible for CT10 activation. The provenance
+contains aggregate counts and digests.
 
 ## What is fit
 
@@ -51,7 +49,7 @@ weights. The moments are training state, not a federated update.
 - rerun tolerance: `abs(actual - declared) <= 1e-8 + 1e-7 * abs(declared)`
 - observed wall time, peak RSS and one logical processor
 
-`claims` are all false: not evaluated, not endpoint-qualified, not Jev, not
+`claims` describe the training run and are all false: not evaluated, not endpoint-qualified, not Jev, not
 publisher-signed, not on-chain, and not trained on synthetic rows.
 
 ## Reproduce

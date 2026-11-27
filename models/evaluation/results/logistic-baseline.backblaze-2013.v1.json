@@ -1,0 +1,296 @@
+{
+  "bootstrap": {
+    "interval": 0.95,
+    "method": "percentile",
+    "replicates": 2000,
+    "seed": 86,
+    "unit": "device"
+  },
+  "counts": {
+    "test_devices": 4047,
+    "test_negative_windows": 186676,
+    "test_positive_events": 45,
+    "test_positive_windows": 278,
+    "validation_negative_windows": 20131
+  },
+  "gate": {
+    "blocking_reasons": [],
+    "checks": [
+      {
+        "bound": "lower",
+        "id": "baseline_average_precision",
+        "kind": "baseline",
+        "metric": "average_precision_minus_best_baseline",
+        "observed": -0.015303627509302024,
+        "op": ">",
+        "status": "fail",
+        "threshold": 0.0
+      },
+      {
+        "bound": "lower",
+        "id": "baseline_event_recall",
+        "kind": "baseline",
+        "metric": "event_recall_minus_smart_rule",
+        "observed": 0.023809523809523836,
+        "op": ">=",
+        "status": "pass",
+        "threshold": -0.05
+      },
+      {
+        "bound": "lower",
+        "id": "discrimination_roc_auc",
+        "kind": "baseline",
+        "metric": "roc_auc",
+        "observed": 0.8198030208034137,
+        "op": ">=",
+        "status": "pass",
+        "threshold": 0.7
+      },
+      {
+        "bound": "upper",
+        "id": "window_fpr_degraded",
+        "kind": "false_positive",
+        "metric": "window_false_positive_rate_degraded",
+        "observed": 0.007325598902076352,
+        "op": "<=",
+        "status": "pass",
+        "threshold": 0.01
+      },
+      {
+        "bound": "upper",
+        "id": "window_fpr_critical",
+        "kind": "false_positive",
+        "metric": "window_false_positive_rate_critical",
+        "observed": 0.0014587168570798705,
+        "op": "<=",
+        "status": "pass",
+        "threshold": 0.002
+      },
+      {
+        "bound": "upper",
+        "id": "device_false_alarm",
+        "kind": "false_positive",
+        "metric": "never_positive_device_alert_fraction",
+        "observed": 0.014481897627965043,
+        "op": "<=",
+        "status": "pass",
+        "threshold": 0.1
+      },
+      {
+        "bound": "lower",
+        "id": "brier_skill",
+        "kind": "calibration",
+        "metric": "brier_skill_vs_prevalence",
+        "observed": -92.17581309212109,
+        "op": ">",
+        "status": "fail",
+        "threshold": 0.0
+      },
+      {
+        "bound": "point",
+        "id": "observed_expected_low",
+        "kind": "calibration",
+        "metric": "observed_to_expected_ratio",
+        "observed": 0.005172207461936505,
+        "op": ">=",
+        "status": "fail",
+        "threshold": 0.67
+      },
+      {
+        "bound": "point",
+        "id": "observed_expected_high",
+        "kind": "calibration",
+        "metric": "observed_to_expected_ratio",
+        "observed": 0.005172207461936505,
+        "op": "<=",
+        "status": "pass",
+        "threshold": 1.5
+      },
+      {
+        "bound": "point",
+        "id": "calibration_slope_low",
+        "kind": "calibration",
+        "metric": "calibration_slope",
+        "observed": 0.63713851565214,
+        "op": ">=",
+        "status": "fail",
+        "threshold": 0.7
+      },
+      {
+        "bound": "point",
+        "id": "calibration_slope_high",
+        "kind": "calibration",
+        "metric": "calibration_slope",
+        "observed": 0.63713851565214,
+        "op": "<=",
+        "status": "pass",
+        "threshold": 1.3
+      },
+      {
+        "bound": "point",
+        "id": "event_recall_point",
+        "kind": "horizon",
+        "metric": "event_recall_within_horizon",
+        "observed": 0.5555555555555556,
+        "op": ">=",
+        "status": "pass",
+        "threshold": 0.3
+      },
+      {
+        "bound": "lower",
+        "id": "event_recall_lower",
+        "kind": "horizon",
+        "metric": "event_recall_within_horizon",
+        "observed": 0.40622888513513516,
+        "op": ">=",
+        "status": "pass",
+        "threshold": 0.15
+      },
+      {
+        "bound": "point",
+        "id": "median_lead_time",
+        "kind": "horizon",
+        "metric": "median_first_alert_lead_days",
+        "observed": 7.0,
+        "op": ">=",
+        "status": "pass",
+        "threshold": 2.0
+      }
+    ],
+    "counts": {
+      "test_devices": 4047,
+      "test_negative_windows": 186676,
+      "test_positive_events": 45,
+      "test_positive_windows": 278,
+      "validation_negative_windows": 20131
+    },
+    "evaluation": "held_out",
+    "model": {
+      "artifact_sha256": "e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8",
+      "version": "logistic-baseline.backblaze-2013.v1"
+    },
+    "policy_sha256": "9a5d1e1e490b81b701cd86fb739d80a3b4bdbe2330c489d38265ec40e84e3d48",
+    "schema_version": "device-audit.evaluation-gate.v1",
+    "status": "fail"
+  },
+  "horizon_hours": 168,
+  "label_status": "both_classes_present",
+  "metrics": {
+    "average_precision": {
+      "defined_replicates": 2000,
+      "lower": 0.06746763116458161,
+      "point": 0.14244404706908073,
+      "upper": 0.24129452564671247
+    },
+    "average_precision_minus_best_baseline": {
+      "defined_replicates": 2000,
+      "lower": -0.015303627509302024,
+      "point": 0.046035695023772596,
+      "upper": 0.10940135415818901
+    },
+    "brier_skill_vs_prevalence": {
+      "defined_replicates": 2000,
+      "lower": -92.17581309212109,
+      "point": -65.37610525960856,
+      "upper": -49.47862553634659
+    },
+    "calibration_slope": {
+      "defined_replicates": 1994,
+      "lower": 0.5640871488242697,
+      "point": 0.63713851565214,
+      "upper": 0.7270361975116344
+    },
+    "event_recall_minus_smart_rule": {
+      "defined_replicates": 2000,
+      "lower": 0.023809523809523836,
+      "point": 0.1777777777777778,
+      "upper": 0.33333333333333337
+    },
+    "event_recall_within_horizon": {
+      "defined_replicates": 2000,
+      "lower": 0.40622888513513516,
+      "point": 0.5555555555555556,
+      "upper": 0.7
+    },
+    "median_first_alert_lead_days": {
+      "defined_replicates": 2000,
+      "lower": 6.0,
+      "point": 7.0,
+      "upper": 7.0
+    },
+    "never_positive_device_alert_fraction": {
+      "defined_replicates": 2000,
+      "lower": 0.008241706795077582,
+      "point": 0.011244377811094454,
+      "upper": 0.014481897627965043
+    },
+    "observed_to_expected_ratio": {
+      "defined_replicates": 2000,
+      "lower": 0.0036926964112464875,
+      "point": 0.005172207461936505,
+      "upper": 0.006801468126477232
+    },
+    "prevalence_average_precision": {
+      "defined_replicates": 2000,
+      "lower": 0.0010580487211945247,
+      "point": 0.0014869968013522042,
+      "upper": 0.0019674598273531347
+    },
+    "roc_auc": {
+      "defined_replicates": 2000,
+      "lower": 0.8198030208034137,
+      "point": 0.8871884900102374,
+      "upper": 0.9423271462405516
+    },
+    "smart_rule_average_precision": {
+      "defined_replicates": 2000,
+      "lower": 0.04477010206770148,
+      "point": 0.09640835204530813,
+      "upper": 0.178130671060555
+    },
+    "smart_rule_event_recall": {
+      "defined_replicates": 2000,
+      "lower": 0.23683014354066986,
+      "point": 0.37777777777777777,
+      "upper": 0.5128378378378377
+    },
+    "window_false_positive_rate_critical": {
+      "defined_replicates": 2000,
+      "lower": 0.0004024123929173465,
+      "point": 0.0008624568771561422,
+      "upper": 0.0014587168570798705
+    },
+    "window_false_positive_rate_degraded": {
+      "defined_replicates": 2000,
+      "lower": 0.003839518534550313,
+      "point": 0.005506867513767169,
+      "upper": 0.007325598902076352
+    }
+  },
+  "model": {
+    "artifact_sha256": "e5cbc59e4bb6cebe348e7d3edfab1bbe998720ed27c3445f1409b7ecc7c3d3c8",
+    "version": "logistic-baseline.backblaze-2013.v1"
+  },
+  "numpy_version": "2.5.5",
+  "operating_points": {
+    "critical_logit": 7.279601398505936,
+    "degraded_logit": 3.204380431341476,
+    "smart_degraded_raw_sum": 637,
+    "validation_false_positive_windows": {
+      "critical": 20,
+      "degraded": 100,
+      "smart_degraded": 98
+    }
+  },
+  "partition": "test",
+  "partition_examples_sha256": {
+    "test": "e68a3a8d8150753278dbd8f2ce2f604aa5560998afced1601814d6129e31de61",
+    "train": "25e5e4c2cce259ae4e23d5699fc2eba832f44a3d0c8cf0dc147d000e5239fd85",
+    "validation": "005f4cb5dcce8c9a7ea03bab075b8865cc677da6e2325f046cecf39c754865ba"
+  },
+  "partition_manifest_sha256": "a786dfefa4254308b65d7fd2a9d5a785976b2dc22b8ab26892e4b2f60a1be025",
+  "policy_sha256": "9a5d1e1e490b81b701cd86fb739d80a3b4bdbe2330c489d38265ec40e84e3d48",
+  "schema_version": "device-audit.evaluation-report.v1",
+  "test_evaluations_for_candidate": 1,
+  "train_positive_window_prevalence": 0.0008748204253030381
+}

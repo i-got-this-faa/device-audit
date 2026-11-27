@@ -51,6 +51,15 @@ def training_vectors(days: Iterable[tuple[date, dict[str, partitions.Observation
     example is still yielded and ``features.compute`` is not called; the vector
     is ``None``. ``None`` is a skipped window, not an incomplete vector.
     """
+    for example, payload in example_windows(days, policy, excluded, include):
+        yield example, features.compute(payload) if payload is not None else None
+
+
+def example_windows(days: Iterable[tuple[date, dict[str, partitions.Observation]]],
+                    policy: partitions.Policy, excluded: dict[str, int],
+                    include: Callable[[partitions.Example], bool] | None = None,
+                    ) -> Iterator[tuple[partitions.Example, dict | None]]:
+    """Expose the same source window for CT03 and the SMART comparator."""
     if policy.history_days != features.WINDOW_DAYS:
         raise ValueError(f"policy history of {policy.history_days} days differs from the {features.WINDOW_DAYS}-day feature window")
     retained: dict[date, dict[str, partitions.Observation]] = {}
@@ -69,7 +78,7 @@ def training_vectors(days: Iterable[tuple[date, dict[str, partitions.Observation
             continue
         start = date.fromisoformat(example.feature_start)
         history = [(start + DAY * n, retained[start + DAY * n][example.device_key]) for n in range(policy.history_days)]
-        yield example, features.compute(window(date.fromisoformat(example.anchor), history))
+        yield example, window(date.fromisoformat(example.anchor), history)
 
 
 def model_input(vector: dict) -> list[float]:

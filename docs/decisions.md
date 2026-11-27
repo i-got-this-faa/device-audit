@@ -14,7 +14,7 @@ discussion can drift and does not automatically become product scope.
 | Bespoke prediction model, no Jev | Explicit user statement in handoff 17 | Selected. #33 packages a standard-library L2 logistic baseline on the ML01 study. A larger architecture and endpoint qualification remain open. The artifact is not an ML05 pass. |
 | Local training + central aggregation | Handoff 15ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“17; supplied claims 1/4/8, pp.26-28; [0059]-[0061], pp.13-14 | Core product capability; source references are mapped in SRC05 #72. Two-endpoint training, validated aggregation and evaluated forecast generation remain implementation work. |
 | Smart contracts + cryptographic verification | Explicit user statement in handoff 17; description [0078], p.19 and FIG.2, p.31 | Base Mainnet policy selected under #47; contract/deployment implementation open. Claims 1-10 do not expressly specify blockchain or smart contracts. |
-| Python + PyTorch | Assistant marked proposed in handoff 17 | Python standard library only. #33 selects a logistic baseline and does not add PyTorch. |
+| Python + PyTorch | Assistant marked proposed in handoff 17 | #33 uses the standard library for logistic fitting and inference. #103 uses NumPy in the offline evaluator for device-clustered uncertainty and metrics. |
 | PostgreSQL | Proposed in handoff; provisional decision in #73 below | Selected provisionally for durable storage; pgx connection and migrations implemented in #19; #83 adds a separate transactional signed-device repository, with HTTP integration pending |
 | Windows-first | On 19 October 2026 the owner explicitly requested completion of #14 and confirmed only the existing Windows laptop is available | Select Windows 11 Home Single Language 25H2 x64, build family 26200 with initial baseline 26200.9711, on the available HP Victus 15-fb0xxx/Ryzen 5 5600H/16 GB/AMD plus RTX 3050 laptop configuration. Select LocalService with a per-service state SID and default privileges for service implementation. This engineering decision takes effect through review/merge of the #14 decision PR; it is not prior owner approval of every detail or release qualification. Exact boundaries, evidence and remaining gates are in [release scope](roadmap/release-scope.md). |
 | Additional endpoint platforms | #14 decision task, 19 October 2026; no additional real endpoint is available | Exclude other Windows editions/versions/architectures/hardware, Linux, macOS, Android, iOS/iPadOS, ChromeOS, BSD and all other OS/device combinations from V1 endpoint support claims. Keep portability checks and Linux development/controller/relay hosting separate. No planned task is removed. See the exhaustive [platform matrix](roadmap/release-scope.md#endpoint-platform-matrix). |
@@ -952,6 +952,12 @@ measurements of a model. #103, #33 and #104 must produce the reports. The
 [ML05 record](../models/evaluation/README.md) and
 [validation notes](validation/model-thresholds-86.md) list the commands and
 limits.
+
+ML06 #103 evaluated the frozen ML02 model once on the ML01 held-out test
+partition. The average-precision improvement bound and three calibration
+gates failed. The result keeps this artifact ineligible for model health
+classification. The [ML06 evidence](../models/evaluation/README.md#ml06-held-out-result)
+records the counts, intervals and operating points.
 
 ## Scoped relay and production fallback settings, NET05 #88
 

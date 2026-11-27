@@ -45,5 +45,6 @@ dependency here, so the caller verifies `signing_bytes` first.
 ML02's [logistic baseline](baseline/README.md) trains on the ML01 train
 partition only, through `training_features`, and writes an artifact plus a
 provenance record. The artifact is not publisher-signed, so CT10 activation
-still refuses it. Held-out partitions are not a fitting option. #103 owns
-scoring it against the ML05 gates.
+still refuses it. ML06's [held-out evaluator](evaluation/README.md) scores it
+against the ML05 gates. The offline evaluator uses NumPy for device-clustered
+resampling and metric computation.

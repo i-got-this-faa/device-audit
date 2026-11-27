@@ -151,6 +151,8 @@ def evaluate_report(policy: dict, report: dict) -> dict:
         blocking.append("model_provenance_missing")
     if report.get("label_status") != "both_classes_present":
         blocking.append("labels_unavailable")
+    if report.get("evaluation_error"):
+        blocking.append("evaluation_error")
     counts = report.get("counts") or {}
     for name, minimum in policy["minimum_evidence"].items():
         value = counts.get(name)
@@ -160,13 +162,16 @@ def evaluate_report(policy: dict, report: dict) -> dict:
             blocking.append(f"insufficient:{name}")
 
     metrics = report.get("metrics") or {}
-    for metric, value in metrics.items():
-        if isinstance(value, dict) and all(_number(value.get(b)) for b in BOUNDS) \
-                and not value["lower"] <= value["point"] <= value["upper"]:
+    for metric in {gate["metric"] for gate in policy["gates"]}:
+        interval = metrics.get(metric)
+        if not isinstance(interval, dict) or not all(_number(interval.get(bound)) for bound in BOUNDS):
+            blocking.append(f"missing_interval:{metric}")
+        elif not interval["lower"] <= interval["point"] <= interval["upper"]:
             blocking.append(f"inconsistent_interval:{metric}")
     checks = []
     for gate in policy["gates"]:
-        observed = (metrics.get(gate["metric"]) or {}).get(gate["bound"])
+        interval = metrics.get(gate["metric"])
+        observed = interval.get(gate["bound"]) if isinstance(interval, dict) else None
         checks.append(_compare(gate["id"], observed, gate["op"], gate["value"],
                                kind=gate["kind"], metric=gate["metric"], bound=gate["bound"]))
     return _result(checks, blocking, {"evaluation": "held_out", "policy_sha256": digest,
