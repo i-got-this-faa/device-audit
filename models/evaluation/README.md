@@ -2,10 +2,9 @@
 
 Decision for #86, declared on 17 November 2026 **before any model was fitted**.
 [`ml05-policy.json`](ml05-policy.json) holds the numbers.
-`device_audit_models.evaluation` checks reports against it. The module computes
-no metric, trains nothing and does not create a validated model. #103 computes
-the metrics. #33 trains the [logistic baseline](../baseline/README.md) and does
-not score it. #104 measures inference on the target laptop.
+`device_audit_models.evaluation` checks reports against it. ML06 #103 computes
+the metrics for the [logistic baseline](../baseline/README.md) trained in #33.
+#104 owns inference measurements on the target laptop.
 
 The policy covers the ML01 [Backblaze 2013 HDD event study](../datasets/backblaze-2013/README.md).
 It pins the partition policy (canonical SHA-256 `f5e1080c…eff8`) and the exact
@@ -119,14 +118,85 @@ development host cannot pass it. On breach, inference returns `unknown` with
 `model_unavailable` and telemetry continues. #104 must demonstrate that
 behavior.
 
+## ML06 held-out result
+
+The [recorded report](results/logistic-baseline.backblaze-2013.v1.json) returns
+`fail` for the ML02 artifact on the pinned Backblaze 2013 study. The report
+covers 4,047 test devices, 45 positive events and all 186,954 eligible test
+windows, including 278 positives. The validation cutoffs used 20,131 negative
+windows and admitted 100 degraded, 20 critical and 98 SMART-rule alerts.
+
+| Held-out metric | Estimate | 95% device-bootstrap interval | ML05 result |
+| --- | ---: | ---: | --- |
+| Average precision difference vs better baseline | +0.0460 | −0.0153 to +0.1094 | Fail |
+| Event recall difference vs SMART rule | +17.8 percentage points | +2.4 to +33.3 points | Pass |
+| ROC AUC | 0.8872 | 0.8198 to 0.9423 | Pass |
+| Degraded window false-positive rate | 0.551% | 0.384% to 0.733% | Pass |
+| Critical window false-positive rate | 0.086% | 0.040% to 0.146% | Pass |
+| Never-positive devices with a degraded alert | 1.12% | 0.82% to 1.45% | Pass |
+| Brier skill vs training prevalence | −65.38 | −92.18 to −49.48 | Fail |
+| Observed/expected positive window ratio | 0.00517 | 0.00369 to 0.00680 | Fail |
+| Calibration slope | 0.637 | 0.564 to 0.727 | Fail |
+| 168-hour event recall | 55.6% | 40.6% to 70.0% | Pass |
+| Median lead time among detected events | 7 days | 6 to 7 days | Pass |
+
+The candidate's average precision was 0.1424, compared with 0.0964 for the
+SMART rule and 0.00149 for the constant prevalence baseline. The calibration
+slope interval uses 1,994 defined replicates. Every other interval uses all
+2,000. The failed gate keeps model health at `unknown`.
+
+The archive was scored once on Linux with Python 3.14.10 and NumPy 2.5.5.
+The initial gate treated NumPy percentile values as missing. The corrected
+gate was replayed from the serialized metrics without rescoring the archive.
+Local checks passed for `make check`, `make cross-build` and `make model-check`
+with the pinned dependencies. Physical endpoint, browser, service and chain
+flows were outside this offline evaluation.
+
+## ML06 report generation
+
+The offline runner checks the candidate's training provenance, archive hash and
+ML01 pins. It regenerates the validation and test streams with the shared CT03
+preprocessor and checks their digests, labels, events and device membership.
+Each test window is scored. Validation contributes negative scores only.
+
+The runner uses inclusive cutoffs on the candidate logits and SMART raw sums.
+If including the next tied group would exceed the validation false-positive
+budget, the whole group stays below the cutoff. SMART sums use the last day
+with both values present and leave all-null scores below measured values.
+Ranking metrics group ties and comparisons use paired bootstrap replicates.
+Each replicate draws one full test cohort of devices with replacement and
+counts every window and event carried by each draw. The report records the
+number of defined replicates for each percentile interval.
+
+The frozen candidate's original probabilities are evaluated as fitted. The
+calibration slope comes from regressing test window labels on the clipped
+candidate logits with a free intercept. Observed/expected divides the number
+of positive test windows by the sum of the predicted probabilities across
+all test windows. For each detected event, lead
+time is measured from its first eligible alert. Brier skill uses the frozen
+training-window prevalence as its reference.
+
+Install the offline dependency with
+`python3 -m pip install -r models/evaluation/requirements.txt`. Use the pinned
+archive described in the [dataset note](../datasets/backblaze-2013/README.md).
+For a new candidate, supply its logistic artifact and paired training
+provenance. Run against the shared `models/evaluation/results/` ledger after
+syncing existing reports. The runner reserves one file per model version before
+scoring and leaves the reservation in place if interrupted. Check an existing
+report with `--report`. Separate checkouts with independent ledgers require
+coordination to preserve the once-only rule.
+
 ## Commands
 
 ```sh
+PYTHONPATH=models/src python3 -m device_audit_models.held_out \
+  --archive artifacts/data_2013.zip --artifact NEW_ARTIFACT.json --provenance NEW_PROVENANCE.json
 PYTHONPATH=models/src python3 -m device_audit_models.evaluation \
   --policy models/evaluation/ml05-policy.json \
   --verify-pins models/datasets/backblaze-2013/policy.json models/datasets/backblaze-2013/partitions.json
 PYTHONPATH=models/src python3 -m device_audit_models.evaluation \
-  --policy models/evaluation/ml05-policy.json --report REPORT.json      # ML06 #103
+  --policy models/evaluation/ml05-policy.json \
+  --report models/evaluation/results/logistic-baseline.backblaze-2013.v1.json
 PYTHONPATH=models/src python3 -m device_audit_models.evaluation \
   --policy models/evaluation/ml05-policy.json --resources RESOURCES.json  # #104 / #33
 ```
