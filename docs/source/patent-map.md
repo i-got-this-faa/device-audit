@@ -161,13 +161,11 @@ referenced tasks and the RQ-10 integration/release gates, not to #72.
 
 ## Broader embodiments, unmatched passages and retained exclusions
 
-"Mapped" means planned work exists; "blocked" means a source/product choice
-or an exact acceptance boundary is still missing. "Excluded" preserves the
-current handoff boundary. These are engineering dispositions, not statements
-about the legal effect of a passage. SRC02 #14 owns immediate platform and
-conditional-scope choices; CAP02 #138 owns the later complete disposition and
-any approved, owned, dependency-linked rebaseline. Reading an embodiment does
-not authorize silently expanding the 150-issue release plan.
+This register retains the source references and the scope gaps they exposed.
+The [CAP02 disposition matrix](../roadmap/release-scope.md#conditional-scope-decisions)
+records the final V1 decisions for these rows, including the continuing blocks
+on external assets, independent observation and model claims. New selections
+require an approved, owned, dependency-linked rebaseline.
 
 | Source passage | Disposition against the current plan | Decision / evidence owner |
 | --- | --- | --- |
@@ -179,10 +177,10 @@ not authorize silently expanding the 150-issue release plan.
 | [0066], pp.15-16; [0076], p.19: explainable output and LIME/SHAP examples | WEB03 #39/ML06 #103 can retain inspectable model/evidence explanations. Specific attribution algorithms and generated natural-language explanation machinery are unselected. An optional handoff LLM is not a dependency of prediction or learning. | ML06 #103 and CAP02 #138; require evaluated explanation provenance before an explainability claim. |
 | [0070], p.17: team/department scoring, patch-delay penalties and gamification | Unmatched. Device health and sustainability scores do not implement staff/team scoring or reward mechanics. This map adds neither behavior tracking nor patch deployment. | CAP02 #138; no delivery task selected. |
 | [0071], p.17: refurbishment vendors, secondary markets and disposal marketplace | Unmatched integration. LIF01 #46/LIF02 #121 cover evidence-backed lifecycle analysis, not vendor recommendations, transactions or a marketplace adapter. | SRC02 #14/CAP02 #138; no vendor, adapter or permissions selected. |
-| [0022], p.4; [0078], p.19; [00109], p.25; FIG.2 stage 210, p.31: enterprise asset-system integration | #14 explicitly records blocked: no vendor/system, adapter contract, fields, credentials, retention or acceptance evidence is selected. API03 #97 inventory and WEB05 #53 views are internal subsets, not an external adapter. This is description/figure material, not an explicit clause of claims 1-10. | CAP02 #138 resolves the recorded block; a selected adapter requires owned, dependency-linked work and an approved rebaseline before implementation or a release claim. |
+| [0022], p.4; [0078], p.19; [00109], p.25; FIG.2 stage 210, p.31: enterprise asset-system integration | #14 explicitly records blocked: no vendor/system, adapter contract, fields, credentials, retention or acceptance evidence is selected. API03 #97 inventory and WEB05 #53 views are internal subsets, not an external adapter. This is description/figure material, not an explicit clause of claims 1-10. | CAP02 retains the block. A selected adapter requires an approved rebaseline before implementation or a release claim. |
 | [0008], p.3; [0024]-[0026], p.4; [0072]-[0073], p.18: hierarchical dashboards and on-demand reports | Mapped planned RQ-09 work: API03 #97, WEB05 #53, WEB09 #125 and WEB11 #131. Dynamic views require actual persisted evidence and authorization. | RQ-09 tasks plus CAP01 #58; not completed by schemas or fixtures. |
 | [0078], p.19; FIG.2 stage 210, p.31: blockchain audit logs and AI cybersecurity | RQ-07 chain commitments are selected by the explicit handoff and have supporting description here; claims 1-10 do not expressly specify blockchain or smart contracts. Broad AI cybersecurity is unmatched beyond the RQ-02/RQ-07 trust boundaries. | CHAIN01 #47, AUD03 #120, CHAIN06 #127, SRC02 #14/CAP02 #138. No raw logs/device identifiers on-chain; integrity does not establish sensor truth. |
-| [0051], p.10; [0074], p.18; [0078], p.19; FIG.2, p.31: networks, endpoint metrics and enterprise/security layers | #14 explicitly records blocked: these passages define no independent observer, probe source or trust boundary; permissions, retention and acceptance evidence are also unselected. RQ-03 mesh transport and endpoint network metrics do not resolve that block. | CAP02 #138 owns resolution and any approved owned, dependency-linked rebaseline. No scanner or independent-truth claim is added. |
+| [0051], p.10; [0074], p.18; [0078], p.19; FIG.2, p.31: networks, endpoint metrics and enterprise/security layers | #14 explicitly records blocked: these passages define no independent observer, probe source or trust boundary; permissions, retention and acceptance evidence are also unselected. RQ-03 mesh transport and endpoint network metrics do not resolve that block. | CAP02 retains the block until the observer and evidence boundary are selected through an approved rebaseline. |
 | Retained handoff exclusions: Jev, Shepherd configuration management, Nix build workers, MDM, package deployment and unrestricted shell agents | Remain excluded. Claims 1-10 do not name these mechanisms. The source's agent/workflow language does not override those product boundaries. Read-only analysis and signed model rollout do not authorize arbitrary software rollout. | [decisions.md](../decisions.md), SRC02 #14 and CAP02 #138; no unapproved scope change. |
 
 The printed source contains no release-wide accuracy target, sensor sampling

@@ -42,14 +42,41 @@ No OS/hardware target is currently qualified for release. The fixture round trip
 
 ## Conditional scope decisions
 
-| Capability | Recorded disposition | Rationale and resolution owner |
+CAP02 [#138](https://github.com/i-got-this-faa/device-audit/issues/138) closes
+the reconciliation using the [source register](../source/patent-map.md#broader-embodiments-unmatched-passages-and-retained-exclusions).
+Included means selected for the existing V1 scope. Excluded means outside
+V1. Blocked means the applicable capability claim remains gated on a missing
+decision or missing evidence.
+
+| Capability | V1 disposition | Decision and release boundary |
 | --- | --- | --- |
-| External asset-system integration | Blocked; no adapter selected and no integration claim permitted | The source describes integration, but no asset vendor/system, adapter contract, required fields, credentials, retention or acceptance evidence is selected. Internal inventory/API/console work continues without claiming an external adapter. #138 owns the later disposition; any selection requires owned, dependency-linked work and an approved rebaseline before implementation or a release claim. |
-| Independent network observation | Blocked; no observer selected and no independent-truth claim permitted | The reviewed source supplies endpoint metrics and network/enterprise layers, not an independent observer's source, permissions, trust boundary or retention. Endpoint telemetry, mesh identity and chain integrity do not substitute for independent observation. #138 owns resolution; selecting an observer requires that boundary, ownership and an approved dependency-linked rebaseline. No scanner is added. |
+| Endpoint platforms and source device classes | Included / excluded | The [platform matrix](#endpoint-platform-matrix) under #14 selects one physical Windows laptop configuration and excludes every additional endpoint OS and hardware target. Cross-builds and controller or relay hosting do not qualify an endpoint. |
+| Hierarchical controller deployment | Excluded | #73 selects one controller per organization deployment with private PostgreSQL and separate relay transport. Subordinate controllers and hierarchical failover remain outside V1. Device and group dashboard hierarchy remains included. |
+| Hierarchical dashboards and on-demand reports | Included | #74 selects the console and administrator identity boundary. Existing authorized reporting and inventory work stays in scope. The console browser target does not expand the endpoint OS matrix. |
+| Model update, rollback and job cancellation | Included / excluded | Signed model promotion and rollback, typed diagnostic cancellation and controlled endpoint release upgrades retain their existing tasks. Health-driven agent binary withdrawal or redeployment, arbitrary package rollout and unrestricted execution are excluded. |
+| OS tuning, throttling and self-repair | Excluded | The record supports read-only diagnostics and report instructions. MDM, configuration changes and automatic remediation remain outside V1. |
+| Bespoke prediction, tinyML, reinforcement learning, hybrid models and KRA optimization | Blocked / excluded | Prediction remains gated. #103 found that the frozen logistic model failed the predeclared average-precision and calibration gates. No release health classification follows. The named alternative algorithms and general KRA optimization are excluded from V1. |
+| Model and evidence explanations | Included / excluded | Inspectable evidence and existing dashboard explanation work stay in scope. LIME, SHAP and generated explanations are excluded. A model explanation claim requires provenance from a qualified model. |
+| Team scoring, patch-delay penalties and gamification | Excluded | Device health and sustainability scoring remain device-level work. Staff monitoring, incentives, and patch deployment are excluded. |
+| Refurbishment and disposal marketplace | Excluded | Evidence-backed lifecycle analysis remains in scope. Vendor recommendations, transactions and marketplace adapters are excluded. |
+| External asset-system integration | Blocked | No vendor, adapter contract, fields, credentials, retention policy or acceptance run is selected. Internal inventory and authorized console views remain included. |
+| Independent network observation | Blocked | The source does not resolve the observer, provenance, permissions, trust boundary, retention or acceptance criteria. Existing endpoint measurements and mesh transport remain in scope. |
+| Blockchain audit and AI cybersecurity | Included / blocked / excluded | #47 selects Base Mainnet for blinded commitments. Release anchoring depends on deployment, signer and finality evidence in the chain work. Raw logs and device identifiers stay off-chain. Broad AI cybersecurity automation is excluded. |
+| Retained handoff exclusions | Excluded | Jev, Shepherd configuration management, Nix build workers, MDM, package deployment, unrestricted shell agents and automatic remediation remain outside V1. |
 
-These are explicit **blocked dispositions**, which #14's acceptance criterion allows; they are not omitted decisions or assertions that the capabilities ship. #138 retains its later reconciliation/gate requirements. This does not add a reverse dependency from #14 to #138 or justify closing #138. Unresolved conflicts still block the applicable later release gate.
+Each blocked row remains unavailable for an applicable release claim. Closing
+this reconciliation records the disposition. An unresolved source conflict
+keeps the corresponding release gate blocked. The
+[measured capability matrix](../validation.md) supplies the separate
+evidence-based release gate.
 
-Other source passages and dispositions remain in the [source register](../source/patent-map.md#broader-embodiments-unmatched-passages-and-retained-exclusions). Jev, Shepherd configuration management, Nix build workers, MDM, package rollout, unrestricted shell agents and automatic remediation remain excluded. No prediction, privacy, production readiness or patent-conformance claim follows from this matrix.
+CAP02 selects no additional capability. A later selection requires the
+release owner and the other developer to approve a written rebaseline before
+implementation or a release claim. Record the exact boundary, source conflict
+and rationale, named accountable owner, issue dependencies, acceptance
+criteria, measured evidence required and effect on the fixed 12-week plan.
+Update this matrix, the source register, the decisions log and the dependency
+links in the reviewed change. Until then the exclusion or block applies.
 
 ## #14 acceptance and review
 
