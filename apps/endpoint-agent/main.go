@@ -52,7 +52,14 @@ func main() {
 	features := flag.Bool("features", false, "read telemetry v2 payloads, one per line, from stdin and print the frozen feature vector as of --as-of")
 	asOf := flag.String("as-of", "", "RFC 3339 time that ends the --features window")
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
+	inferenceWorker := flag.Bool("inference-worker", false, "internal: read one isolated inference request")
 	flag.Parse()
+	if *inferenceWorker {
+		if flag.NFlag() != 1 || flag.NArg() != 0 {
+			fail(fmt.Errorf("invalid inference worker arguments"))
+		}
+		os.Exit(runInferenceWorker(os.Stdin, os.Stdout, os.Stderr))
+	}
 	if *probeWorker {
 		if flag.NFlag() != 1 || flag.NArg() != 0 {
 			fail(fmt.Errorf("invalid probe worker arguments"))

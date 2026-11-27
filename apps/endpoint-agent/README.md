@@ -433,3 +433,51 @@ With `TEST_DATABASE_URL` set, `TestEndpointEnrollmentPostgres` exercises
 TLS enrollment, a fresh endpoint process, a dropped reply, Tailcat reconnect,
 and receipt recovery through PostgreSQL. The Windows CI job runs without
 PostgreSQL. See the validation record for the platforms and paths exercised.
+
+## Isolated inference worker, ML03 #34
+
+Inference is opt-in in the Windows service's existing `service.json`. To
+commission it, an administrator stages the four files below in a local directory
+outside the service-writable evidence and identity directories. Give SYSTEM and
+Administrators write access and the endpoint service SID read access. Use a
+dedicated model-publisher Ed25519 public key in PKIX PEM form. Pin the SHA-256 of
+an independently reviewed passing ML05 report in the protected service config.
+The runtime neither fetches models nor promotes them from the registry.
+
+```json
+{
+  "inference": {
+    "manifest_file": "C:\\ProgramData\\DeviceAudit\\Models\\manifest.json",
+    "artifact_file": "C:\\ProgramData\\DeviceAudit\\Models\\artifact.json",
+    "publisher_key_file": "C:\\ProgramData\\DeviceAudit\\Models\\publisher.pem",
+    "evaluation_file": "C:\\ProgramData\\DeviceAudit\\Models\\evaluation.json",
+    "evaluation_sha256": "<SHA-256 of the approved report bytes>"
+  }
+}
+```
+
+Add the member to the existing config while the service is stopped. Omit it to
+disable inference. The signed CT10 manifest must specify runtime
+`device-audit-endpoint-go` version `1.0.0`, architecture `logistic-baseline.v1`,
+the ordered `hdd-smart-7d.v1` features, seven parameters and the inference
+purpose. The worker verifies the manifest against the configured trust root
+and exact artifact bytes before scoring. It requires a passing 168-hour report
+for that artifact under `ml05.v1` and uses the report's logit cutoffs. The
+repository's ML02 logistic artifact failed ML05 and cannot be commissioned
+with its recorded report.
+
+The service derives the CT03 window from sampled telemetry and retains one
+record per UTC day in memory. A restart rebuilds the window as samples arrive.
+The collector has no SMART values in telemetry v2, so this path currently
+reports `unknown` with `insufficient_evidence`. The checked-in end-to-end tests
+use synthetic SMART history and a test-only report to exercise the scoring path.
+
+The service launches at most one worker per hour from its own executable,
+asynchronously after signed telemetry is queued. The worker has a two-second
+deadline and bounded inputs and output. A crash, timeout or rejected model
+reports `unknown` with `model_unavailable` and the next scheduled prediction
+starts a fresh worker. Results are local prediction v2 records in the bounded
+service log. The evidence reference identifies the signed telemetry snapshot
+that triggered the inference. No prediction transport or model promotion is
+introduced in this change. Issue #104 owns physical Windows LocalService
+resource and interference measurements.

@@ -52,6 +52,7 @@ type serviceConfig struct {
 	SamplingConfig     *string            `json:"sampling_config"`
 	Enrollment         *serviceEnrollment `json:"enrollment"`
 	Delivery           *deliveryConfig    `json:"delivery,omitempty"`
+	Inference          *inferenceConfig   `json:"inference,omitempty"`
 }
 
 // loadServiceConfig strictly decodes one bounded configuration file.
@@ -97,6 +98,14 @@ func (c serviceConfig) validate() error {
 		}
 		paths = append(paths, d.DERPRegionFile, d.ControllerAckKeyFile)
 	}
+	if c.Inference != nil {
+		for _, p := range c.Inference.paths() {
+			if within(c.EvidenceDir, p) {
+				return errors.New("inference configuration must be outside the writable evidence directory")
+			}
+			paths = append(paths, p)
+		}
+	}
 	for _, p := range paths {
 		if !filepath.IsAbs(p) {
 			return errors.New("service config paths must be absolute")
@@ -128,6 +137,10 @@ func within(dir, p string) bool {
 // runServicePipeline runs until ctx ends or the pipeline fails. A clean stop
 // returns nil after the sampling report is written.
 func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler func(telemetry.SamplingConfig) telemetry.Scheduler, logf func(string, ...any)) error {
+	return runServicePipelineWithInference(ctx, cfg, newScheduler, logf, executeInferenceWorker)
+}
+
+func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, newScheduler func(telemetry.SamplingConfig) telemetry.Scheduler, logf func(string, ...any), runInference inferenceRunner) error {
 	store, err := openIdentityStore(cfg.StateDir, cfg.Enrollment != nil)
 	if err != nil {
 		return err
@@ -181,6 +194,8 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 			deliveryDone <- err
 		}()
 	}
+	inference := startServiceInference(ctx, cfg.Inference, runInference, logf)
+	defer inference.close()
 	unsigned, overflow := 0, 0
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
@@ -208,6 +223,7 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 		} else if err != nil {
 			return err
 		}
+		inference.observe(payload, envelope.PayloadSHA256, time.Now())
 		select {
 		case wake <- struct{}{}:
 		default:
