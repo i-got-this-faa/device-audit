@@ -1629,3 +1629,18 @@ nonce, so reading it needs the administrator role. Only the public commitment is
 visible to viewers. The diagnostic result schema joins the manifest's
 supported references.
 
+## Verification recomputes from raw rows and claims integrity only, AUD03 #120
+
+Verification never reads a stored digest, status or flag as proof. It loads the
+raw manifest and evidence rows, recomputes the signature, commitment, digests,
+sizes and device signatures, and compares the evidence with the digests the
+manifest signed. A store whose rows were rewritten to look consistent is caught
+because the signed manifest holds the original digest. Nothing is written.
+
+Results keep failure kinds apart: an edited record, a missing record, ended
+retention, a record of another schema, model or methodology version, a bad
+signature and an unenrolled signer are different statuses, and manifest-level
+failures decide before any reference, as in CT09. Every report states
+`integrity_only` and `not_established`: a valid signature never shows that an
+endpoint was truthful. Tombstones wait for the retention work in #132.
+

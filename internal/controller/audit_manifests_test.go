@@ -324,3 +324,267 @@ func TestAuditManifestRoutesAuthorizeAndKeepTheNonceOutOfThePublicCommitment(t *
 	}
 	call(http.MethodGet, "/console/api/audit-manifests/manifest:route:1/commitment", nil, "", "", http.StatusUnauthorized)
 }
+
+// auditVerificationFixture stores a real telemetry envelope, a prediction from
+// a promoted model and a device-signed diagnostic result, and signs a manifest
+// over them.
+func auditVerificationFixture(t *testing.T) (*forecastDiagnosticBed, contracts.AuditManifestRecordV1, ed25519.PrivateKey) {
+	t.Helper()
+	b := newForecastDiagnosticBed(t, "device:av-a")
+	ctx := context.Background()
+	const device = "device:av-a"
+	diagKey := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x4c}, ed25519.SeedSize))
+	auditKey := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x4d}, ed25519.SeedSize))
+	actor := contracts.ModelActorV1{Issuer: "https://id.example.test", Subject: "admin:av"}
+	asOf := b.startDay.AddDate(0, 0, 27).Add(20 * time.Minute)
+	if delta := asOf.Sub(b.clock.Now()); delta > 0 {
+		b.clock.Advance(delta)
+	}
+	recorded, err := b.repo.evaluateAndRecordDeviceHealth(ctx, b.cfg, device, asOf, makeSMARTMapReader(forecastDegradedSMART))
+	if err != nil || recorded.Prediction == nil {
+		t.Fatalf("prediction setup: %+v err=%v", recorded, err)
+	}
+	launched, err := b.repo.TriggerForecastDiagnostics(ctx, device, diagKey, workflows.Actor(actor))
+	if err != nil || len(launched.Decisions) != 1 {
+		t.Fatalf("diagnostic setup: %+v err=%v", launched, err)
+	}
+	poll, err := b.repo.PollDiagnosticAssignments(ctx, device, time.Minute)
+	if err != nil || len(poll.Assignments) != 1 {
+		t.Fatalf("poll: %+v err=%v", poll, err)
+	}
+	runner := workflows.NewProbeRunner(func(context.Context, workflows.Request) ([]byte, error) {
+		return []byte(`{"schema_version":"device-audit.probe-evidence.v1","health":"ok"}`), nil
+	})
+	result, err := workflows.ExecuteAssignedToResult(ctx, runner, poll.Assignments[0], diagKey.Public().(ed25519.PublicKey), b.devices[device].signing,
+		b.repo.deploymentID, device, "boot:av:1", "ref:av:1", 30, b.clock.Now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.repo.SubmitDiagnosticResult(ctx, result); err != nil {
+		t.Fatal(err)
+	}
+	retention := b.clock.Now().Add(60 * 24 * time.Hour)
+	store := func(id string, kind contracts.AuditEvidenceKindV1, fill func(*contracts.AuditEvidenceStoreRequestV1)) {
+		t.Helper()
+		request := contracts.AuditEvidenceStoreRequestV1{SchemaVersion: contracts.AuditEvidenceStoreV1Version, EvidenceID: id, Kind: kind, DeviceID: device, RetentionExpiresAt: retention}
+		fill(&request)
+		if _, _, err := b.repo.StoreAuditEvidence(ctx, request, actor); err != nil {
+			t.Fatalf("store %s: %v", id, err)
+		}
+	}
+	store("evidence:telemetry:29", contracts.AuditEvidenceTelemetry, func(r *contracts.AuditEvidenceStoreRequestV1) { r.Sequence = 29 })
+	store("evidence:telemetry:28", contracts.AuditEvidenceTelemetry, func(r *contracts.AuditEvidenceStoreRequestV1) { r.Sequence = 28 })
+	store("evidence:telemetry:27", contracts.AuditEvidenceTelemetry, func(r *contracts.AuditEvidenceStoreRequestV1) { r.Sequence = 27 })
+	store("evidence:prediction:1", contracts.AuditEvidencePrediction, func(r *contracts.AuditEvidenceStoreRequestV1) { r.PredictionID = recorded.ID })
+	store("evidence:diagnostic:1", contracts.AuditEvidenceDiagnostic, func(r *contracts.AuditEvidenceStoreRequestV1) { r.AssignmentID = launched.Decisions[0].AssignmentID })
+	record, _, err := b.repo.CreateAuditManifest(ctx, contracts.AuditManifestRequestV1{SchemaVersion: contracts.AuditManifestRequestV1Version, ManifestID: "manifest:av:1",
+		PolicyVersion: contracts.AuditManifestPolicyV1, ExpiresAt: b.clock.Now().Add(30 * 24 * time.Hour).UTC().Truncate(time.Second),
+		EvidenceIDs: []string{"evidence:telemetry:29", "evidence:prediction:1", "evidence:diagnostic:1"}}, auditKey, actor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b, record, auditKey
+}
+
+func TestAuditManifestVerificationRecomputesEverythingAndDistinguishesFailures(t *testing.T) {
+	b, record, auditKey := auditVerificationFixture(t)
+	ctx := context.Background()
+	auditPub := auditKey.Public().(ed25519.PublicKey)
+	exec := func(statement string, args ...any) {
+		t.Helper()
+		if _, err := b.db.Exec(statement, args...); err != nil {
+			t.Fatalf("%s: %v", statement, err)
+		}
+	}
+	verify := func(manifestID string) contracts.AuditManifestVerificationV1 {
+		t.Helper()
+		report, err := b.repo.VerifyAuditManifest(ctx, manifestID, auditPub)
+		if err != nil {
+			t.Fatalf("verify %s: %v", manifestID, err)
+		}
+		if report.AnchorState != "unverified" || report.Scope != contracts.AuditVerificationScopeV1 || report.Truthfulness != contracts.AuditTruthfulnessV1 {
+			t.Fatalf("verification claims more than integrity: %+v", report)
+		}
+		return report
+	}
+	statusOf := func(report contracts.AuditManifestVerificationV1, reference string) (contracts.AuditReferenceStatusV1, string) {
+		t.Helper()
+		for _, check := range report.References {
+			if check.ReferenceID == reference {
+				return check.Status, check.Reason
+			}
+		}
+		t.Fatalf("no result for %s in %+v", reference, report.References)
+		return "", ""
+	}
+	expect := func(report contracts.AuditManifestVerificationV1, overall string, wants map[string]contracts.AuditReferenceStatusV1) {
+		t.Helper()
+		if report.EvidenceStatus != overall {
+			t.Fatalf("overall %q want %q: %+v", report.EvidenceStatus, overall, report)
+		}
+		for reference, want := range wants {
+			if got, reason := statusOf(report, reference); got != want {
+				t.Fatalf("%s is %s (%s), want %s", reference, got, reason, want)
+			}
+		}
+	}
+
+	// Intact: each record's digest and the device signatures verify.
+	intact := verify(record.ManifestID)
+	expect(intact, "verified", map[string]contracts.AuditReferenceStatusV1{"evidence:telemetry:29": contracts.AuditReferenceVerified,
+		"evidence:prediction:1": contracts.AuditReferenceVerified, "evidence:diagnostic:1": contracts.AuditReferenceVerified})
+	if _, reason := statusOf(intact, "evidence:telemetry:29"); reason != "digest_and_signature" {
+		t.Fatalf("telemetry reason %q", reason)
+	}
+	if _, reason := statusOf(intact, "evidence:diagnostic:1"); reason != "digest_and_signature" {
+		t.Fatalf("diagnostic reason %q", reason)
+	}
+	if intact.ManifestID != record.ManifestID || intact.CommitmentID != record.Commitment.CommitmentID || !intact.CheckedAt.Equal(b.clock.Now().UTC()) {
+		t.Fatalf("report identity: %+v", intact)
+	}
+	if _, err := b.repo.VerifyAuditManifest(ctx, "manifest:absent", auditPub); !errors.Is(err, contracts.AuditManifestRejectionNotFound) {
+		t.Fatalf("unknown manifest: %v", err)
+	}
+	if other := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x4e}, 32)).Public().(ed25519.PublicKey); true {
+		report, err := b.repo.VerifyAuditManifest(ctx, record.ManifestID, other)
+		if err != nil || report.EvidenceStatus != "invalid_signature" || len(report.References) != 0 {
+			t.Fatalf("another audit key: %+v err=%v", report, err)
+		}
+	}
+
+	// Disable the table guards (an isolated test database) to damage records
+	// below the controller, the way disk damage or a bad restore would.
+	for _, statement := range []string{`ALTER TABLE audit_evidence DISABLE TRIGGER audit_evidence_immutable`,
+		`ALTER TABLE audit_manifests DISABLE TRIGGER audit_manifests_immutable`,
+		`ALTER TABLE audit_manifest_evidence DISABLE TRIGGER audit_manifest_evidence_immutable`} {
+		exec(statement)
+	}
+	var constraint string
+	if err := b.db.QueryRow(`SELECT conname FROM pg_constraint WHERE conrelid='audit_manifest_evidence'::regclass AND confrelid='audit_evidence'::regclass`).Scan(&constraint); err != nil {
+		t.Fatal(err)
+	}
+	exec(`ALTER TABLE audit_manifest_evidence DROP CONSTRAINT ` + constraint)
+
+	// Edited: the stored row is rewritten together with its own digest column,
+	// so the store looks self-consistent. Only the signed manifest catches it.
+	var original []byte
+	if err := b.db.QueryRow(`SELECT content FROM audit_evidence WHERE evidence_id='evidence:prediction:1'`).Scan(&original); err != nil {
+		t.Fatal(err)
+	}
+	forged := bytes.Replace(original, []byte(`"status":"degraded"`), []byte(`"status":"healthy"`), 1)
+	if bytes.Equal(forged, original) {
+		forged = append(append([]byte(nil), original[:len(original)-1]...), []byte(` `)...)
+		forged = append(forged, '}')
+	}
+	exec(`UPDATE audit_evidence SET content=$1, sha256=sha256($1) WHERE evidence_id='evidence:prediction:1'`, forged)
+	if _, content, err := b.repo.AuditEvidenceContent(ctx, "evidence:prediction:1", ""); err != nil || !bytes.Equal(content, forged) {
+		t.Fatalf("the forged row was expected to look intact to the store: %v", err)
+	}
+	expect(verify(record.ManifestID), "digest_mismatch", map[string]contracts.AuditReferenceStatusV1{"evidence:prediction:1": contracts.AuditReferenceEdited,
+		"evidence:telemetry:29": contracts.AuditReferenceVerified, "evidence:diagnostic:1": contracts.AuditReferenceVerified})
+	exec(`UPDATE audit_evidence SET content=$1, sha256=sha256($1) WHERE evidence_id='evidence:prediction:1'`, original)
+	expect(verify(record.ManifestID), "verified", nil)
+
+	// Missing: no record for a reference.
+	exec(`UPDATE audit_evidence SET evidence_id='evidence:telemetry:29:gone' WHERE evidence_id='evidence:telemetry:29'`)
+	expect(verify(record.ManifestID), "evidence_missing", map[string]contracts.AuditReferenceStatusV1{"evidence:telemetry:29": contracts.AuditReferenceMissing,
+		"evidence:prediction:1": contracts.AuditReferenceVerified})
+	exec(`UPDATE audit_evidence SET evidence_id='evidence:telemetry:29' WHERE evidence_id='evidence:telemetry:29:gone'`)
+
+	// Expired: the record's retention ended, so its bytes are not examined.
+	b.clock.Advance(time.Minute)
+	exec(`UPDATE audit_evidence SET retention_expires_at = stored_at + interval '1 second' WHERE evidence_id='evidence:diagnostic:1'`)
+	expect(verify(record.ManifestID), "evidence_expired", map[string]contracts.AuditReferenceStatusV1{"evidence:diagnostic:1": contracts.AuditReferenceExpired,
+		"evidence:telemetry:29": contracts.AuditReferenceVerified})
+	exec(`UPDATE audit_evidence SET retention_expires_at = $1 WHERE evidence_id='evidence:diagnostic:1'`, b.clock.Now().Add(60*24*time.Hour))
+
+	// Wrong version: the record is of another schema than the manifest names.
+	exec(`UPDATE audit_evidence SET schema_version='device-audit.prediction.v2' WHERE evidence_id='evidence:telemetry:29'`)
+	expect(verify(record.ManifestID), "digest_mismatch", map[string]contracts.AuditReferenceStatusV1{"evidence:telemetry:29": contracts.AuditReferenceWrongVersion})
+	exec(`UPDATE audit_evidence SET schema_version='device-audit.evidence.v1' WHERE evidence_id='evidence:telemetry:29'`)
+	// Wrong model: the prediction is of another model than was recorded at signing.
+	exec(`UPDATE audit_manifest_evidence SET model_version='some.other.model' WHERE reference_id='evidence:prediction:1'`)
+	expect(verify(record.ManifestID), "digest_mismatch", map[string]contracts.AuditReferenceStatusV1{"evidence:prediction:1": contracts.AuditReferenceWrongVersion})
+	exec(`UPDATE audit_manifest_evidence SET model_version=$1 WHERE reference_id='evidence:prediction:1'`, b.manifest.ModelVersion)
+	expect(verify(record.ManifestID), "verified", nil)
+
+	// A damaged manifest row: the stored commitment no longer follows from it.
+	exec(`UPDATE audit_manifests SET commitment_sha256 = manifest_sha256 WHERE manifest_id='manifest:av:1'`)
+	if report := verify(record.ManifestID); report.EvidenceStatus != "digest_mismatch" || len(report.References) != 0 {
+		t.Fatalf("damaged commitment: %+v", report)
+	}
+	exec(`UPDATE audit_manifests SET commitment_sha256 = decode($1,'hex') WHERE manifest_id='manifest:av:1'`, record.Commitment.CommitmentSHA256)
+	expect(verify(record.ManifestID), "verified", nil)
+
+	// Bad signatures under a correct digest: a manifest signed over records that
+	// were already damaged. The signature, not the digest, is what fails.
+	actor := contracts.ModelActorV1{Issuer: "https://id.example.test", Subject: "admin:av"}
+	damage := func(id string, change func(map[string]any)) {
+		t.Helper()
+		var content []byte
+		if err := b.db.QueryRow(`SELECT content FROM audit_evidence WHERE evidence_id=$1`, id).Scan(&content); err != nil {
+			t.Fatal(err)
+		}
+		var fields map[string]any
+		if err := json.Unmarshal(content, &fields); err != nil {
+			t.Fatal(err)
+		}
+		change(fields)
+		changed, _ := json.Marshal(fields)
+		exec(`UPDATE audit_evidence SET content=$1, sha256=sha256($1) WHERE evidence_id=$2`, changed, id)
+	}
+	damage("evidence:telemetry:28", func(f map[string]any) { f["signature"] = flipHex(f["signature"].(string)) })
+	damage("evidence:telemetry:27", func(f map[string]any) { f["signing_key_id"] = "ed25519:" + string(bytes.Repeat([]byte{'1'}, 64)) })
+	signed, _, err := b.repo.CreateAuditManifest(ctx, contracts.AuditManifestRequestV1{SchemaVersion: contracts.AuditManifestRequestV1Version, ManifestID: "manifest:av:2",
+		PolicyVersion: contracts.AuditManifestPolicyV1, ExpiresAt: b.clock.Now().Add(30 * 24 * time.Hour).UTC().Truncate(time.Second),
+		EvidenceIDs: []string{"evidence:telemetry:28", "evidence:telemetry:27"}}, auditKey, actor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect(verify(signed.ManifestID), "invalid_signature", map[string]contracts.AuditReferenceStatusV1{
+		"evidence:telemetry:28": contracts.AuditReferenceInvalidSignature, "evidence:telemetry:27": contracts.AuditReferenceUnknownSigner})
+
+	// The verification route is administrator-only and read-only.
+	service, err := NewAuditManifestService(b.repo, b.admin, auditKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewAPI(Config{MaxDevices: 1, Auth: b.admin, AuditManifests: service}).Handler()
+	admin, _ := b.addSession(t, "admin:av-route", auth.RoleAdmin, 0)
+	viewer, _ := b.addSession(t, "viewer:av-route", auth.RoleViewer, 0)
+	get := func(path, cookie string, want int) []byte {
+		t.Helper()
+		r := httptest.NewRequest(http.MethodGet, path, nil)
+		if cookie != "" {
+			r.AddCookie(&http.Cookie{Name: "__Host-device-audit-session", Value: cookie})
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != want {
+			t.Fatalf("GET %s: %d want %d: %s", path, w.Code, want, w.Body.String())
+		}
+		return w.Body.Bytes()
+	}
+	get("/console/api/audit-manifests/manifest:av:1/verification", "", http.StatusUnauthorized)
+	get("/console/api/audit-manifests/manifest:av:1/verification", viewer, http.StatusForbidden)
+	get("/console/api/audit-manifests/manifest:av:1/verification?x=1", admin, http.StatusBadRequest)
+	get("/console/api/audit-manifests/manifest:absent/verification", admin, http.StatusNotFound)
+	var served contracts.AuditManifestVerificationV1
+	if err := json.Unmarshal(get("/console/api/audit-manifests/manifest:av:1/verification", admin, http.StatusOK), &served); err != nil ||
+		served.EvidenceStatus != "verified" || served.Truthfulness != contracts.AuditTruthfulnessV1 || len(served.References) != 3 {
+		t.Fatalf("verification over HTTP: %+v err=%v", served, err)
+	}
+	var stored int
+	if err := b.db.QueryRow(`SELECT count(*) FROM audit_manifests`).Scan(&stored); err != nil || stored != 2 {
+		t.Fatalf("verification wrote rows: %d err=%v", stored, err)
+	}
+}
+
+// flipHex changes the last hex digit.
+func flipHex(value string) string {
+	last := value[len(value)-1]
+	if last == '0' {
+		return value[:len(value)-1] + "1"
+	}
+	return value[:len(value)-1] + "0"
+}
