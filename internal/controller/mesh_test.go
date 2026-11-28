@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
+	"github.com/i-got-this-faa/device-audit/packages/federated"
 )
 
 // A fake tunnel isolates HTTP authorization from the real transport process test.
@@ -393,5 +394,116 @@ func TestEvidenceVerificationRejectsBeforeIngestion(t *testing.T) {
 	samples, marks := durableState()
 	if status != http.StatusOK || ack == nil || ack.Status != "accepted" || len(events) != 0 || samples != 1 || marks != [2]uint64{contracts.FirstEvidenceSequenceV1, contracts.EnrollmentSequenceV1} {
 		t.Fatalf("valid evidence status=%d events=%d samples=%d marks=%v", status, len(events), samples, marks)
+	}
+}
+
+type meshTestUpdateRepo struct {
+	*meshTestRepository
+	created bool
+	err     error
+	calls   int
+}
+
+func (r *meshTestUpdateRepo) AcceptUpdate(_ context.Context, u contracts.FederatedUpdateV1) (federated.AcceptedUpdate, bool, error) {
+	r.calls++
+	if r.err != nil {
+		return federated.AcceptedUpdate{}, false, r.err
+	}
+	return federated.AcceptedUpdate{
+		DeploymentID: u.DeploymentID,
+		RoundID:      u.RoundID,
+		CandidateID:  u.CandidateID,
+		DeviceID:     u.DeviceID,
+		Sequence:     u.Sequence,
+		AcceptedAt:   time.Date(2026, 11, 28, 12, 0, 0, 0, time.UTC),
+	}, r.created, nil
+}
+
+func TestMeshHTTPFederatedUpdateBoundary(t *testing.T) {
+	key := repositoryFixtureKey()
+	keyID, err := contracts.SigningKeyIDV1(key.Public().(ed25519.PublicKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+	issued := time.Date(2026, 11, 28, 12, 0, 0, 0, time.UTC)
+	weights := []byte{0x3f, 0xd0, 0, 0, 0, 0, 0, 0, 0xbf, 0xe0, 0, 0, 0, 0, 0, 0}
+	sum := sha256.Sum256(weights)
+	update := contracts.FederatedUpdateV1{
+		EnvelopeHeaderV1: contracts.EnvelopeHeaderV1{
+			SchemaVersion: contracts.FederatedUpdateV1Version,
+			DeploymentID:  "deployment:mesh",
+			DeviceID:      "device:mesh",
+			SigningKeyID:  keyID,
+			Sequence:      contracts.FirstEvidenceSequenceV1,
+			IssuedAt:      issued.Format(time.RFC3339),
+			ExpiresAt:     issued.Add(time.Hour).Format(time.RFC3339),
+		},
+		RoundID:          "round:1",
+		BaseModelVersion: "baseline.1",
+		BaseModelSHA256:  strings.Repeat("a", 64),
+		CandidateID:      "candidate:1",
+		FeatureVersion:   contracts.FeatureVersionHDDSMART7DV1,
+		SampleCount:      24,
+		WeightsBase64:    base64.StdEncoding.EncodeToString(weights),
+		UpdateSHA256:     hex.EncodeToString(sum[:]),
+	}
+	signing, err := update.SigningBytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	update.Signature = hex.EncodeToString(ed25519.Sign(key, signing))
+
+	node := &meshTestNode{peer: "peer:mesh"}
+	baseRepo := &meshTestRepository{binding: DeviceNetworkBinding{
+		DeploymentID:     update.DeploymentID,
+		DeviceID:         update.DeviceID,
+		SigningKeyID:     update.SigningKeyID,
+		SigningPublicKey: key.Public().(ed25519.PublicKey),
+		NetworkPublicKey: node.peer,
+	}}
+	// Without FederatedUpdateRepository support, fail closed with 503.
+	noUpdateSrv := newMeshTestServer(t, MeshConfig{Node: node, Repository: baseRepo, Now: func() time.Time { return issued }})
+	sendRaw := func(srv *http.Server, target, peer string, raw []byte) int {
+		r := httptest.NewRequest(http.MethodPost, target, bytes.NewReader(raw))
+		r = r.WithContext(context.WithValue(r.Context(), meshPeerContextKey{}, peer))
+		w := httptest.NewRecorder()
+		srv.Handler.ServeHTTP(w, r)
+		if w.Header().Get("Cache-Control") != "no-store" {
+			t.Fatal("missing Cache-Control: no-store")
+		}
+		return w.Code
+	}
+	encoded, _ := json.Marshal(update)
+	if got := sendRaw(noUpdateSrv, "/v1/federated/updates", node.peer, encoded); got != http.StatusServiceUnavailable {
+		t.Fatalf("unsupported repo status=%d want 503", got)
+	}
+
+	repo := &meshTestUpdateRepo{meshTestRepository: baseRepo, created: true}
+	srv := newMeshTestServer(t, MeshConfig{Node: node, Repository: repo, Now: func() time.Time { return issued }})
+	if got := sendRaw(srv, "/v1/federated/updates", node.peer, encoded); got != http.StatusCreated {
+		t.Fatalf("valid update status=%d want 201", got)
+	}
+	repo.created = false
+	if got := sendRaw(srv, "/v1/federated/updates", node.peer, encoded); got != http.StatusOK {
+		t.Fatalf("repeat update status=%d want 200", got)
+	}
+	if got := sendRaw(srv, "/v1/federated/updates?extra=1", node.peer, encoded); got != http.StatusBadRequest {
+		t.Fatalf("query string status=%d want 400", got)
+	}
+	oversized := append([]byte(`{"pad":"`), bytes.Repeat([]byte("a"), 65<<10)...)
+	oversized = append(oversized, []byte(`"}`)...)
+	if got := sendRaw(srv, "/v1/federated/updates", node.peer, oversized); got != http.StatusRequestEntityTooLarge {
+		t.Fatalf("oversized body status=%d want 413", got)
+	}
+	if got := sendRaw(srv, "/v1/federated/updates", "peer:other", encoded); got != http.StatusForbidden {
+		t.Fatalf("wrong peer status=%d want 403", got)
+	}
+	repo.err = federated.ErrUpdateConflict
+	if got := sendRaw(srv, "/v1/federated/updates", node.peer, encoded); got != http.StatusConflict {
+		t.Fatalf("conflict status=%d want 409", got)
+	}
+	repo.err = nil
+	if repo.calls != 3 {
+		t.Fatalf("repository calls=%d want 3 (malformed/unauthenticated stopped before repo)", repo.calls)
 	}
 }

@@ -4,6 +4,10 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [FED09 signed federated update validation, 28 November 2026](validation/federated-updates-114.md)
+validates and stores signed participant updates while blocking conflicting,
+replayed, expired, revoked, oversized, and nonfinite inputs.
+
 Follow-up: [ML11 durable prediction history and queries, 28 November 2026](validation/prediction-history-107.md)
 persists and queries prediction/health records with full provenance and
 fail-closed stale/broken checks.
