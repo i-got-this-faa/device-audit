@@ -105,6 +105,8 @@ for bounded, attributable controller prediction queries (`ML11 #107`), preservin
 model, CT03 feature, horizon, telemetry-evidence, and ML10 fault-baseline
 provenance alongside nullable risk/horizon states.
 
+[Forecast provenance v1](forecast-provenance-v1.md) defines `DeviceForecastV1` and `ForecastSourceV1` (`FED13 #118`): evaluated forecast provenance, freshness and explicit unavailable/stale states for workflow consumers.
+
 ## Off-chain audit manifests and opaque commitments v1, #79
 
 [The audit specification](audit-v1.md) defines signed canonical manifests,

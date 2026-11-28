@@ -244,6 +244,7 @@ func (s *ModelRegistryService) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/api/models/{version}/evaluation", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.evaluation)))
 	mux.Handle("POST /console/api/models/{version}/promotion", s.auth.RequireFreshAdmin(http.HandlerFunc(s.promote)))
 	mux.Handle("GET /console/api/models/{version}/promotion", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.promotion)))
+	mux.Handle("GET /console/api/models/{version}/forecast-source", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.forecastSource)))
 	mux.Handle("GET /console/api/model-references", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.references)))
 	mux.Handle("PUT /console/api/model-references/{slot}", s.auth.RequireFreshAdmin(http.HandlerFunc(s.setReference)))
 }
