@@ -41,7 +41,8 @@ func main() {
 	fixture := flag.Bool("fixture", false, "send synthetic fixture telemetry to a loopback development controller")
 	runProbe := flag.Bool("run-probe", false, "run one allowlisted read-only diagnostic probe from a JSON request on stdin")
 	service := flag.Bool("service", false, "run the signed sampling pipeline as the installed Windows service")
-	serviceConfigPath := flag.String("service-config", "", "service configuration JSON, required with --service")
+	serviceConfigPath := flag.String("service-config", "", "service configuration JSON")
+	checkServiceConfig := flag.Bool("check-service-config", false, "validate the service configuration and bundled model without starting")
 	spoolNext := flag.Bool("spool-next", false, "write the oldest queued envelope without dequeuing it")
 	spoolAck := flag.Bool("spool-ack", false, "retire the oldest queued envelope after verifying the accepted acknowledgement on stdin")
 	spoolArchive := flag.Bool("spool-archive-expired", false, "preserve an expired head without acknowledging it")
@@ -178,6 +179,15 @@ func main() {
 		code := writeProbeOutcome(data, err, os.Stdout, os.Stderr)
 		stop()
 		os.Exit(code)
+	}
+	if *checkServiceConfig {
+		if *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--check-service-config runs alone and requires --service-config"))
+		}
+		if err := preflightServiceConfig(*serviceConfigPath); err != nil {
+			fail(err)
+		}
+		return
 	}
 	if *service || *serviceConfigPath != "" {
 		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {

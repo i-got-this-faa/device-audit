@@ -30,7 +30,7 @@ if ($PurgeState -and (Test-Path -LiteralPath $Root)) {
 $service = Get-Service -Name $name -ErrorAction SilentlyContinue
 if ($service) {
     if ($service.Status -ne 'Stopped') { Stop-Service -Name $name -Force }
-    $out = & sc.exe delete $name 2>&1
+    $out = & (Join-Path ([Environment]::SystemDirectory) 'sc.exe') delete $name 2>&1
     if ($LASTEXITCODE -ne 0) { throw "sc.exe delete failed ($LASTEXITCODE): $out" }
 }
 $exe = Join-Path $InstallDir 'endpoint-agent.exe'
@@ -38,11 +38,11 @@ if (Test-Path -LiteralPath $exe) { Remove-Item -LiteralPath $exe -Force }
 if ($PurgeState -and (Test-Path -LiteralPath $Root)) {
     # The identity directory grants only SYSTEM and the service SID; take
     # ownership so an administrator can remove it.
-    $out = & takeown.exe /F $Root /R /A /D Y 2>&1
+    $out = & (Join-Path ([Environment]::SystemDirectory) 'takeown.exe') /F $Root /R /A /D Y 2>&1
     if ($LASTEXITCODE -ne 0) { throw "takeown failed ($LASTEXITCODE): $out" }
     # Add Administrators instead of resetting: /reset would restore inherited
     # access from the parent and expose evidence if the delete then failed.
-    $out = & icacls.exe $Root /grant:r "*S-1-5-32-544:(OI)(CI)F" /T /C /Q 2>&1
+    $out = & (Join-Path ([Environment]::SystemDirectory) 'icacls.exe') $Root /grant:r "*S-1-5-32-544:(OI)(CI)F" /T /C /Q 2>&1
     if ($LASTEXITCODE -ne 0) { throw "icacls grant failed ($LASTEXITCODE): $out" }
     Remove-Item -LiteralPath $Root -Recurse -Force
 }

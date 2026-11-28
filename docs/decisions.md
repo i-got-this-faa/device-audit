@@ -1549,3 +1549,23 @@ held-out regression keeps the candidate off the approved download route.
 Finite outliers with large declared sample counts can influence the aggregate.
 The [validation record](validation/federated-containment-50.md) documents the
 fixtures, checks, and residual poisoning cases.
+
+## PKG01 #57 Windows clean install and release provenance
+
+Build the Windows x64 ZIP from the exact reviewed commit using the pinned Go
+patch toolchain and fixed archive metadata. Sign the archive digest and source
+provenance with a pinned distribution certificate using detached CMS. Keep
+release signing and the model publisher, mesh, evidence signing and anchoring
+trust roles separate. The runtime is compiled into the agent. The optional
+model-bearing package requires the deployment's publisher pin and preflight of
+the CT10 model, artifact and passing evaluation. The failed evaluated baseline
+remains ineligible for an approved release.
+
+Use the TEL02 service permission model. First start runs with manual startup
+and recovery deferred until the service queues a signed Windows sample and
+clears the staged bootstrap credential. Rollback discards the new local
+installation. If the controller already admitted the identity, the operator
+handles that remote state before retrying. The selected hardware and platform
+matrix remains the release gate. See the
+[Windows package runbook](../packaging/windows/README.md) and
+[PKG01 evidence](validation/windows-package-57.md).

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
+	"github.com/i-got-this-faa/device-audit/packages/health"
 	"github.com/i-got-this-faa/device-audit/packages/telemetry"
 	"github.com/i-got-this-faa/device-audit/packages/workflows"
 )
@@ -33,6 +34,7 @@ const (
 	maxServiceLogBytes = 1 << 20
 	minEvidenceCap     = 1 << 20
 	maxEvidenceCap     = 1 << 30
+	firstSampleLogged  = "first endpoint telemetry snapshot signed and queued"
 )
 
 // serviceEnrollment is the one-time first-start enrollment. The bootstrap file
@@ -134,6 +136,41 @@ func (c serviceConfig) validate() error {
 	return nil
 }
 
+// preflightServiceConfig checks the local configuration before enrollment.
+// Network reachability and the service token are checked on first start.
+func preflightServiceConfig(path string) error {
+	cfg, err := loadServiceConfig(path)
+	if err != nil {
+		return err
+	}
+	if cfg.SamplingConfig != nil {
+		if _, err := loadSamplingConfig(*cfg.SamplingConfig); err != nil {
+			return fmt.Errorf("invalid sampling config: %w", err)
+		}
+	}
+	if cfg.Enrollment != nil {
+		var ca string
+		if cfg.Enrollment.CAFile != nil {
+			ca = *cfg.Enrollment.CAFile
+		}
+		client, _, err := enrollmentClient(cfg.Enrollment.Origin, ca)
+		if err != nil {
+			return err
+		}
+		client.CloseIdleConnections()
+	}
+	if cfg.Inference != nil {
+		manifest, artifact, _, err := loadInferenceBundle(*cfg.Inference)
+		if err != nil {
+			return fmt.Errorf("validate bundled model: %w", err)
+		}
+		if err := health.ValidateLogisticArtifact(manifest, artifact); err != nil {
+			return fmt.Errorf("validate bundled model: %w", err)
+		}
+	}
+	return nil
+}
+
 // within reports whether p is dir or inside it. filepath.Rel compares Windows
 // paths case-insensitively.
 func within(dir, p string) bool {
@@ -230,6 +267,7 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 	inference := startServiceInference(ctx, cfg.Inference, store, receipt.DeploymentID, runInference, logf)
 	defer inference.close()
 	unsigned, overflow := 0, 0
+	firstSample := true
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {
 		payload, err := telemetry.EndpointTelemetryV2(sample, receipt.DeviceID)
 		if err != nil {
@@ -259,6 +297,10 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 			return nil
 		} else if err != nil {
 			return err
+		}
+		if firstSample {
+			logf(firstSampleLogged)
+			firstSample = false
 		}
 		inference.observe(payload, envelope.PayloadSHA256, time.Now())
 		select {

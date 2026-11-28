@@ -339,7 +339,7 @@ func TestServiceAdmission(t *testing.T) {
 	if err := runServicePipeline(context.Background(), cfg, cpuSource(new(atomic.Bool), false), logf); err == nil {
 		t.Fatal("started without an identity directory or enrollment")
 	}
-	server, caFile, requests := fixtureEnrollmentServer(t)
+	server, caFile, requests, _ := fixtureEnrollmentServer(t)
 	bootstrap := filepath.Join(t.TempDir(), "bootstrap.json")
 	cfg.Enrollment = &serviceEnrollment{Origin: server.URL, CAFile: &caFile, BootstrapFile: bootstrap}
 	if err := runServicePipeline(context.Background(), cfg, cpuSource(new(atomic.Bool), false), logf); err == nil || !strings.Contains(err.Error(), "bootstrap") {
@@ -362,7 +362,7 @@ func TestServiceAdmission(t *testing.T) {
 	}
 	// An unreachable controller fails before redemption; the credential stays
 	// for the SCM retry, and the retry below enrolls with it.
-	down, downCA, _ := fixtureEnrollmentServer(t)
+	down, downCA, _, _ := fixtureEnrollmentServer(t)
 	down.Close()
 	offline := cfg
 	offline.Enrollment = &serviceEnrollment{Origin: down.URL, CAFile: &downCA, BootstrapFile: bootstrap}
