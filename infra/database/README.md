@@ -87,6 +87,11 @@ telemetry ingestion remains separate work.
   one device-signed telemetry envelope, prediction or diagnostic result with
   owner device, SHA-256 (checked against the bytes by the database) and
   retention time. Edits and deletes are refused until #132 defines retention.
+- `015_forecast_diagnostic_triggers.sql` adds immutable
+  `forecast_diagnostic_triggers`: one row links an evaluated forecast (device,
+  assessment time, category, model and evaluation digests) to the signed
+  diagnostic assignment it launched. One forecast launches at most one job per
+  category, and the local insight is read through the assignment's result.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -111,7 +116,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 14 and the configured
+- health output for a connected database, schema version 15 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

@@ -1590,3 +1590,20 @@ could rewind sequence reservations after a trial had signed or delivered
 records. The updater therefore preserves the live files throughout.
 Release signing, mesh admission, device signatures and controller
 acknowledgements retain their separate trust roles.
+
+## Forecast-driven diagnostics read the FED13 verdict and link each job, FED06 #70
+
+Diagnostics launch only when `DeviceForecast` reports `available`. A stale,
+superseded, expired or unevaluated forecast launches nothing and returns its
+stable reason. Current models emit no per-category fault forecasts, so the
+drive-failure model's degraded or critical health assessment is the storage
+forecast. A forecast does not name a disk and the storage probe reads
+`storage:disk-0`.
+
+Deduplication is stored, not cached. The job ID is derived from the forecast,
+an immutable link table is unique per device, assessment time and category,
+and an unfinished job for the same probe blocks a newer forecast. A caller
+posts to launch; no scheduler is added, so the controller never runs
+diagnostics on a timer. The link records the model and evaluation digests but
+not result bytes. The trace reads the result through the assignment.
+
