@@ -52,6 +52,12 @@ telemetry ingestion remains separate work.
   candidate `federated_rounds` and `model_updates` tables from migration 001 and
   fails without dropping them if either holds a row. See
   [the round lifecycle](../../internal/controller/federated-rounds.md).
+- `009_prediction_history.sql` adds append-only `device_predictions` for
+  controller health/prediction assessments and their model, CT03 feature,
+  horizon, `device_evidence`, and ML10 fault-baseline provenance. Foreign keys
+  and `BEFORE INSERT` / `BEFORE UPDATE OR DELETE` triggers reject missing or
+  mismatched evidence digests, model approvals, or mutations, and preserve
+  nullable risk/horizon on `unknown` states.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -76,7 +82,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 8 and the configured
+- health output for a connected database, schema version 9 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

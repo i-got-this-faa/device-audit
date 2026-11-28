@@ -61,6 +61,15 @@ type AssessmentInput struct {
 	FaultHistory   *FaultHistory
 }
 
+// FeatureProvenance summarizes the CT03 feature window evaluated for an assessment.
+type FeatureProvenance struct {
+	FeatureVersion string
+	WindowStart    string
+	WindowEnd      string
+	Status         string
+	FeatureCount   int
+}
+
 // Assessment is the attributable health verdict and validated PredictionV2
 // produced under HealthRulesVersion. Prediction is nil only when no telemetry
 // sample exists at or before AsOf (because PredictionV2 requires an evidence
@@ -75,6 +84,9 @@ type Assessment struct {
 	EvaluationSHA256     string
 	ModelStatus          string
 	RuleReason           string
+	Features             *FeatureProvenance
+	CurrentFaultWindow   *FaultWindow
+	BaselineFaultWindow  *FaultWindow
 	FaultObservationNote string
 	FaultSummary         FaultSummary
 	Health               contracts.HealthV2
@@ -122,8 +134,21 @@ func AssessHealth(input AssessmentInput) (Assessment, error) {
 	}
 	if input.FaultHistory != nil {
 		out.FaultSummary, out.FaultObservationNote = summarizeFaults(*input.FaultHistory)
+		currentWindow := input.FaultHistory.Current
+		baselineWindow := input.FaultHistory.Baseline
+		out.CurrentFaultWindow = &currentWindow
+		out.BaselineFaultWindow = &baselineWindow
 	} else {
 		out.FaultObservationNote = "fault_history_unavailable"
+	}
+	if input.Features != nil {
+		out.Features = &FeatureProvenance{
+			FeatureVersion: input.Features.FeatureVersion,
+			WindowStart:    input.Features.WindowStart,
+			WindowEnd:      input.Features.WindowEnd,
+			Status:         input.Features.Status,
+			FeatureCount:   len(input.Features.Features),
+		}
 	}
 
 	if input.Model == nil || input.ModelFailure != nil {

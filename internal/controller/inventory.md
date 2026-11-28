@@ -87,3 +87,19 @@ cursor, so equal timestamps are stable. Reads come from `device_evidence`, so a
 controller restart changes nothing. Revoked devices stay readable; an unknown
 device returns 404. Not covered: retention, aggregation, filtering by source or
 metric, and export.
+
+## Prediction history and latest check, ML11 #107
+
+`GET /console/api/devices/{id}/predictions` pages through persisted prediction
+and health assessments (`device_predictions`) in a bounded `[from, to)` window
+capped at 31 days and `limit` 1..100, ordered by `(as_of, id)` with keyset
+cursor pagination (see [prediction history v1](../../packages/contracts/prediction-history-v1.md)).
+`GET /console/api/devices/{id}/predictions/latest` returns the newest stored
+record alongside `current_health`, failing closed to `unknown` (`stale_evidence`)
+once `expires_at` passes without synthesizing risk values. Both routes require
+viewer or administrator scope, validate `deployment_id`, re-hash referenced
+`device_evidence.payload_bytes` against `evidence_payload_sha256`, and verify
+referenced `model_approvals` and embedded `PredictionV2` consistency on every
+read, returning HTTP 500 (`ErrPredictionEvidenceBroken`) on broken evidence or
+model integrity. Not covered: retention, backfill, or the web console view
+(`WEB03 #39`).

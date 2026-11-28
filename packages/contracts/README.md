@@ -96,9 +96,14 @@ supply the clock. Go validation also rejects zero timestamps and expiry that is
 not after generation, semantic checks not expressible portably in this JSON
 Schema. Shared vectors are checked by Go strict decoding/validation and Python
 Draft 2020-12 validation. The shape and categories remain provisional pending
-#14/#72 and endpoint model qualification. #22 selected a historical HDD dataset
-study, not an endpoint predictor; this contract does not imply a trained or
-production prediction capability.
+#14/#72 and endpoint model qualification. #22 selected a historical HDD dataset study, not an endpoint predictor; this
+contract does not imply a trained or production prediction capability.
+
+[Prediction history v1](prediction-history-v1.md) defines
+`PredictionHistoryV1`, `LatestPredictionV1`, and `PredictionHistoryRecordV1`
+for bounded, attributable controller prediction queries (`ML11 #107`), preserving
+model, CT03 feature, horizon, telemetry-evidence, and ML10 fault-baseline
+provenance alongside nullable risk/horizon states.
 
 ## Off-chain audit manifests and opaque commitments v1, #79
 
