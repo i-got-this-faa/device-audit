@@ -2,15 +2,31 @@
 
 The Windows service launches a fresh worker at most once per hour. It assigns
 the worker to a Windows job before providing the inference request. The job
-limits the child to one process, a 64 MiB working set and 64 MiB of committed
-memory, and 250 ms of user CPU time. The parent also checks user plus kernel
-CPU and the process's peak working set. An inference that exceeds 1 s is
-discarded and a child that reaches the 2 s timeout is terminated. The service
+limits the child to one process, 64 MiB of committed memory, and 250 ms of
+user CPU time. The parent monitors user plus kernel CPU time and the 64 MiB
+peak working-set budget while the worker runs and checks both again at exit.
+An inference that exceeds 1 s is discarded and a child that reaches the 2 s
+timeout is terminated. The service
 logs the budget category and emits `unknown` with `model_unavailable`.
 Telemetry sampling has its own goroutine and the next inference starts a new
 worker. Windows CI injects CPU load, an allocation that exceeds the job cap,
 a hang and a crash. The test uses the production launcher and a test-only
 child mode, then launches a fresh child to score a complete fixture.
+
+## Physical-host fault verification
+
+On the selected HP Victus (Ryzen 5 5600H, 12 logical processors, Windows
+11 build 26200, Go 1.27.4), the original worker launch failed with Windows
+error 1314 under the interactive account. Replacing the privileged job
+working-set setting with parent monitoring let the same account run both
+tests below. The subprocess test rejected a hang, memory pressure, CPU
+pressure and a crash as `unknown`/`model_unavailable`, then recovered in a
+fresh worker. Separately, the service pipeline test continued writing signed
+telemetry after an injected worker failure.
+
+```powershell
+go test -count=1 -v -run '^TestInference' ./apps/endpoint-agent
+```
 
 ## Physical run
 

@@ -38,10 +38,8 @@ func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferen
 	limits := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{
 		BasicLimitInformation: windows.JOBOBJECT_BASIC_LIMIT_INFORMATION{
 			LimitFlags: windows.JOB_OBJECT_LIMIT_ACTIVE_PROCESS | windows.JOB_OBJECT_LIMIT_JOB_TIME |
-				windows.JOB_OBJECT_LIMIT_PROCESS_MEMORY | windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE |
-				windows.JOB_OBJECT_LIMIT_WORKINGSET,
+				windows.JOB_OBJECT_LIMIT_PROCESS_MEMORY | windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
 			ActiveProcessLimit: 1, PerJobUserTimeLimit: int64(inferenceCPULimit / (100 * time.Nanosecond)),
-			MinimumWorkingSetSize: 1 << 20, MaximumWorkingSetSize: inferenceMemoryLimit,
 		},
 		ProcessMemoryLimit: inferenceMemoryLimit,
 	}
@@ -76,7 +74,13 @@ func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferen
 	input.Close()
 	exited := make(chan error, 1)
 	go func() { exited <- cmd.Wait() }()
-	childErr, breach := waitForProbeJob(job, port, inferenceCPULimit, inferenceMemoryLimit, func() {
+	// A job working-set limit requires a privilege the worker launcher may
+	// lack. The kernel caps commit while the parent monitors resident memory.
+	workingSetExceeded := func() bool {
+		_, peak, err := telemetry.WindowsProcessWorkingSet(process)
+		return err == nil && peak > inferenceMemoryLimit
+	}
+	childErr, breach := waitForProbeJob(job, port, inferenceCPULimit, inferenceMemoryLimit, workingSetExceeded, func() {
 		_ = windows.TerminateJobObject(job, 1)
 	}, exited)
 
