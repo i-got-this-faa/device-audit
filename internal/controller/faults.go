@@ -38,20 +38,24 @@ type DeviceFaultHistory struct {
 // sampled day without a report is "no report", not "no fault". Health rules
 // that read this result (#35) must keep that distinction.
 func (s *PostgresRepository) DeviceFaultHistory(ctx context.Context, deviceID string, asOf time.Time) (DeviceFaultHistory, error) {
+	return s.deviceFaultHistory(ctx, s.db, deviceID, asOf)
+}
+
+func (s *PostgresRepository) deviceFaultHistory(ctx context.Context, q dbQueryer, deviceID string, asOf time.Time) (DeviceFaultHistory, error) {
 	current, baseline := health.FaultWindows(asOf)
 	from, to := baseline.From, current.To
 	if !repositoryIDPattern.MatchString(deviceID) || to.Sub(from) > contracts.TelemetryHistoryWindowMaxV1 {
 		return DeviceFaultHistory{}, ErrDeviceStateInvalid
 	}
 	var exists bool
-	if err := s.db.QueryRowContext(ctx, `SELECT true FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`, s.deploymentID, deviceID).Scan(&exists); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT true FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`, s.deploymentID, deviceID).Scan(&exists); err != nil {
 		return DeviceFaultHistory{}, repositoryReadError(err)
 	}
 	result := DeviceFaultHistory{DeploymentID: s.deploymentID, DeviceID: deviceID}
 	var evidence health.FaultEvidence
 
 	// Coverage reads no payload: a sampled day is one row however many samples it holds.
-	rows, err := s.db.QueryContext(ctx, `SELECT date_trunc('day', collected_at AT TIME ZONE 'UTC'), count(*), max(sequence)
+	rows, err := q.QueryContext(ctx, `SELECT date_trunc('day', collected_at AT TIME ZONE 'UTC'), count(*), max(sequence)
 		FROM device_evidence WHERE deployment_id=$1 AND device_id=$2 AND collected_at >= $3 AND collected_at < $4
 		GROUP BY 1 ORDER BY 1`, s.deploymentID, deviceID, from, to)
 	if err != nil {
@@ -75,7 +79,7 @@ func (s *PostgresRepository) DeviceFaultHistory(ctx context.Context, deviceID st
 	rows.Close()
 
 	// Only samples that carried a log reference return their references.
-	rows, err = s.db.QueryContext(ctx, `SELECT e.sequence, e.collected_at, r.refs
+	rows, err = q.QueryContext(ctx, `SELECT e.sequence, e.collected_at, r.refs
 		FROM device_evidence e, LATERAL (SELECT convert_from(e.payload_bytes, 'UTF8')::jsonb -> 'log_references' AS refs) r
 		WHERE e.deployment_id=$1 AND e.device_id=$2 AND e.collected_at >= $3 AND e.collected_at < $4
 		AND jsonb_typeof(r.refs) = 'array' AND jsonb_array_length(r.refs) > 0

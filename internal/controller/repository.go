@@ -43,6 +43,11 @@ type RepositoryConfig struct {
 	Now          func() time.Time
 }
 
+type dbQueryer interface {
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 type PostgresRepository struct {
 	db           *sql.DB
 	deploymentID string

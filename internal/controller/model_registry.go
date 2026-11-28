@@ -74,6 +74,10 @@ func (s *PostgresRepository) PutModelArtifact(ctx context.Context, upload contra
 
 // ModelArtifact returns one stored entry with its approval, without the bytes.
 func (s *PostgresRepository) ModelArtifact(ctx context.Context, version string) (contracts.ModelArtifactV1, error) {
+	return s.modelArtifact(ctx, s.db, version)
+}
+
+func (s *PostgresRepository) modelArtifact(ctx context.Context, q dbQueryer, version string) (contracts.ModelArtifactV1, error) {
 	if !repositoryIDPattern.MatchString(version) {
 		return contracts.ModelArtifactV1{}, ErrRepositoryNotFound
 	}
@@ -82,7 +86,7 @@ func (s *PostgresRepository) ModelArtifact(ctx context.Context, version string) 
 	var evaluation []byte
 	var policy, approverIssuer, approverSubject sql.NullString
 	var approvedAt sql.NullTime
-	err := s.db.QueryRowContext(ctx, `SELECT a.manifest, octet_length(a.artifact), a.source_reference, a.uploaded_at, a.actor_issuer, a.actor_subject,
+	err := q.QueryRowContext(ctx, `SELECT a.manifest, octet_length(a.artifact), a.source_reference, a.uploaded_at, a.actor_issuer, a.actor_subject,
 		p.evaluation_sha256, p.policy_version, p.approved_at, p.actor_issuer, p.actor_subject
 		FROM model_artifacts a LEFT JOIN model_approvals p USING (deployment_id, model_version, artifact_sha256)
 		WHERE a.deployment_id=$1 AND a.model_version=$2`, s.deploymentID, version).
@@ -105,11 +109,15 @@ func (s *PostgresRepository) ModelArtifact(ctx context.Context, version string) 
 // ModelArtifactBytes returns the stored bytes after checking them against the
 // signed digest, so bytes changed at rest are refused rather than served.
 func (s *PostgresRepository) ModelArtifactBytes(ctx context.Context, version string) (contracts.ModelManifestV1, []byte, error) {
+	return s.modelArtifactBytes(ctx, s.db, version)
+}
+
+func (s *PostgresRepository) modelArtifactBytes(ctx context.Context, q dbQueryer, version string) (contracts.ModelManifestV1, []byte, error) {
 	if !repositoryIDPattern.MatchString(version) {
 		return contracts.ModelManifestV1{}, nil, ErrRepositoryNotFound
 	}
 	var manifestJSON, artifact []byte
-	if err := s.db.QueryRowContext(ctx, `SELECT manifest, artifact FROM model_artifacts WHERE deployment_id=$1 AND model_version=$2`,
+	if err := q.QueryRowContext(ctx, `SELECT manifest, artifact FROM model_artifacts WHERE deployment_id=$1 AND model_version=$2`,
 		s.deploymentID, version).Scan(&manifestJSON, &artifact); err != nil {
 		return contracts.ModelManifestV1{}, nil, repositoryReadError(err)
 	}
@@ -224,8 +232,12 @@ func (s *PostgresRepository) SetModelReference(ctx context.Context, slot contrac
 
 // ModelReferences returns both slots; an unset slot is null.
 func (s *PostgresRepository) ModelReferences(ctx context.Context) (contracts.ModelReferencesV1, error) {
+	return s.modelReferences(ctx, s.db)
+}
+
+func (s *PostgresRepository) modelReferences(ctx context.Context, q dbQueryer) (contracts.ModelReferencesV1, error) {
 	refs := contracts.ModelReferencesV1{SchemaVersion: contracts.ModelReferencesV1Version, DeploymentID: s.deploymentID}
-	rows, err := s.db.QueryContext(ctx, `SELECT slot, model_version, artifact_sha256, set_at, actor_issuer, actor_subject
+	rows, err := q.QueryContext(ctx, `SELECT slot, model_version, artifact_sha256, set_at, actor_issuer, actor_subject
 		FROM model_references WHERE deployment_id=$1`, s.deploymentID)
 	if err != nil {
 		return contracts.ModelReferencesV1{}, repositoryUnavailable(err)
