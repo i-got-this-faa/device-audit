@@ -3,7 +3,8 @@
 // FED01 #40 defines the durable round lifecycle and participant admission.
 // FED09 #114 validates and persists signed participant updates before
 // aggregation. FED03 #43 aggregates persisted updates into a reproducible
-// candidate artifact. Promotion (FED10 #115) remains separate.
+// candidate artifact. FED10 #115 promotes a candidate only from a stored
+// held-out evaluation; promotion.go holds the frozen regression gates.
 package federated
 
 import (

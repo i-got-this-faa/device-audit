@@ -1236,8 +1236,9 @@ serves them through fresh-admin console routes
   unapproved active model even if a code path forgets to check. Only an
   artifact that declares `inference` can be active.
 - **Approval.** An administrator records it with an evaluation digest and a
-  policy version. It is the seam FED10 #115 must replace with an evaluation
-  gate; the registry does not check the evaluation.
+  policy version. FED10 #115 replaced this with an evaluation-gated promotion:
+  there is no approval route and the database refuses an approval without a
+  stored passing evaluation.
 
 Not done: publisher-key issuance and rotation, artifact revocation, reference
 history, endpoint download over the mesh and #55's access matrix. The
@@ -1404,3 +1405,51 @@ devices, expire overdue leases/deadlines once, keep pending cancellations
 queryable across restarts, and advance `device_enrollments.last_sequence`
 atomically on result ingestion. Endpoint offline spool/reboot recovery remains
 scoped to `DIA06 #110` and forecast-driven triggers to `FED06 #70`.
+
+## Evaluation-gated candidate promotion, FED10 #115 (28 November 2026)
+
+A candidate becomes the active model only through a promotion that reads a
+stored held-out evaluation. Migration `013_model_promotion.sql` adds immutable
+`model_evaluations` and `model_promotions`, and a trigger that refuses a
+`model_approvals` row without a stored passing evaluation of the same artifact.
+The active slot references an approval, so no unevaluated or failing model can
+be active, even by direct SQL. The manual approval route and `ApproveModel`
+are removed.
+
+- **Evidence.** The model publisher signs the ML05 report (a key already
+  trusted for manifests, still separate from device, mesh, TLS, chain and
+  diagnostic keys). The controller reads every metric itself through
+  `health.AssessEvaluationReport` and ignores the verdict inside the report.
+  Missing or inconsistent evidence, an interrupted run, a reused held-out set
+  or too little data is `blocked`: it cannot pass, and it is not a failed
+  model. A candidate has one evaluation because ML05 scores the test partition
+  once per candidate; a retry needs a new model version.
+- **Frozen gates.** The ML05 thresholds are unchanged. FED10 adds six
+  regression gates against the model active at decision time (`fed10.v1`,
+  `models/evaluation/promotion-policy.json`). They compare point estimates on
+  identical held-out examples, because with a few dozen events an interval
+  overlap cannot show a candidate is no worse. Average precision may not fall
+  at all; ROC AUC, horizon event recall, both window false-positive rates and
+  the device false-alarm fraction have small absolute tolerances. The numbers
+  were declared on 28 November 2026 before any federated candidate was
+  evaluated, from the scale of the ML05 thresholds and not from model output.
+  They are a conservative first policy, not a result. A Go test checks the
+  constants against the JSON file, and shared vectors keep the Go controller
+  and `device_audit_models.promotion` in agreement.
+- **First model.** With no active model only the ML05 gates apply. An active
+  model with no stored evaluation, such as one approved before FED10, or one
+  scored on other examples cannot be compared, so the candidate is rejected
+  (`baseline_not_comparable`) and the active model stays.
+- **Decision.** One immutable record per candidate: outcome, reasons, baseline,
+  each check, time and actor. `promoted` writes the approval and the `active`
+  slot in one transaction under a per-deployment advisory lock that
+  `SetModelReference` also takes. `rejected` writes only the record. Both
+  clear the candidate slot.
+
+Not done: producing a held-out report for a federated candidate. The offline
+runner (`device_audit_models.held_out`) accepts a train-only logistic fit with
+its provenance and has no aggregation provenance input, so a candidate report
+must still be produced and signed outside this change. No publisher signing
+tool or key issuance exists. The recorded ML06 report for the ML02 baseline
+fails four ML05 gates, so no model can be promoted on current evidence. Console
+views are `WEB04 #49`.

@@ -96,6 +96,7 @@ func buildPassingEvaluationMap(manifest contracts.ModelManifestV1, degradedLogit
 		"calibration_slope":                     {"point": 0.98, "lower": 0.82, "upper": 1.14},
 		"event_recall_within_horizon":           {"point": 0.45, "lower": 0.28, "upper": 0.62},
 		"median_first_alert_lead_days":          {"point": 3.5, "lower": 2.2, "upper": 4.8},
+		"average_precision":                     {"point": 0.20, "lower": 0.10, "upper": 0.30},
 	}
 	checks := []map[string]any{
 		{"id": "baseline_average_precision", "kind": "baseline", "metric": "average_precision_minus_best_baseline", "bound": "lower", "op": ">", "threshold": 0.0, "observed": metrics["average_precision_minus_best_baseline"]["lower"], "status": "pass"},
@@ -140,7 +141,8 @@ func buildPassingEvaluationMap(manifest contracts.ModelManifestV1, degradedLogit
 			"test_devices":                1200,
 			"validation_negative_windows": 12000,
 		},
-		"metrics": metrics,
+		"metrics":                   metrics,
+		"partition_examples_sha256": map[string]any{"test": strings.Repeat("7", 64)},
 		"operating_points": map[string]any{
 			"degraded_logit": degradedLogit,
 			"critical_logit": criticalLogit,

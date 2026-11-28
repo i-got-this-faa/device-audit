@@ -77,6 +77,12 @@ telemetry ingestion remains separate work.
   -> `leased` / `cancelled` / `expired`, `leased` -> `cancel_requested` /
   terminal states), and at most one final terminal transition/result per
   assignment.
+- `013_model_promotion.sql` adds immutable `model_evaluations` (one held-out
+  report and verdict per candidate version) and `model_promotions` (one
+  promoted or rejected decision per candidate). A trigger on `model_approvals`
+  refuses an approval without a stored passing evaluation of the same
+  artifact, so the active slot, which references an approval, cannot name an
+  unevaluated or failing model.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -101,7 +107,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 12 and the configured
+- health output for a connected database, schema version 13 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

@@ -37,8 +37,9 @@ Same run as [fault-history-106.md](fault-history-106.md): `make check` with
   process, not a killed controller process.
 - No real model was uploaded. The artifacts are synthetic bytes, and the ML02
   baseline has no signed manifest; the publisher key has no issuer.
-- The approval cites an evaluation digest that nothing checks. FED10 #115 must
-  gate approval on held-out evaluation.
+- The approval cited an evaluation digest that nothing checked. FED10 #115
+  ([validation](model-promotion-115.md)) removed that approval route: a
+  promotion now creates the approval from a stored passing evaluation.
 - Endpoints cannot download the active model over the mesh yet, and #55 has
   not reviewed these routes in its access matrix.
 - A 16 MiB upload against the 10 s server read timeout was not measured.

@@ -11,6 +11,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -76,6 +77,7 @@ type evaluationReportWire struct {
 	Counts                  evaluationCountsWire      `json:"counts"`
 	Metrics                 map[string]metricInterval `json:"metrics"`
 	OperatingPoints         evaluationOperatingPoints `json:"operating_points"`
+	PartitionExamplesSHA256 map[string]string         `json:"partition_examples_sha256"`
 	Gate                    evaluationGateWire        `json:"gate"`
 }
 
@@ -211,6 +213,40 @@ func VerifyEvaluatedModel(manifest contracts.ModelManifestV1, artifact []byte, t
 	}, nil
 }
 
+// EvaluationVerdict is the outcome of checking one ML05 report against the
+// frozen policy. Blocked means the evidence cannot decide; it is not a failed
+// model and a blocked report never passes.
+type EvaluationVerdict string
+
+const (
+	EvaluationPass    EvaluationVerdict = "pass"
+	EvaluationFail    EvaluationVerdict = "fail"
+	EvaluationBlocked EvaluationVerdict = "blocked"
+)
+
+// MetricInterval is one reported metric with its device-bootstrap interval.
+type MetricInterval struct {
+	Point float64 `json:"point"`
+	Lower float64 `json:"lower"`
+	Upper float64 `json:"upper"`
+}
+
+// EvaluationAssessment is the controller's own reading of a report. It never
+// trusts the verdict embedded in the report: every metric is rechecked.
+type EvaluationAssessment struct {
+	Verdict          EvaluationVerdict
+	Reasons          []string
+	EvaluationSHA256 string
+	ModelVersion     string
+	ModelSHA256      string
+	// TestPartitionSHA256 identifies the frozen held-out examples scored.
+	TestPartitionSHA256 string
+	// Metrics holds every policy metric when the report is well formed.
+	Metrics map[string]MetricInterval
+	// Summary is valid only when Verdict is EvaluationPass.
+	Summary EvaluationSummary
+}
+
 // VerifyEvaluationReport verifies that evalReport matches expectedSHA256, binds
 // manifest under the pinned ML05 policy and ML01 manifest, clears every
 // minimum-evidence and metric gate, and declares valid logit operating points.
@@ -218,130 +254,217 @@ func VerifyEvaluationReport(evalReport []byte, expectedSHA256 string, manifest c
 	if !lowerHexSHA256Pattern.MatchString(expectedSHA256) {
 		return EvaluationSummary{}, fmt.Errorf("%w: invalid expected evaluation digest", ErrEvaluationRejected)
 	}
-	if len(evalReport) == 0 || len(evalReport) > MaxEvaluationReportBytes {
-		return EvaluationSummary{}, fmt.Errorf("%w: evaluation report size out of bounds", ErrEvaluationRejected)
-	}
-	sum := sha256.Sum256(evalReport)
-	actualSHA := hex.EncodeToString(sum[:])
-	if actualSHA != expectedSHA256 {
+	assessment := AssessEvaluationReport(evalReport, manifest)
+	if assessment.EvaluationSHA256 != expectedSHA256 {
 		return EvaluationSummary{}, fmt.Errorf("%w: evaluation digest mismatch", ErrEvaluationRejected)
+	}
+	if assessment.Verdict != EvaluationPass {
+		return EvaluationSummary{}, fmt.Errorf("%w: %s: %v", ErrEvaluationRejected, assessment.Verdict, assessment.Reasons)
+	}
+	return assessment.Summary, nil
+}
+
+// AssessEvaluationReport reads one ML05 report for manifest and returns pass,
+// fail or blocked with stable reason codes. Structural problems, missing or
+// inconsistent evidence and procedure mismatches block; a well-formed report
+// whose metrics miss a threshold fails.
+func AssessEvaluationReport(evalReport []byte, manifest contracts.ModelManifestV1) EvaluationAssessment {
+	sum := sha256.Sum256(evalReport)
+	out := EvaluationAssessment{Verdict: EvaluationBlocked, EvaluationSHA256: hex.EncodeToString(sum[:])}
+	block := func(reasons ...string) EvaluationAssessment {
+		out.Verdict, out.Reasons = EvaluationBlocked, append(out.Reasons, reasons...)
+		slices.Sort(out.Reasons)
+		out.Reasons = slices.Compact(out.Reasons)
+		return out
+	}
+	if len(evalReport) == 0 || len(evalReport) > MaxEvaluationReportBytes {
+		return block("report_size_out_of_bounds")
 	}
 	var report evaluationReportWire
 	decoder := json.NewDecoder(bytes.NewReader(evalReport))
 	if err := decoder.Decode(&report); err != nil {
-		return EvaluationSummary{}, fmt.Errorf("%w: invalid evaluation JSON", ErrEvaluationRejected)
+		return block("invalid_report_json")
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return EvaluationSummary{}, fmt.Errorf("%w: trailing content in evaluation JSON", ErrEvaluationRejected)
+		return block("invalid_report_json")
 	}
+	if report.Model != nil {
+		out.ModelVersion, out.ModelSHA256 = report.Model.Version, report.Model.SHA256
+	}
+	out.TestPartitionSHA256 = report.PartitionExamplesSHA256["test"]
 
-	if err := checkEvaluationMetadata(report, manifest); err != nil {
-		return EvaluationSummary{}, err
-	}
-	if err := checkEvaluationCounts(report.Counts); err != nil {
-		return EvaluationSummary{}, err
-	}
-	if err := checkEvaluationMetricsAndGate(report, manifest); err != nil {
-		return EvaluationSummary{}, err
-	}
+	blocked := evaluationMetadataReasons(report, manifest)
+	blocked = append(blocked, evaluationCountReasons(report.Counts)...)
+	metrics, metricReasons := evaluationMetrics(report)
+	blocked = append(blocked, metricReasons...)
 	points := report.OperatingPoints
 	if !finitePtr(points.DegradedLogit) || !finitePtr(points.CriticalLogit) || *points.CriticalLogit < *points.DegradedLogit {
-		return EvaluationSummary{}, fmt.Errorf("%w: invalid operating points", ErrEvaluationRejected)
+		blocked = append(blocked, "invalid_operating_points")
 	}
-	return EvaluationSummary{
-		EvaluationSHA256: actualSHA,
+	if len(blocked) > 0 {
+		return block(blocked...)
+	}
+	out.Metrics = metrics
+
+	var failed []string
+	for _, spec := range ml05Gates {
+		observed, _ := intervalValue(metrics[spec.metric], spec.bound)
+		if !evalOp(observed, spec.op, spec.threshold) {
+			failed = append(failed, "gate_failed:"+spec.id)
+		}
+	}
+	if len(failed) > 0 {
+		out.Verdict, out.Reasons = EvaluationFail, failed
+		return out
+	}
+	// The report's own gate must agree with the controller's reading.
+	if !embeddedGateAgrees(report, manifest) {
+		return block("embedded_gate_inconsistent")
+	}
+	out.Verdict = EvaluationPass
+	out.Summary = EvaluationSummary{
+		EvaluationSHA256: out.EvaluationSHA256,
 		PolicyVersion:    ML05PolicyVersion,
 		PolicySHA256:     ML05PolicySHA256,
 		HorizonHours:     report.HorizonHours,
 		DegradedLogit:    *points.DegradedLogit,
 		CriticalLogit:    *points.CriticalLogit,
-	}, nil
+	}
+	return out
 }
 
-func checkEvaluationMetadata(report evaluationReportWire, manifest contracts.ModelManifestV1) error {
-	if report.SchemaVersion != EvaluationReportV1Version ||
-		report.PolicySHA256 != ML05PolicySHA256 ||
-		report.PartitionManifestSHA256 != ML01PartitionManifestSHA256 ||
-		report.Partition != "test" ||
-		report.HorizonHours != ML05HorizonHours ||
-		report.Evaluations != 1 ||
-		report.LabelStatus != "both_classes_present" ||
-		report.EvaluationError != "" {
-		return fmt.Errorf("%w: report procedure, policy, or label status failed", ErrEvaluationRejected)
+func evaluationMetadataReasons(report evaluationReportWire, manifest contracts.ModelManifestV1) []string {
+	var reasons []string
+	add := func(failed bool, reason string) {
+		if failed {
+			reasons = append(reasons, reason)
+		}
 	}
-	if report.Model == nil || report.Model.Version != manifest.ModelVersion || report.Model.SHA256 != manifest.ArtifactSHA256 {
-		return fmt.Errorf("%w: evaluation report does not match model artifact", ErrEvaluationRejected)
-	}
-	if report.Bootstrap.Unit != "device" || report.Bootstrap.Replicates != 2000 ||
-		report.Bootstrap.Seed != 86 || report.Bootstrap.Method != "percentile" ||
-		report.Bootstrap.Interval != 0.95 {
-		return fmt.Errorf("%w: bootstrap procedure mismatch", ErrEvaluationRejected)
-	}
-	return nil
+	add(report.SchemaVersion != EvaluationReportV1Version, "unsupported_report_schema")
+	add(report.PolicySHA256 != ML05PolicySHA256, "policy_mismatch")
+	add(report.PartitionManifestSHA256 != ML01PartitionManifestSHA256, "partition_manifest_mismatch")
+	add(report.Partition != "test", "not_held_out_partition")
+	add(report.HorizonHours != ML05HorizonHours, "horizon_mismatch")
+	add(report.Evaluations != 1, "held_out_reuse_or_unrecorded")
+	add(report.LabelStatus != "both_classes_present", "labels_unavailable")
+	add(report.EvaluationError != "", "evaluation_error")
+	add(report.Model == nil || report.Model.Version != manifest.ModelVersion || report.Model.SHA256 != manifest.ArtifactSHA256, "model_mismatch")
+	add(!lowerHexSHA256Pattern.MatchString(report.PartitionExamplesSHA256["test"]), "test_partition_digest_missing")
+	add(report.Bootstrap.Unit != "device" || report.Bootstrap.Replicates != 2000 || report.Bootstrap.Seed != 86 ||
+		report.Bootstrap.Method != "percentile" || report.Bootstrap.Interval != 0.95, "bootstrap_procedure_mismatch")
+	return reasons
 }
 
-func checkEvaluationCounts(counts evaluationCountsWire) error {
+func evaluationCountReasons(counts evaluationCountsWire) []string {
 	checks := []struct {
-		got *int
-		min int
+		name string
+		got  *int
+		min  int
 	}{
-		{counts.TestPositiveEvents, 30},
-		{counts.TestPositiveWindows, 100},
-		{counts.TestNegativeWindows, 10000},
-		{counts.TestDevices, 1000},
-		{counts.ValidationNegativeWindows, 10000},
+		{"test_positive_events", counts.TestPositiveEvents, 30},
+		{"test_positive_windows", counts.TestPositiveWindows, 100},
+		{"test_negative_windows", counts.TestNegativeWindows, 10000},
+		{"test_devices", counts.TestDevices, 1000},
+		{"validation_negative_windows", counts.ValidationNegativeWindows, 10000},
 	}
+	var reasons []string
 	for _, check := range checks {
-		if check.got == nil || *check.got < check.min {
-			return fmt.Errorf("%w: minimum evaluation counts not met", ErrEvaluationRejected)
+		switch {
+		case check.got == nil:
+			reasons = append(reasons, "missing_count:"+check.name)
+		case *check.got < check.min:
+			reasons = append(reasons, "insufficient:"+check.name)
 		}
 	}
-	return nil
+	return reasons
 }
 
-func checkEvaluationMetricsAndGate(report evaluationReportWire, manifest contracts.ModelManifestV1) error {
-	if report.Gate.SchemaVersion != EvaluationGateV1Version ||
-		report.Gate.PolicySHA256 != ML05PolicySHA256 ||
-		report.Gate.Status != "pass" ||
-		len(report.Gate.BlockingReasons) != 0 {
-		return fmt.Errorf("%w: ML05 gate did not pass", ErrEvaluationRejected)
-	}
-	if report.Gate.Model != nil && (report.Gate.Model.Version != manifest.ModelVersion || report.Gate.Model.SHA256 != manifest.ArtifactSHA256) {
-		return fmt.Errorf("%w: gate model provenance mismatch", ErrEvaluationRejected)
-	}
-	checkByID := make(map[string]evaluationCheck, len(report.Gate.Checks))
-	for _, check := range report.Gate.Checks {
-		if _, dup := checkByID[check.ID]; dup {
-			return fmt.Errorf("%w: duplicate gate check %q", ErrEvaluationRejected, check.ID)
+// evaluationMetrics returns every metric an ML05 gate reads, or the reasons it
+// cannot. A missing, non-finite or inconsistent interval blocks the report.
+func evaluationMetrics(report evaluationReportWire) (map[string]MetricInterval, []string) {
+	metrics := make(map[string]MetricInterval, len(ml05Gates))
+	var reasons []string
+	for _, spec := range ml05Gates {
+		if _, done := metrics[spec.metric]; done {
+			continue
 		}
-		checkByID[check.ID] = check
+		interval, ok := report.Metrics[spec.metric]
+		switch {
+		case !ok || !finitePtr(interval.Point) || !finitePtr(interval.Lower) || !finitePtr(interval.Upper):
+			reasons = append(reasons, "missing_metric:"+spec.metric)
+		case *interval.Lower > *interval.Point || *interval.Point > *interval.Upper:
+			reasons = append(reasons, "inconsistent_interval:"+spec.metric)
+		case spec.metric == "roc_auc" && (*interval.Lower < 0 || *interval.Upper > 1):
+			reasons = append(reasons, "inconsistent_interval:"+spec.metric)
+		default:
+			metrics[spec.metric] = MetricInterval{Point: *interval.Point, Lower: *interval.Lower, Upper: *interval.Upper}
+		}
 	}
-	if len(checkByID) != len(ml05Gates) {
-		return fmt.Errorf("%w: gate check count mismatch", ErrEvaluationRejected)
+	// Regression gates read these without an ML05 gate of their own.
+	for _, name := range ComparisonMetrics {
+		interval, ok := report.Metrics[name]
+		if _, have := metrics[name]; have {
+			continue
+		}
+		if !ok || !finitePtr(interval.Point) || !finitePtr(interval.Lower) || !finitePtr(interval.Upper) ||
+			*interval.Lower > *interval.Point || *interval.Point > *interval.Upper {
+			reasons = append(reasons, "missing_metric:"+name)
+			continue
+		}
+		metrics[name] = MetricInterval{Point: *interval.Point, Lower: *interval.Lower, Upper: *interval.Upper}
+	}
+	return metrics, reasons
+}
+
+// ComparisonMetrics are the metrics a candidate is compared with the active
+// model on, beyond those the ML05 gates read. Both come from the same report.
+var ComparisonMetrics = []string{"average_precision"}
+
+// embeddedGateAgrees checks that the report's own gate says pass and records
+// each ML05 check exactly as the controller computed it.
+func embeddedGateAgrees(report evaluationReportWire, manifest contracts.ModelManifestV1) bool {
+	gate := report.Gate
+	if gate.SchemaVersion != EvaluationGateV1Version || gate.PolicySHA256 != ML05PolicySHA256 ||
+		gate.Status != "pass" || len(gate.BlockingReasons) != 0 {
+		return false
+	}
+	if gate.Model != nil && (gate.Model.Version != manifest.ModelVersion || gate.Model.SHA256 != manifest.ArtifactSHA256) {
+		return false
+	}
+	checks := make(map[string]evaluationCheck, len(gate.Checks))
+	for _, check := range gate.Checks {
+		if _, dup := checks[check.ID]; dup {
+			return false
+		}
+		checks[check.ID] = check
+	}
+	if len(checks) != len(ml05Gates) {
+		return false
 	}
 	for _, spec := range ml05Gates {
-		interval, ok := report.Metrics[spec.metric]
-		if !ok || !finitePtr(interval.Point) || !finitePtr(interval.Lower) || !finitePtr(interval.Upper) {
-			return fmt.Errorf("%w: missing or non-finite metric %q", ErrEvaluationRejected, spec.metric)
-		}
-		if *interval.Lower > *interval.Point || *interval.Point > *interval.Upper {
-			return fmt.Errorf("%w: inconsistent interval for %q", ErrEvaluationRejected, spec.metric)
-		}
-		if spec.metric == "roc_auc" && (*interval.Lower < 0 || *interval.Upper > 1) {
-			return fmt.Errorf("%w: ROC AUC interval outside [0,1]", ErrEvaluationRejected)
-		}
-		observed, ok := intervalBound(interval, spec.bound)
-		if !ok || !evalOp(observed, spec.op, spec.threshold) {
-			return fmt.Errorf("%w: gate %q failed threshold", ErrEvaluationRejected, spec.id)
-		}
-		check, ok := checkByID[spec.id]
+		interval := report.Metrics[spec.metric]
+		observed, _ := intervalBound(interval, spec.bound)
+		check, ok := checks[spec.id]
 		if !ok || check.Status != "pass" || check.Kind != spec.kind || check.Metric != spec.metric ||
 			check.Bound != spec.bound || check.Op != spec.op || !finitePtr(check.Threshold) ||
 			*check.Threshold != spec.threshold || !finitePtr(check.Observed) || *check.Observed != observed {
-			return fmt.Errorf("%w: gate check %q inconsistent or not passing", ErrEvaluationRejected, spec.id)
+			return false
 		}
 	}
-	return nil
+	return true
+}
+
+func intervalValue(interval MetricInterval, bound string) (float64, bool) {
+	switch bound {
+	case "point":
+		return interval.Point, true
+	case "lower":
+		return interval.Lower, true
+	case "upper":
+		return interval.Upper, true
+	default:
+		return 0, false
+	}
 }
 
 func finitePtr(v *float64) bool {

@@ -230,30 +230,27 @@ func TestModelRegistryNeverActivatesAnUnapprovedCandidate(t *testing.T) {
 		t.Fatal("database stored an unapproved active model")
 	}
 
-	// Approval binds the exact digest, is permanent and cannot be replaced.
-	approval := c.ModelApprovalRequestV1{SchemaVersion: c.ModelApprovalRequestV1Version, ModelVersion: "synthetic.1", ArtifactSHA256: m.ArtifactSHA256,
-		EvaluationSHA256: strings.Repeat("e", 64), PolicyVersion: "ml05-policy.v1"}
-	wrong := approval
-	wrong.ArtifactSHA256 = strings.Repeat("0", 64)
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", wrong, b.adminHeaders(), http.StatusConflict, string(c.ModelRejectionReferenceMismatch))
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", approval, b.staleAdm, http.StatusForbidden, "")
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", approval, b.adminHeaders(), http.StatusCreated, `"policy_version":"ml05-policy.v1"`)
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", approval, b.adminHeaders(), http.StatusOK, "")
-	other := approval
-	other.EvaluationSHA256 = strings.Repeat("f", 64)
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", other, b.adminHeaders(), http.StatusConflict, string(c.ModelRejectionVersionConflict))
+	// No route approves a model: the old approval endpoint is gone, and only a
+	// promotion from a passing held-out evaluation can activate a candidate.
+	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/approval", map[string]string{}, b.adminHeaders(), http.StatusNotFound, "")
+	report, digest := buildPassingML05Report(t, m, 0.0, 2.0)
+	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/evaluation", b.evaluation(t, m, report), b.adminHeaders(), http.StatusCreated, `"verdict":"pass"`)
+	b.expect(t, http.MethodPost, "/console/api/models/synthetic.1/promotion", promotionRequestFor(m, digest), b.adminHeaders(), http.StatusCreated, `"outcome":"promoted"`)
+	if refs := b.references(t, b.server); refs.Active == nil || refs.Active.ModelVersion != "synthetic.1" || refs.Candidate != nil {
+		t.Fatalf("promotion did not activate the candidate and clear its slot: %+v", refs)
+	}
 
-	// Activating the approved candidate clears the candidate slot.
-	b.expect(t, http.MethodPut, "/console/api/model-references/active", ref, b.adminHeaders(), http.StatusOK, `"candidate":null`)
-
-	// A training-only base can be approved but never becomes the inference model.
+	// A training-only base can be evaluated but never becomes the inference model.
 	trainOnly := []byte("synthetic training base")
 	tm := b.manifest(t, b.publisher, "synthetic.base", trainOnly, c.ModelPurposeTraining)
 	b.expect(t, http.MethodPost, "/console/api/models", upload(tm, trainOnly), b.adminHeaders(), http.StatusCreated, "")
-	b.expect(t, http.MethodPost, "/console/api/models/synthetic.base/approval", c.ModelApprovalRequestV1{SchemaVersion: c.ModelApprovalRequestV1Version,
-		ModelVersion: "synthetic.base", ArtifactSHA256: tm.ArtifactSHA256, EvaluationSHA256: strings.Repeat("e", 64), PolicyVersion: "ml05-policy.v1"}, b.adminHeaders(), http.StatusCreated, "")
+	b.expect(t, http.MethodPut, "/console/api/model-references/candidate", c.ModelReferenceRequestV1{SchemaVersion: c.ModelReferenceRequestV1Version,
+		ModelVersion: "synthetic.base", ArtifactSHA256: tm.ArtifactSHA256}, b.adminHeaders(), http.StatusOK, "")
+	baseReport, baseDigest := buildPassingML05Report(t, tm, 0.0, 2.0)
+	b.expect(t, http.MethodPost, "/console/api/models/synthetic.base/evaluation", b.evaluation(t, tm, baseReport), b.adminHeaders(), http.StatusCreated, `"verdict":"pass"`)
+	b.expect(t, http.MethodPost, "/console/api/models/synthetic.base/promotion", promotionRequestFor(tm, baseDigest), b.adminHeaders(), http.StatusCreated, `"reasons":["purpose_unsupported"]`)
 	b.expect(t, http.MethodPut, "/console/api/model-references/active", c.ModelReferenceRequestV1{SchemaVersion: c.ModelReferenceRequestV1Version,
-		ModelVersion: "synthetic.base", ArtifactSHA256: tm.ArtifactSHA256}, b.adminHeaders(), http.StatusUnprocessableEntity, string(c.ModelRejectionPurposeUnsupported))
+		ModelVersion: "synthetic.base", ArtifactSHA256: tm.ArtifactSHA256}, b.adminHeaders(), http.StatusConflict, string(c.ModelRejectionNotApproved))
 
 	// A new unapproved candidate, then a restart: a new repository and server
 	// over the same database keep both references and still refuse activation.

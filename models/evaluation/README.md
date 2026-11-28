@@ -186,6 +186,16 @@ scoring and leaves the reservation in place if interrupted. Check an existing
 report with `--report`. Separate checkouts with independent ledgers require
 coordination to preserve the once-only rule.
 
+## FED10 promotion gates
+
+[`promotion-policy.json`](promotion-policy.json) (`fed10.v1`) adds regression
+gates against the active model on top of the thresholds above. It was declared
+on 28 November 2026 before any federated candidate was evaluated. The controller
+compares point estimates on identical test examples; the Go constants and
+`device_audit_models.promotion` follow this file, and
+[`promotion-vectors.json`](promotion-vectors.json) holds the cases both check.
+A candidate promotes only when its ML05 report passes and no gate regresses.
+
 ## Commands
 
 ```sh
