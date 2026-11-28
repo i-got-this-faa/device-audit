@@ -107,6 +107,8 @@ provenance alongside nullable risk/horizon states.
 
 [Forecast provenance v1](forecast-provenance-v1.md) defines `DeviceForecastV1` and `ForecastSourceV1` (`FED13 #118`): evaluated forecast provenance, freshness and explicit unavailable/stale states for workflow consumers.
 
+[Audit evidence store v1](audit-evidence-v1.md) defines the bounded, immutable off-chain store of signed telemetry, prediction and diagnostic evidence (`AUD01 #119`).
+
 ## Off-chain audit manifests and opaque commitments v1, #79
 
 [The audit specification](audit-v1.md) defines signed canonical manifests,
