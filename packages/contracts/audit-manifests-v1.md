@@ -66,3 +66,48 @@ gets another nonce and an unrelated commitment.
 
 Diagnostic result v1 (`device-audit.diagnostic-result.v1`) is a supported
 reference schema, in the Go validator and the JSON schema.
+
+## Verification, AUD03 #120
+
+`GET /console/api/audit-manifests/{id}/verification` (administrator, no query)
+recomputes a verification and returns `AuditManifestVerificationV1`
+(`device-audit.audit-manifest-verification.v1`). It writes nothing, caches
+nothing and reads no stored result: it loads the raw manifest and evidence rows
+and recomputes `packages/audit.VerifyManifest`.
+
+1. The manifest signature under the controller audit key, then its commitment
+   from the manifest bytes against the stored commitment, then manifest expiry.
+   A failure here is the overall `evidence_status` and no reference is examined
+   (`invalid_signature`, `digest_mismatch`, `evidence_expired`), as in CT09.
+2. For each reference: whether the record exists, whether its retention ended,
+   whether its stored schema is the one named, whether its SHA-256 and size are
+   the signed ones, whether the bytes parse as that schema, whether the recorded
+   model and methodology still match, and whether the device signature verifies
+   under the key enrolled for it. Diagnostic results are also correlated with the
+   controller-signed assignment they answer.
+
+| Reference `status` | Meaning |
+| --- | --- |
+| `verified` | Digest, size, schema, bound versions and any device signature check out |
+| `edited` | The stored bytes differ from the signed digest or size |
+| `missing` | No evidence record exists for the reference |
+| `expired` | Retention ended; the bytes are not examined |
+| `wrong_version` | The record is of another schema, model or methodology than was signed |
+| `invalid_signature` | The device signature does not verify under its enrolled key |
+| `unknown_signer` | No enrolled key has the signing key ID |
+| `malformed` | The bytes match their digest but are not a valid record of the schema, or not bound to their assignment |
+
+The overall `evidence_status` takes `evidence_expired`, then `evidence_missing`,
+then `digest_mismatch` (edited, wrong version, malformed), then
+`invalid_signature` (invalid signature, unknown signer), else `verified`.
+
+`scope` is always `integrity_only` and `endpoint_truthfulness` is always
+`not_established`. A valid signature shows that an enrolled device key signed
+those bytes. It says nothing about whether the endpoint measured, probed or
+reported truthfully, and prediction records are controller-made and carry no
+device signature, so only their digest and shape are checked. `anchor_state` is
+always `unverified`: no chain state is consulted.
+
+A tombstone (an evidence record deleted but remembered) belongs to #132; until
+it exists, only an ended retention (`expired`) and an absent record (`missing`)
+can be reported, and tombstoned evidence will need its own reference status.

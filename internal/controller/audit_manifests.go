@@ -321,6 +321,7 @@ func NewAuditManifestService(repository *PostgresRepository, consoleAuth *auth.S
 func (s *AuditManifestService) Register(mux *http.ServeMux) {
 	mux.Handle("POST /console/api/audit-manifests", s.auth.RequireFreshAdmin(http.HandlerFunc(s.create)))
 	mux.Handle("GET /console/api/audit-manifests/{id}", s.auth.RequireRole(auth.RoleAdmin, http.HandlerFunc(s.get)))
+	mux.Handle("GET /console/api/audit-manifests/{id}/verification", s.auth.RequireRole(auth.RoleAdmin, http.HandlerFunc(s.verify)))
 	mux.Handle("GET /console/api/audit-manifests/{id}/commitment", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.commitment)))
 }
 
@@ -404,4 +405,110 @@ func (s *AuditManifestService) commitment(w http.ResponseWriter, r *http.Request
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, record.Commitment)
+}
+
+// VerifyAuditManifest recomputes the verification of one stored manifest from
+// the raw rows, trusting no stored digest or verdict: the manifest signature
+// under auditKey, its commitment, every referenced record's retention, schema,
+// digest and size, the versions recorded when it was signed, and each device
+// signature under the key enrolled for it. Nothing is written. The result
+// establishes integrity only, never the truthfulness of the endpoint.
+func (s *PostgresRepository) VerifyAuditManifest(ctx context.Context, manifestID string, auditKey ed25519.PublicKey) (contracts.AuditManifestVerificationV1, error) {
+	if !repositoryIDPattern.MatchString(manifestID) {
+		return contracts.AuditManifestVerificationV1{}, contracts.AuditManifestRejectionNotFound
+	}
+	var commitmentID, commitmentSHA, manifestJSON []byte
+	err := s.db.QueryRowContext(ctx, `SELECT commitment_id, commitment_sha256, manifest FROM audit_manifests WHERE deployment_id=$1 AND manifest_id=$2`,
+		s.deploymentID, manifestID).Scan(&commitmentID, &commitmentSHA, &manifestJSON)
+	if errors.Is(err, sql.ErrNoRows) {
+		return contracts.AuditManifestVerificationV1{}, contracts.AuditManifestRejectionNotFound
+	}
+	if err != nil {
+		return contracts.AuditManifestVerificationV1{}, repositoryUnavailable(err)
+	}
+	var manifest contracts.AuditManifestV1
+	if json.Unmarshal(manifestJSON, &manifest) != nil {
+		return contracts.AuditManifestVerificationV1{}, contracts.AuditManifestRejectionUnavailable
+	}
+	input := audit.VerifyInput{Manifest: &manifest, AuditKey: auditKey, Now: s.now().UTC(),
+		Commitment: contracts.AuditCommitmentV1{SchemaVersion: contracts.AuditCommitmentV1Version, CommitmentID: hex.EncodeToString(commitmentID), CommitmentSHA256: hex.EncodeToString(commitmentSHA)},
+		Evidence:   map[string]audit.Evidence{}, Bindings: map[string]audit.Binding{}}
+	if manifest.Validate() != nil {
+		return contracts.AuditManifestVerificationV1{}, contracts.AuditManifestRejectionUnavailable
+	}
+	for _, reference := range manifest.Evidence {
+		var stored audit.Evidence
+		err := s.db.QueryRowContext(ctx, `SELECT schema_version, content, retention_expires_at FROM audit_evidence WHERE deployment_id=$1 AND evidence_id=$2`,
+			s.deploymentID, reference.ReferenceID).Scan(&stored.SchemaVersion, &stored.Content, &stored.RetentionEndsAt)
+		switch {
+		case err == nil:
+			stored.Found, stored.RetentionEndsAt = true, stored.RetentionEndsAt.UTC()
+			input.Evidence[reference.ReferenceID] = stored
+		case !errors.Is(err, sql.ErrNoRows):
+			return contracts.AuditManifestVerificationV1{}, repositoryUnavailable(err)
+		}
+		var binding audit.Binding
+		var modelVersion sql.NullString
+		var modelDigest []byte
+		err = s.db.QueryRowContext(ctx, `SELECT model_version, model_sha256, methodology_version FROM audit_manifest_evidence
+			WHERE deployment_id=$1 AND manifest_id=$2 AND reference_id=$3`, s.deploymentID, manifestID, reference.ReferenceID).
+			Scan(&modelVersion, &modelDigest, &binding.MethodologyVersion)
+		switch {
+		case err == nil:
+			if modelVersion.Valid {
+				version, digest := modelVersion.String, hex.EncodeToString(modelDigest)
+				binding.ModelVersion, binding.ModelSHA256 = &version, &digest
+			}
+			input.Bindings[reference.ReferenceID] = binding
+		case !errors.Is(err, sql.ErrNoRows):
+			return contracts.AuditManifestVerificationV1{}, repositoryUnavailable(err)
+		}
+	}
+	var lookupErr error
+	input.DeviceKey = func(deviceID, signingKeyID string) (ed25519.PublicKey, bool) {
+		var key []byte
+		err := s.db.QueryRowContext(ctx, `SELECT public_key FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2 AND signing_key_id=$3`,
+			s.deploymentID, deviceID, signingKeyID).Scan(&key)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			lookupErr = repositoryUnavailable(err)
+		}
+		return ed25519.PublicKey(key), err == nil && len(key) == ed25519.PublicKeySize
+	}
+	input.Assignment = func(assignmentID string) (contracts.DiagnosticAssignmentV1, bool) {
+		var signed []byte
+		err := s.db.QueryRowContext(ctx, `SELECT signed_assignment FROM diagnostic_assignments WHERE deployment_id=$1 AND assignment_id=$2`,
+			s.deploymentID, assignmentID).Scan(&signed)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			lookupErr = repositoryUnavailable(err)
+		}
+		var assignment contracts.DiagnosticAssignmentV1
+		return assignment, err == nil && json.Unmarshal(signed, &assignment) == nil
+	}
+	report, err := audit.VerifyManifest(input)
+	if err == nil {
+		err = lookupErr
+	}
+	if err != nil {
+		var rejection contracts.AuditManifestRejection
+		if errors.As(err, &rejection) || errors.Is(err, ErrRepositoryUnavailable) {
+			return contracts.AuditManifestVerificationV1{}, err
+		}
+		return contracts.AuditManifestVerificationV1{}, contracts.AuditManifestRejectionUnavailable
+	}
+	return report, nil
+}
+
+func (s *AuditManifestService) verify(w http.ResponseWriter, r *http.Request) {
+	if r.URL.RawQuery != "" || r.URL.ForceQuery {
+		http.Error(w, string(contracts.AuditManifestRejectionInvalidRequest), http.StatusBadRequest)
+		return
+	}
+	report, err := s.repository.VerifyAuditManifest(r.Context(), r.PathValue("id"), s.signer.Public().(ed25519.PublicKey))
+	if err != nil {
+		status, text := auditManifestStatus(err)
+		http.Error(w, text, status)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, report)
 }
