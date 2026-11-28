@@ -63,11 +63,12 @@ func testAccepted(start contracts.EnrollmentStartV1) contracts.EnrollmentAccepte
 // fixtureEnrollmentServer is a TLS peer that checks real canonical signatures
 // and network possession. It is a protocol fixture, not a PostgreSQL admission
 // or deployed-controller proof. It returns the server, a CA file trusting it
-// and the request counter.
-func fixtureEnrollmentServer(t *testing.T) (*httptest.Server, string, *atomic.Int32) {
+// the request counter and the first admitted signing public key.
+func fixtureEnrollmentServer(t *testing.T) (*httptest.Server, string, *atomic.Int32, <-chan ed25519.PublicKey) {
 	t.Helper()
 	var start contracts.EnrollmentStartV1
 	var requests atomic.Int32
+	admitted := make(chan ed25519.PublicKey, 1)
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
 		if r.Header.Get("Authorization") != "Bearer "+testToken().Token {
@@ -91,6 +92,10 @@ func fixtureEnrollmentServer(t *testing.T) (*httptest.Server, string, *atomic.In
 				w.WriteHeader(403)
 				return
 			}
+			select {
+			case admitted <- ed25519.PublicKey(key):
+			default:
+			}
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(testAccepted(start))
 		default:
@@ -102,7 +107,7 @@ func fixtureEnrollmentServer(t *testing.T) (*httptest.Server, string, *atomic.In
 	if err := os.WriteFile(caFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: server.Certificate().Raw}), 0600); err != nil {
 		t.Fatal(err)
 	}
-	return server, caFile, &requests
+	return server, caFile, &requests, admitted
 }
 
 func TestEnrollmentAndProcessRestart(t *testing.T) {
@@ -116,7 +121,7 @@ func TestEnrollmentAndProcessRestart(t *testing.T) {
 			s.close()
 		}
 	}()
-	server, caFile, requests := fixtureEnrollmentServer(t)
+	server, caFile, requests, _ := fixtureEnrollmentServer(t)
 	client, origin, err := enrollmentClient(server.URL, caFile)
 	if err != nil {
 		t.Fatal(err)

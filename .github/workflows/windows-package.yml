@@ -1,0 +1,84 @@
+name: Windows package
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/windows-package.yml'
+      - 'packaging/windows/**'
+      - 'apps/endpoint-agent/**'
+      - 'tools/service/**'
+      - 'packages/**'
+      - 'networking/mesh/**'
+      - 'models/baseline/**'
+      - 'models/evaluation/**'
+      - 'go.mod'
+      - 'go.sum'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      signer: ${{ steps.pins.outputs.signer }}
+      model: ${{ steps.pins.outputs.model }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build twice from the same commit and compare release bytes
+        env:
+          DEVICE_AUDIT_INSTALLER_MODEL_FIXTURE: ${{ runner.temp }}/model
+        run: |
+          go test -count=1 -run '^TestGenerateInstallerModelFixture$' ./apps/endpoint-agent
+          for output in package rebuilt; do
+            python3 packaging/windows/build.py --revision "$GITHUB_SHA" --output "$RUNNER_TEMP/$output" --model-dir "$DEVICE_AUDIT_INSTALLER_MODEL_FIXTURE"
+          done
+          diff -r "$RUNNER_TEMP/package" "$RUNNER_TEMP/rebuilt"
+      - name: Sign the qualification package with an ephemeral certificate
+        id: pins
+        working-directory: ${{ runner.temp }}
+        run: |
+          umask 077
+          trap 'rm -f signer.key signer.crt' EXIT
+          openssl req -x509 -newkey rsa:3072 -noenc -days 1 -subj '/CN=Device Audit CI fixture only' \
+            -addext 'keyUsage=digitalSignature' -keyout signer.key -out signer.crt
+          openssl cms -sign -binary -md sha256 -nosmimecap -in package/provenance.json \
+            -signer signer.crt -inkey signer.key -outform DER -out package/provenance.p7s
+          printf 'signer=%s\n' "$(openssl x509 -in signer.crt -outform DER | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          printf 'model=%s\n' "$(sha256sum model/publisher.pem | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: windows-package-fixture-only
+          path: ${{ runner.temp }}/package/
+          if-no-files-found: error
+          retention-days: 3
+  clean-install:
+    needs: build-package
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-package-fixture-only
+          path: ${{ runner.temp }}/package
+      - name: Verify clean SCM start, signed native samples and rollback
+        env:
+          DEVICE_AUDIT_INSTALLER_TEST_PACKAGE: ${{ runner.temp }}/package
+          DEVICE_AUDIT_INSTALLER_TEST_SIGNER: ${{ needs.build-package.outputs.signer }}
+          DEVICE_AUDIT_INSTALLER_TEST_MODEL_PIN: ${{ needs.build-package.outputs.model }}
+          DEVICE_AUDIT_INSTALLER_TEST_COMMIT: ${{ github.sha }}
+        run: go test -count=1 -v -run '^TestWindowsReleaseCleanInstall$' ./apps/endpoint-agent

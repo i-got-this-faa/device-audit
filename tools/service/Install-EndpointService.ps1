@@ -35,12 +35,14 @@ param(
     [ValidateRange(1048576, 1073741824)][long]$MaxEvidenceBytes = 64MB,
     [ValidateRange(1, 65536)][int]$MaxEvidenceRecords = 4096,
     [ValidateRange(1, 86400)][int]$RestartDelaySeconds = 60,
-    [ValidateSet('Automatic', 'Manual')][string]$StartType = 'Automatic'
+    [ValidateSet('Automatic', 'Manual')][string]$StartType = 'Automatic',
+    [switch]$DeferRecovery
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $name = 'DeviceAuditEndpoint'
+$sc = Join-Path ([Environment]::SystemDirectory) 'sc.exe'
 # 7.3+ passes native arguments, including binPath's embedded quotes, verbatim.
 # The SCM and the service config need absolute paths.
 $Root = [IO.Path]::GetFullPath($Root)
@@ -63,7 +65,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 if (Get-Service -Name $name -ErrorAction SilentlyContinue) { throw "$name is already installed; run Uninstall-EndpointService.ps1 first." }
 if (($EnrollmentOrigin -or $BootstrapFile) -and -not ($EnrollmentOrigin -and $BootstrapFile)) { throw 'Enrollment needs both -EnrollmentOrigin and -BootstrapFile.' }
 # Only Program Files keeps ordinary users from replacing the service image.
-$programFiles = [IO.Path]::GetFullPath($env:ProgramFiles).TrimEnd('\') + '\'
+$programFiles = [IO.Path]::GetFullPath([Environment]::GetFolderPath('ProgramFiles')).TrimEnd('\') + '\'
 if (-not ($InstallDir + '\').StartsWith($programFiles, [StringComparison]::OrdinalIgnoreCase)) { throw "-InstallDir must be under $programFiles" }
 foreach ($file in @($AgentPath, $CAFile, $BootstrapFile, $SamplingConfig) | Where-Object { $_ }) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "input file $file does not exist" }
@@ -81,15 +83,17 @@ try {
     # The service SID only resolves once the service exists, so create it first.
     $binPath = "`"$exe`" --service --service-config `"$config`""
     $start = if ($StartType -eq 'Automatic') { 'auto' } else { 'demand' }
-    Invoke-Native sc.exe @('create', $name, 'binPath=', $binPath, 'obj=', 'NT AUTHORITY\LocalService', 'start=', $start, 'DisplayName=', 'Device Audit endpoint collector')
+    Invoke-Native $sc @('create', $name, 'binPath=', $binPath, 'obj=', 'NT AUTHORITY\LocalService', 'start=', $start, 'DisplayName=', 'Device Audit endpoint collector')
     $registered = $true
-    Invoke-Native sc.exe @('description', $name, 'Samples endpoint telemetry and signs it with the admitted device identity (TEL02 #26).')
-    Invoke-Native sc.exe @('sidtype', $name, 'unrestricted')
-    Invoke-Native sc.exe @('privs', $name, 'SeChangeNotifyPrivilege')
-    $delay = $RestartDelaySeconds * 1000
-    Invoke-Native sc.exe @('failure', $name, 'reset=', '86400', 'actions=', "restart/$delay/restart/$delay/restart/$delay")
-    # Treat a non-zero service exit code as a failure, so recovery actions run.
-    Invoke-Native sc.exe @('failureflag', $name, '1')
+    Invoke-Native $sc @('description', $name, 'Samples endpoint telemetry and signs it with the admitted device identity (TEL02 #26).')
+    Invoke-Native $sc @('sidtype', $name, 'unrestricted')
+    Invoke-Native $sc @('privs', $name, 'SeChangeNotifyPrivilege')
+    if (-not $DeferRecovery) {
+        $delay = $RestartDelaySeconds * 1000
+        Invoke-Native $sc @('failure', $name, 'reset=', '86400', 'actions=', "restart/$delay/restart/$delay/restart/$delay")
+        # Treat a non-zero service exit code as a failure, so recovery actions run.
+        Invoke-Native $sc @('failureflag', $name, '1')
+    }
     $sid = ([Security.Principal.NTAccount]"NT SERVICE\$name").Translate([Security.Principal.SecurityIdentifier]).Value
 
     # Root: traverse, read and create-folder only, so the service can create
@@ -148,7 +152,7 @@ try {
         try { Move-Item -LiteralPath $bootstrapPath -Destination $BootstrapFile -Force } catch { Write-Warning "bootstrap file is still at ${bootstrapPath}: $_" }
     }
     if ($registered) {
-        $out = & sc.exe delete $name 2>&1
+        $out = & $sc delete $name 2>&1
         if ($LASTEXITCODE -ne 0) { Write-Warning "rollback could not delete $name; remove it with Uninstall-EndpointService.ps1: $out" }
     }
     throw

@@ -694,3 +694,8 @@ protected storage after result retirement. Standalone delivery commands defer
 to the service while a managed job owns the sequence.
 
 See [DIA06 validation](../../docs/validation/diagnostic-recovery-110.md).
+
+For provenance verification and a clean Windows install, see the
+[Windows package runbook](../../packaging/windows/README.md).
+`--check-service-config --service-config <path>` performs the install-time
+configuration and bundled model validation without starting the service.

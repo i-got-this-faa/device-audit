@@ -286,3 +286,43 @@ func TestInferenceFailureDoesNotStopSignedServiceSampling(t *testing.T) {
 		}
 	}
 }
+
+// This signer and the passing evaluation are test fixtures. The package smoke
+// test must be able to exercise a model-bearing install without release keys.
+func TestGenerateInstallerModelFixture(t *testing.T) {
+	output := os.Getenv("DEVICE_AUDIT_INSTALLER_MODEL_FIXTURE")
+	if output == "" {
+		t.Skip("no installer model fixture output directory requested")
+	}
+	req, _, _, report := testInferenceBundle(t)
+	pinInferenceReport(t, &req, passingInferenceFixture(t, report))
+	if err := os.Mkdir(output, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range req.Config.paths() {
+		data, err := os.ReadFile(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(output, filepath.Base(source)), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestServiceConfigPreflightRejectsUnapprovedModel(t *testing.T) {
+	req, _, _, report := testInferenceBundle(t)
+	cfg := testServiceConfig(t, filepath.Join(t.TempDir(), "identity"))
+	path := filepath.Join(t.TempDir(), "service.json")
+	pinInferenceReport(t, &req, report)
+	cfg.Inference = &req.Config
+	writeJSON(t, path, cfg)
+	if err := preflightServiceConfig(path); err == nil || !strings.Contains(err.Error(), "passing evaluation") {
+		t.Fatalf("preflight accepted the unapproved baseline: %v", err)
+	}
+	pinInferenceReport(t, &req, passingInferenceFixture(t, report))
+	writeJSON(t, path, cfg)
+	if err := preflightServiceConfig(path); err != nil {
+		t.Fatal(err)
+	}
+}
