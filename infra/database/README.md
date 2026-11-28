@@ -64,6 +64,12 @@ telemetry ingestion remains separate work.
   Foreign keys and triggers require an open matching round, matching candidate/base/
   feature/parameter counts, an eligible admitted unrevoked device key, verified
   `sha256(weights_bytes) = update_sha256`, and immutability.
+- `011_federated_aggregation.sql` adds append-only `federated_aggregations`
+  recording the participant list, sample total, canonical `input_sha256`,
+  aggregated `weights_bytes` / `weights_sha256`, and resulting candidate
+  artifact (`model_artifacts` / `model_references.candidate`) for closed rounds,
+  or terminal `failed` reasons (`no_updates`, `insufficient_participants`,
+  `aggregation_failed`, `cancelled`) without altering `model_references.active`.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -88,7 +94,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 10 and the configured
+- health output for a connected database, schema version 11 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

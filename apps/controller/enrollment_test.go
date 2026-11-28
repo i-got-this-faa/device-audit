@@ -68,7 +68,7 @@ func TestRunServesEnrollmentThroughConfiguredTLS(t *testing.T) {
 			var health map[string]any
 			decodeErr := json.NewDecoder(response.Body).Decode(&health)
 			response.Body.Close()
-			if decodeErr == nil && health["schema_version"] == float64(10) && health["enrollment"] == "configured" {
+			if decodeErr == nil && health["schema_version"] == float64(11) && health["enrollment"] == "configured" {
 				ready = true
 				break
 			}

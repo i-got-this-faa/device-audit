@@ -20,8 +20,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if version != 10 {
-		t.Fatalf("schema version=%d want 10", version)
+	if version != 11 {
+		t.Fatalf("schema version=%d want 11", version)
 	}
 	if _, err := db.ExecContext(ctx, `INSERT INTO devices (id, enrolled_at, identity_public_key, mesh_public_key) VALUES ('device:one', now(), '\x01', 'mesh-key')`); err != nil {
 		t.Fatal(err)
@@ -30,8 +30,8 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart migration: %v", err)
 	}
-	if version != 10 {
-		t.Fatalf("restart version=%d want 10", version)
+	if version != 11 {
+		t.Fatalf("restart version=%d want 11", version)
 	}
 	var count int
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM devices`).Scan(&count); err != nil {
@@ -44,7 +44,7 @@ func TestMigrateEmbeddedSchemaAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if status.Version != 10 || len(status.Pending) != 0 {
+	if status.Version != 11 || len(status.Pending) != 0 {
 		t.Fatalf("status=%+v", status)
 	}
 }
@@ -101,7 +101,7 @@ func TestDeviceRepositoryUpgradePreservesUntrustedCandidatesAndConsoleData(t *te
 		INSERT INTO console_role_bindings (issuer, subject, role) VALUES ('https://id.example.test', 'admin:old', 'admin')`); err != nil {
 		t.Fatal(err)
 	}
-	if version, err := Migrate(context.Background(), db); err != nil || version != 10 {
+	if version, err := Migrate(context.Background(), db); err != nil || version != 11 {
 		t.Fatalf("upgrade: version=%d err=%v", version, err)
 	}
 	var meshKey, role string
@@ -184,8 +184,8 @@ func TestConcurrentMigrationRunsOnce(t *testing.T) {
 	if err := db.QueryRowContext(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 10 {
-		t.Fatalf("migration ledger rows=%d want 10", count)
+	if count != 11 {
+		t.Fatalf("migration ledger rows=%d want 11", count)
 	}
 }
 

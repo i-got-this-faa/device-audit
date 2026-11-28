@@ -2,11 +2,13 @@
 //
 // FED01 #40 defines the durable round lifecycle and participant admission.
 // FED09 #114 validates and persists signed participant updates before
-// aggregation. Aggregation (FED03 #43) and promotion (FED10 #115) are separate.
+// aggregation. FED03 #43 aggregates persisted updates into a reproducible
+// candidate artifact. Promotion (FED10 #115) remains separate.
 package federated
 
 import (
 	"context"
+	"crypto/ed25519"
 	"errors"
 	"time"
 
@@ -63,6 +65,16 @@ var (
 	// ErrUpdateCorrupt: persisted update bytes or digests failed integrity
 	// verification on read.
 	ErrUpdateCorrupt = errors.New("stored federated update failed integrity verification")
+	// ErrNoUpdates: round closed with zero accepted updates.
+	ErrNoUpdates = errors.New("round has no accepted updates to aggregate")
+	// ErrInsufficientParticipants: accepted updates did not reach min_participants.
+	ErrInsufficientParticipants = errors.New("round has fewer accepted updates than min_participants")
+	// ErrAggregationFailed: aggregation could not produce a valid candidate artifact.
+	ErrAggregationFailed = errors.New("federated aggregation failed")
+	// ErrAggregationCorrupt: persisted aggregation record failed integrity checks.
+	ErrAggregationCorrupt = errors.New("stored federated aggregation failed integrity verification")
+	// ErrAggregationInvalid: invalid aggregation parameters or signing key.
+	ErrAggregationInvalid = errors.New("invalid federated aggregation request")
 )
 
 // Actor is the authenticated console session that caused a transition.
@@ -116,6 +128,49 @@ type AcceptedUpdate struct {
 	Envelope         contracts.FederatedUpdateV1
 }
 
+// AggregationStatus is the terminal state of a round's aggregation attempt.
+type AggregationStatus string
+
+const (
+	AggregationSucceeded AggregationStatus = "succeeded"
+	AggregationFailed    AggregationStatus = "failed"
+)
+
+// AggregatedParticipant records the immutable provenance of one update
+// included in an aggregation attempt.
+type AggregatedParticipant struct {
+	DeviceID      string `json:"device_id"`
+	SigningKeyID  string `json:"signing_key_id"`
+	Sequence      uint64 `json:"sequence"`
+	SampleCount   uint32 `json:"sample_count"`
+	UpdateSHA256  string `json:"update_sha256"`
+	RequestSHA256 string `json:"request_sha256"`
+}
+
+// AggregationRecord captures one durable federated aggregation outcome with
+// full participant, input, and reproducible candidate digests.
+type AggregationRecord struct {
+	DeploymentID          string
+	RoundID               string
+	CandidateID           string
+	BaseModelVersion      string
+	BaseModelSHA256       string
+	FeatureVersion        string
+	ParameterCount        uint32
+	WeightingPolicy       string
+	Status                AggregationStatus
+	FailureReason         string
+	Participants          []AggregatedParticipant
+	TotalSamples          uint64
+	InputSHA256           string
+	Weights               []float64
+	WeightsSHA256         string
+	CandidateModelVersion string
+	CandidateModelSHA256  string
+	CreatedAt             time.Time
+	By                    Actor
+}
+
 // Coordinator is the durable round lifecycle. Callers authorize the actor
 // first. Every method is safe to repeat after an uncertain outcome.
 type Coordinator interface {
@@ -140,4 +195,11 @@ type Coordinator interface {
 	// AcceptedUpdates reads and integrity-verifies all durably accepted updates
 	// for one round, ordered by device_id.
 	AcceptedUpdates(ctx context.Context, roundID string) ([]AcceptedUpdate, error)
+	// AggregateRound aggregates persisted accepted updates for a closed round
+	// under the declared weighting policy and stores a reproducible candidate
+	// artifact without modifying the active model.
+	AggregateRound(ctx context.Context, roundID string, signer ed25519.PrivateKey, by Actor) (record AggregationRecord, created bool, err error)
+	// Aggregation reads one round's persisted aggregation record and verifies its
+	// stored weights digest.
+	Aggregation(ctx context.Context, roundID string) (AggregationRecord, error)
 }

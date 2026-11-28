@@ -1,14 +1,15 @@
 # Federated round lifecycle, FED01 #40
 
 `PostgresRepository` implements `federated.Coordinator`
-([migration 008](../../infra/database/migrations/008_federated_rounds.sql) and
-[migration 010](../../infra/database/migrations/010_federated_updates.sql)). It
+([migration 008](../../infra/database/migrations/008_federated_rounds.sql),
+[migration 010](../../infra/database/migrations/010_federated_updates.sql), and
+[migration 011](../../infra/database/migrations/011_federated_aggregation.sql)). It
 stores the [round and update contracts](../../packages/contracts/federated-v1.md),
-its round state, and validated participant updates (`FED09 #114`) over both the
+its round state, validated participant updates (`FED09 #114`) over both the
 Go `Coordinator` (`AcceptUpdate`, `AcceptedUpdates`) and the admitted mesh
-route `POST /v1/federated/updates`. FED02 #42 local endpoint training, FED03 #43
-aggregation into candidate models, and FED10 #115 promotion build on these
-stored updates.
+route `POST /v1/federated/updates`, and reproducible candidate aggregations
+(`FED03 #43`: `AggregateRound`, `Aggregation`). FED02 #42 local endpoint
+training and FED10 #115 evaluated promotion build around these boundaries.
 
 ## Lifecycle
 
@@ -50,10 +51,9 @@ admission and wins if it came first.
 ## Not done
 
 - The controller does not choose participants. The caller supplies the snapshot.
-- `FED09 #114` stores validated signed participant updates in `federated_updates`
-  (atomically advancing `device_enrollments.last_sequence`) without computing
-  aggregates or quorum promotion: candidate model averaging (`FED03 #43`) and
-  promotion (`FED10 #115`) remain separate downstream work.
+- `FED03 #43` writes unapproved reproducible candidate artifacts to
+  `model_artifacts` and `model_references.candidate`; held-out evaluation and
+  promoting a candidate to `active` belong to downstream `FED10 #115`.
 - Nothing calls `CloseExpiredRounds` on a schedule; a round past its deadline is
-  closed when touched.
+  closed when touched (including when `AggregateRound` closes an expired round).
 - The base need not be approved or active. The round fixes its digest.

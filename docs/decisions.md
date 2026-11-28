@@ -1366,3 +1366,20 @@ eligible snapshot participants on first valid update if not already admitted, an
 advance `device_enrollments.last_sequence` atomically so telemetry and updates
 share one replay high-water mark. Aggregation (`FED03 #43`) and candidate
 promotion (`FED10 #115`) remain separate downstream steps.
+
+## Candidate aggregation, FED03 #43
+
+Migration `011_federated_aggregation.sql` adds immutable `federated_aggregations`
+recording each closed round's aggregation under the declared
+`sample-count-weighted.v1` policy (`packages/federated/aggregation.go` and
+`models/src/device_audit_models/federated.py`, using matching Shewchuk binary64
+summation and canonical SHA-256 input/artifact commitments).
+`PostgresRepository.AggregateRound` reads only persisted `federated_updates` rows
+for the round after closing expired rounds at their deadline, persists failed
+outcomes (`no_updates`, `insufficient_participants`, `cancelled`, or
+`aggregation_failed`) without creating a candidate artifact or touching
+`model_references.active`, and on quorum success stores one reproducible signed
+candidate artifact in `model_artifacts` (updating `model_references.candidate`
+without approval or activation). Retrying a completed aggregation returns the
+stored record unchanged, preserving candidate identity across retries and
+restarts. Held-out evaluation and promotion remain scoped to `FED10 #115`.
