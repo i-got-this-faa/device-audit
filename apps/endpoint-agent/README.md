@@ -584,3 +584,34 @@ reservation and staging, so it cannot use the live service's state
 directory while the service holds it open. The command stages the envelope
 for a future controller admission and upload path. A production-history
 soak and Windows LocalService qualification remain pending.
+
+## Stage an approved registry model, FED04 #44
+
+Run the one-shot command under the principal that owns the enrolled private
+state directory. The command takes the same exclusive state lock as the
+service, so use it in a maintenance window when the service releases the lock.
+The controller must have mesh transport and its model registry configured.
+
+```sh
+endpoint-agent --stage-approved-model --state-dir <absolute-private-state-directory> \
+  --mesh-server-key <pinned-controller-x25519-key-hex> \
+  --derp-region-file <self-hosted-region.json> \
+  --model-publisher-key-file <absolute-publisher-public-key.pem>
+```
+
+The controller admits the enrolled network peer for each request and offers
+only the deployment's current, promoted inference model. The agent checks
+deployment, CT10 publisher signature, purpose, feature order and runtime
+before it requests bytes. It then checks exact size, signed SHA-256 and the
+logistic artifact layout before publishing `staged-model.json` under the
+private state directory. The bundle contains the manifest, approval evaluation
+digest and base64 artifact bytes. The pinned model publisher key is separate
+from the enrolled device signing key and controller mesh key.
+
+On a transfer failure, rerun the command to start again from current registry
+metadata. A failed transfer preserves any earlier verified staging file, and
+a retry replaces it only after verification. If a process dies during the
+local commit, a `staged-model.json.tmp` file remains unpublished and the next
+verified write removes it. This command stages a bundle for handoff. The
+inference service continues to use the files and evaluation report in its
+protected configuration.

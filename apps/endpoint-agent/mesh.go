@@ -61,30 +61,37 @@ type meshEvidenceSender struct {
 }
 
 func newMeshEvidenceSender(store *identityStore, id *identity, serverKey, regionFile string, controllerKey ed25519.PublicKey) (*meshEvidenceSender, error) {
-	address, err := store.read("mesh-address")
-	if err != nil {
-		return nil, errors.New("private mesh address unavailable")
-	}
-	f, err := os.Open(regionFile)
-	if err != nil {
-		return nil, errors.New("read self-hosted DERP region")
-	}
-	defer f.Close()
-	regionJSON, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
-	if err != nil {
-		return nil, errors.New("read self-hosted DERP region")
-	}
-	region, err := mesh.DecodeRegion(regionJSON)
+	cfg, err := admittedMeshConfig(store, id, serverKey, regionFile)
 	if err != nil {
 		return nil, err
 	}
-	cfg := mesh.ClientConfig{NetworkPrivateKey: id.network.Bytes(), ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}}
 	client, err := mesh.NewClient(cfg)
 	if err != nil {
 		clear(cfg.NetworkPrivateKey)
 		return nil, err
 	}
 	return &meshEvidenceSender{config: cfg, client: client, controllerKey: controllerKey, preflight: true}, nil
+}
+
+func admittedMeshConfig(store *identityStore, id *identity, serverKey, regionFile string) (mesh.ClientConfig, error) {
+	address, err := store.read("mesh-address")
+	if err != nil {
+		return mesh.ClientConfig{}, errors.New("private mesh address unavailable")
+	}
+	f, err := os.Open(regionFile)
+	if err != nil {
+		return mesh.ClientConfig{}, errors.New("read self-hosted DERP region")
+	}
+	defer f.Close()
+	regionJSON, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
+	if err != nil {
+		return mesh.ClientConfig{}, errors.New("read self-hosted DERP region")
+	}
+	region, err := mesh.DecodeRegion(regionJSON)
+	if err != nil {
+		return mesh.ClientConfig{}, err
+	}
+	return mesh.ClientConfig{NetworkPrivateKey: id.network.Bytes(), ServerAddr: string(address), ServerPublicKey: serverKey, DERP: mesh.DERPConfig{Region: region}}, nil
 }
 
 func (s *meshEvidenceSender) close() {

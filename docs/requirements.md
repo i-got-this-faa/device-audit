@@ -121,6 +121,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Predeclared evaluation and resource thresholds | RQ-04 | Contract | [model-thresholds-86](validation/model-thresholds-86.md), 17 Nov | Any computed metric, trained model or measured cost |
 | Frozen feature version `hdd-smart-7d.v1` | RQ-04 | Fixture | [features-32](validation/features-32.md), 18 Nov; Go/Python agree on 41 shared vectors | Real telemetry or archive runs; no SMART collector, so endpoint vectors are `incomplete` |
 | Trained model, inference and health prediction | RQ-04 | Unsupported | [models/README](../models/README.md); demo health is `unknown` | — |
+| Approved endpoint model download and staging | RQ-06 | Local lab | [FED04 #44 validation](validation/model-staging-44.md) | Endpoint activation and deployment on the Windows target |
 | Federated aggregation | RQ-06 | Fixture | Weighted-average primitive in `models` | Two-endpoint training, validated updates, promotion |
 
 ### Networking, identity and evidence

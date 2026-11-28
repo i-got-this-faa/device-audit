@@ -311,7 +311,11 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			listener.Close()
 			return errors.New("listen on admitted mesh application port")
 		}
-		meshServer, err := controller.MeshHTTPServer(controller.MeshConfig{Node: node, Repository: repository, AcknowledgementKey: ackKey})
+		meshConfig := controller.MeshConfig{Node: node, Repository: repository, AcknowledgementKey: ackKey}
+		if modelRegistry != nil {
+			meshConfig.ModelDownloads = repository
+		}
+		meshServer, err := controller.MeshHTTPServer(meshConfig)
 		if err != nil {
 			listener.Close()
 			meshListener.Close()

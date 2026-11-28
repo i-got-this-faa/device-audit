@@ -1475,3 +1475,23 @@ offline cancellation and reboot reporting remain open. The wire schema and
 fixtures carry over from CT06.
 
 See [the validation record](validation/diagnostic-execution-38.md).
+
+## Approved endpoint model staging, FED04 #44
+
+The controller serves active model downloads through the admitted device mesh.
+Each request resolves the deployment from network admission. A digest-pinned
+artifact request checks the active slot again, and a single registry query
+binds the bytes to the exact active version, approval, passing evaluation and
+promotion. An old approval without a FED10 promotion cannot authorize this
+download. The controller asserts approval over the authenticated mesh. The
+publisher's separate Ed25519 key signs the manifest and binds the bytes.
+
+The endpoint downloads the bounded artifact in memory and starts from fresh
+registry metadata on retry. Only after checking the publisher signature, CT10
+compatibility, size, digest and logistic layout does it publish a single
+private staging file under the identity lock. The service's active model files
+and evaluation configuration stay outside staging. The bundle records the
+approved evaluation digest for handoff. Activation requires its own evaluation
+evidence and authorization checks.
+
+See [FED04 validation](validation/model-staging-44.md).

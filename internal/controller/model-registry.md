@@ -96,3 +96,15 @@ evidence afterwards is `version_conflict`. Successful aggregation alone never
 promotes: it creates an unapproved candidate. `PostgresRepository` implements
 `EvaluationReportStore`, so the health path can reload exactly the report a
 promotion judged.
+
+## Endpoint download, FED04 #44
+
+With both mesh transport and the registry configured, an admitted device can
+read `GET /v1/models/active` and fetch that digest through
+`GET /v1/models/active/artifact/{sha256}`. The device mesh server checks
+current admission for each request. PostgreSQL resolves the deployment's
+active slot, matching approval, passing evaluation and promotion in a single
+statement per request. The download returns 404 if the active slot changed
+between requests or if an older approval has no FED10 decision. Endpoint
+responses omit operator and evaluation report contents. See the
+[FED04 wire contract](../../packages/contracts/model-download-v1.md).
