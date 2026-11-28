@@ -171,23 +171,32 @@ func (m ModelManifestV1) VerifySignature(trustedKey ed25519.PublicKey) error {
 // state changes; a caller must not fall back to another version. It does not
 // track revocation or rollback of earlier manifests.
 func (m ModelManifestV1) CheckActivation(a ModelActivationV1) error {
-	if err := m.Validate(); err != nil {
+	if err := m.CheckCompatibility(a.Runtime, a.Purpose, a.TrustedKey); err != nil {
 		return err
-	}
-	if err := m.VerifySignature(a.TrustedKey); err != nil {
-		return err
-	}
-	if a.Runtime.Name != m.RuntimeName || a.Runtime.Version != m.RuntimeVersion {
-		return ModelRejectionRuntimeMismatch
-	}
-	if !slices.Contains(a.Runtime.Architectures, m.Architecture) {
-		return ModelRejectionUnsupportedArchitecture
-	}
-	if !slices.Contains(m.Purposes, a.Purpose) {
-		return ModelRejectionPurposeUnsupported
 	}
 	if sum := sha256.Sum256(a.Artifact); hex.EncodeToString(sum[:]) != m.ArtifactSHA256 {
 		return ModelRejectionDigestMismatch
+	}
+	return nil
+}
+
+// CheckCompatibility authenticates the manifest and checks the target before
+// artifact bytes are available. CheckActivation also verifies those bytes.
+func (m ModelManifestV1) CheckCompatibility(runtime ModelRuntimeV1, purpose string, trustedKey ed25519.PublicKey) error {
+	if err := m.Validate(); err != nil {
+		return err
+	}
+	if err := m.VerifySignature(trustedKey); err != nil {
+		return err
+	}
+	if runtime.Name != m.RuntimeName || runtime.Version != m.RuntimeVersion {
+		return ModelRejectionRuntimeMismatch
+	}
+	if !slices.Contains(runtime.Architectures, m.Architecture) {
+		return ModelRejectionUnsupportedArchitecture
+	}
+	if !slices.Contains(m.Purposes, purpose) {
+		return ModelRejectionPurposeUnsupported
 	}
 	return nil
 }

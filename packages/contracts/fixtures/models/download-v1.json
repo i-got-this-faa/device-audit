@@ -1,0 +1,30 @@
+{
+  "schema_version": "device-audit.model-download.v1",
+  "deployment_id": "synthetic-deployment",
+  "manifest": {
+    "schema_version": "device-audit.model-manifest.v1",
+    "model_version": "synthetic.1",
+    "artifact_sha256": "619f43cea17e02ebd8c57b1ced09545d2b103de1a9ac025f8848cc82b390bbfa",
+    "architecture": "synthetic.v1",
+    "parameter_count": 6,
+    "runtime_name": "device-audit-runtime",
+    "runtime_version": "1.0.0",
+    "feature_version": "hdd-smart-7d.v1",
+    "features": [
+      "smart_5_raw.last",
+      "smart_5_raw.delta",
+      "smart_9_raw.last",
+      "smart_9_raw.delta",
+      "smart_197_raw.last",
+      "smart_197_raw.delta"
+    ],
+    "purposes": [
+      "inference",
+      "training"
+    ],
+    "signing_key_id": "ed25519:21fe31dfa154a261626bf854046fd2271b7bed4b6abe45aa58877ef47f9721b9",
+    "signature": "20a296ecd250505c5075b124b0fb36987e71fea1f183b9539debc03eed366098c83a66e101d5fdd828973020a1e2945a304ee42fe8665233d90ce9e377c88501"
+  },
+  "artifact_byte_size": 45,
+  "evaluation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
