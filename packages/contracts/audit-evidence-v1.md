@@ -14,7 +14,7 @@ and never accepts them from the caller.
 
 | `kind` | Selector | Stored bytes | `evidence_schema_version` |
 | --- | --- | --- | --- |
-| `telemetry` | `sequence` | The device-signed evidence envelope, re-checked against its accepted request digest | `device-audit.evidence-envelope.v1` |
+| `telemetry` | `sequence` | The device-signed evidence envelope, re-checked against its accepted request digest | `device-audit.evidence.v1` |
 | `prediction` | `prediction_id` | The prediction v2 payload of a persisted assessment, after its evidence and model references are re-verified | `device-audit.prediction.v2` |
 | `diagnostic` | `assignment_id` | The device-signed diagnostic result, re-checked against its accepted request digest | `device-audit.diagnostic-result.v1` |
 
@@ -22,8 +22,7 @@ and never accepts them from the caller.
 (`AuditEvidenceMaxBytesV1`, below an audit manifest's 10 MiB reference limit).
 `retention_expires_at` must be in the future and within 10 years (a provisional
 sanity bound; the retention policy is #132's). A manifest reference's `sha256`
-and `size_bytes` are the stored `sha256` and `size_bytes`. Diagnostic results are
-not yet a supported manifest reference schema; #45 must extend that set.
+and `size_bytes` are the stored `sha256` and `size_bytes`. Diagnostic results are a supported manifest reference schema since #45.
 
 ## Routes
 

@@ -92,6 +92,11 @@ telemetry ingestion remains separate work.
   assessment time, category, model and evaluation digests) to the signed
   diagnostic assignment it launched. One forecast launches at most one job per
   category, and the local insight is read through the assignment's result.
+- `016_audit_manifests.sql` adds immutable `audit_manifests` and
+  `audit_manifest_evidence`: a controller-signed manifest (with its private
+  blinding nonce and public commitment digest) and one row per referenced
+  evidence record, with its digest, size, model and methodology versions. A
+  manifest ID names one manifest; a different request for it is refused.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -116,7 +121,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 15 and the configured
+- health output for a connected database, schema version 16 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;
