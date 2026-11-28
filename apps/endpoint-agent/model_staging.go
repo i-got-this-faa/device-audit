@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -20,8 +21,9 @@ import (
 const stagedModelFile = "staged-model.json"
 
 type stagedModel struct {
-	Metadata contracts.ModelDownloadV1 `json:"metadata"`
-	Artifact []byte                    `json:"artifact"`
+	AttemptID string                    `json:"attempt_id,omitempty"`
+	Metadata  contracts.ModelDownloadV1 `json:"metadata"`
+	Artifact  []byte                    `json:"artifact"`
 }
 
 func stageApprovedModel(ctx context.Context, stateDir, serverKey, regionFile, publisherKeyFile string) (contracts.ModelDownloadV1, error) {
@@ -82,13 +84,10 @@ func downloadAndStageModel(ctx context.Context, client *http.Client, key ed25519
 	if err != nil {
 		return metadata, err
 	}
-	if sum := sha256.Sum256(artifact); hex.EncodeToString(sum[:]) != manifest.ArtifactSHA256 {
-		return metadata, contracts.ModelRejectionDigestMismatch
-	}
-	if err := health.ValidateLogisticArtifact(manifest, artifact); err != nil {
+	if err := validateStagedArtifact(metadata, artifact); err != nil {
 		return metadata, err
 	}
-	bundle, err := json.Marshal(stagedModel{Metadata: metadata, Artifact: artifact})
+	bundle, err := json.Marshal(stagedModel{AttemptID: rand.Text(), Metadata: metadata, Artifact: artifact})
 	if err != nil {
 		return metadata, err
 	}
@@ -96,6 +95,17 @@ func downloadAndStageModel(ctx context.Context, client *http.Client, key ed25519
 		return metadata, err
 	}
 	return metadata, store.replace(stagedModelFile, stagedModelFile+".tmp", bundle)
+}
+
+func validateStagedArtifact(metadata contracts.ModelDownloadV1, artifact []byte) error {
+	if len(artifact) != metadata.ArtifactByteSize {
+		return errors.New("artifact size does not match staged metadata")
+	}
+	sum := sha256.Sum256(artifact)
+	if hex.EncodeToString(sum[:]) != metadata.Manifest.ArtifactSHA256 {
+		return contracts.ModelRejectionDigestMismatch
+	}
+	return health.ValidateLogisticArtifact(metadata.Manifest, artifact)
 }
 
 func fetchModelResource(ctx context.Context, client *http.Client, path string, limit int64, exactSize bool) ([]byte, error) {

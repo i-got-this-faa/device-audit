@@ -457,7 +457,7 @@ outside the service-writable evidence and identity directories. Give SYSTEM and
 Administrators write access and the endpoint service SID read access. Use a
 dedicated model-publisher Ed25519 public key in PKIX PEM form. Pin the SHA-256 of
 an independently reviewed passing ML05 report in the protected service config.
-The runtime neither fetches models nor promotes them from the registry.
+Registry staging and endpoint activation are documented below.
 
 ```json
 {
@@ -612,9 +612,39 @@ On a transfer failure, rerun the command to start again from current registry
 metadata. A failed transfer preserves any earlier verified staging file, and
 a retry replaces it only after verification. If a process dies during the
 local commit, a `staged-model.json.tmp` file remains unpublished and the next
-verified write removes it. This command stages a bundle for handoff. The
-inference service continues to use the files and evaluation report in its
-protected configuration.
+verified write removes it.
+
+## Activate a staged model, FED11 #116
+
+Add `staged_evaluation_file` to the existing `inference` object to enable
+startup activation. Set it to the absolute path of the exact passing ML05
+evaluation report used in the registry promotion. Give that file the same
+administrator-write and service-read permissions as the other inference
+inputs. Its bytes must match the evaluation SHA-256 in the staged metadata,
+including whitespace. Keep the commissioned model and evaluation configured
+for the first activation. The service uses the same configured publisher key
+to verify both models.
+
+Stop the service to run `--stage-approved-model` under the same private state
+identity, provision the matching evaluation file, then start the service.
+Startup activates the candidate on the inference goroutine while signed
+sampling and delivery run. The isolated worker scores a synthetic, complete
+SMART feature window and must return a valid result for the exact staged
+artifact. This probe checks runtime readiness. The passing ML05 report
+provides the model evaluation.
+
+After the probe passes, one journal update under `state_dir` selects the
+new active slot and preserves the previous working slot, including its
+evaluation. Subsequent starts use the committed slot while activation remains
+enabled. The staged evaluation file is only needed for a fresh candidate.
+A failed probe leaves the previous version selected. If the process exits
+before the journal commit, the next start reports an interrupted activation
+and selects the previous version. Check the service log for
+`endpoint model activated` or `endpoint model activation rejected` and its
+reason. After correcting a rejection, run the staging command again to
+request a new attempt. Leave the private journal and slot files in place.
+
+See [validation for FED11](../../docs/validation/model-activation-116.md).
 
 ## Managed diagnostic recovery, DIA06 #110
 
