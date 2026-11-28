@@ -59,18 +59,27 @@ func PlatformSensorSources() []SensorSource {
 }
 
 func readBatteryWindows(context.Context) ([]SensorReading, error) {
-	if err := procGetSystemPowerStatus.Find(); err != nil {
-		return nil, sensorErr(ErrSensorUnavailable, "power_api_absent")
+	status, err := WindowsPowerStatus()
+	if err != nil {
+		return nil, err
 	}
+	return BatteryReadings(status)
+}
+
+// WindowsPowerStatus reads line and battery status from the Windows power API.
+func WindowsPowerStatus() (PowerStatus, error) {
 	var status PowerStatus
+	if err := procGetSystemPowerStatus.Find(); err != nil {
+		return status, sensorErr(ErrSensorUnavailable, "power_api_absent")
+	}
 	r, _, callErr := procGetSystemPowerStatus.Call(uintptr(unsafe.Pointer(&status)))
 	if r == 0 {
 		if errors.Is(callErr, windows.ERROR_ACCESS_DENIED) {
-			return nil, sensorErr(ErrPermissionDenied, "power_api_access_denied")
+			return status, sensorErr(ErrPermissionDenied, "power_api_access_denied")
 		}
-		return nil, sensorErr(errors.New("telemetry: GetSystemPowerStatus failed"), "power_api_failed")
+		return status, sensorErr(errors.New("telemetry: GetSystemPowerStatus failed"), "power_api_failed")
 	}
-	return BatteryReadings(status)
+	return status, nil
 }
 
 func readThermalWindows(ctx context.Context) ([]SensorReading, error) {

@@ -54,10 +54,33 @@ func main() {
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
 	inferenceWorker := flag.Bool("inference-worker", false, "internal: read one isolated inference request")
 	fitLocalCandidate := flag.Bool("fit-local-candidate", false, "fit one offline federated candidate from a local JSON request")
-	trainingPublisherKey := flag.String("training-publisher-key-file", "", "pinned Ed25519 publisher key for offline local training")
+	trainFederatedUpdate := flag.Bool("train-federated-update", false, "fit and stage one budgeted signed update from a local round request")
+	localTrainingWorker := flag.Bool("local-training-worker", false, "internal: fit one isolated local training candidate")
+	trainingPublisherKey := flag.String("training-publisher-key-file", "", "pinned Ed25519 publisher key for local training")
 	flag.Parse()
-	if *fitLocalCandidate || *trainingPublisherKey != "" {
-		if !*fitLocalCandidate || *trainingPublisherKey == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+	if *trainFederatedUpdate {
+		if *stateDir == "" || *trainingPublisherKey == "" || flag.NFlag() != 3 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--train-federated-update requires --state-dir and --training-publisher-key-file"))
+		}
+		request, err := readLocalTrainingRequest(os.Stdin)
+		if err != nil {
+			fail(err)
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		report, err := stageFederatedTraining(ctx, *stateDir, *trainingPublisherKey, request, trainingExecution{
+			now: time.Now, power: checkTrainingPower, fit: runTrainingProcess,
+		})
+		stop()
+		if err != nil {
+			fail(err)
+		}
+		if err := json.NewEncoder(os.Stdout).Encode(report); err != nil {
+			fail(err)
+		}
+		return
+	}
+	if *fitLocalCandidate || *localTrainingWorker || *trainingPublisherKey != "" {
+		if *fitLocalCandidate == *localTrainingWorker || *trainingPublisherKey == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--fit-local-candidate runs alone and requires --training-publisher-key-file"))
 		}
 		if err := runLocalCandidate(context.Background(), *trainingPublisherKey, os.Stdin, os.Stdout, time.Now); err != nil {
