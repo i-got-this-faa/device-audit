@@ -716,6 +716,22 @@ func TestAssessHealthRules(t *testing.T) {
 			if tc.wantFaultNote != "" && !strings.Contains(got.FaultObservationNote, tc.wantFaultNote) {
 				t.Fatalf("fault note %q does not contain %q", got.FaultObservationNote, tc.wantFaultNote)
 			}
+			if tc.input.Features != nil {
+				if got.Features == nil || got.Features.FeatureVersion != tc.input.Features.FeatureVersion ||
+					got.Features.WindowStart != tc.input.Features.WindowStart ||
+					got.Features.WindowEnd != tc.input.Features.WindowEnd ||
+					got.Features.Status != tc.input.Features.Status ||
+					got.Features.FeatureCount != len(tc.input.Features.Features) {
+					t.Fatalf("unexpected feature provenance: %+v", got.Features)
+				}
+			}
+			if tc.input.FaultHistory != nil {
+				if got.CurrentFaultWindow == nil || got.BaselineFaultWindow == nil ||
+					got.CurrentFaultWindow.SampledDays != tc.input.FaultHistory.Current.SampledDays ||
+					got.BaselineFaultWindow.SampledDays != tc.input.FaultHistory.Baseline.SampledDays {
+					t.Fatalf("unexpected fault window provenance: current=%+v baseline=%+v", got.CurrentFaultWindow, got.BaselineFaultWindow)
+				}
+			}
 		})
 	}
 

@@ -4,9 +4,13 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
-Follow-up: [FED01 durable federated round state, 26 November 2026](validation/federated-rounds-40.md)
+Follow-up: [ML11 durable prediction history and queries, 28 November 2026](validation/prediction-history-107.md)
+persists and queries prediction/health records with full provenance and
+fail-closed stale/broken checks.
 
 Follow-up: [ML04 evaluated controller inference and health assignment, 28 November 2026](validation/controller-health-35.md)
+
+Follow-up: [FED01 durable federated round state, 26 November 2026](validation/federated-rounds-40.md)
 records rounds, participant admission and deadline closing in PostgreSQL. No
 endpoint trains and no update is admitted.
 

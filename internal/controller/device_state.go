@@ -152,6 +152,8 @@ func (s *DeviceStateService) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/api/devices", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.list)))
 	mux.Handle("GET /console/api/devices/{id}", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.detail)))
 	mux.Handle("GET /console/api/devices/{id}/history", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.history)))
+	mux.Handle("GET /console/api/devices/{id}/predictions", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.predictions)))
+	mux.Handle("GET /console/api/devices/{id}/predictions/latest", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.latestPrediction)))
 }
 
 // parseDeviceStateQuery requires an explicit deployment_id so a client cannot
@@ -222,10 +224,12 @@ func deviceStateError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, ErrDeviceStateScope):
 		http.Error(w, "selected deployment is not available", http.StatusForbidden)
-	case errors.Is(err, ErrDeviceStateInvalid):
+	case errors.Is(err, ErrDeviceStateInvalid), errors.Is(err, ErrPredictionInvalid):
 		http.Error(w, "invalid device query", http.StatusBadRequest)
 	case errors.Is(err, ErrRepositoryNotFound):
 		http.Error(w, "device not found", http.StatusNotFound)
+	case errors.Is(err, ErrPredictionEvidenceBroken):
+		http.Error(w, "prediction evidence reference failed integrity check", http.StatusInternalServerError)
 	default:
 		http.Error(w, "device inventory unavailable", http.StatusServiceUnavailable)
 	}

@@ -123,17 +123,23 @@ func (s *PostgresRepository) evaluateDeviceHealth(ctx context.Context, cfg Healt
 	if !repositoryIDPattern.MatchString(deviceID) || asOf.IsZero() || cfg.MaxEvidenceAge < 0 {
 		return DeviceHealth{}, ErrDeviceStateInvalid
 	}
-	asOf = asOf.UTC()
-	to := asOf.Truncate(time.Microsecond).Add(time.Microsecond)
-
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelRepeatableRead, ReadOnly: true})
 	if err != nil {
 		return DeviceHealth{}, repositoryUnavailable(err)
 	}
 	defer tx.Rollback()
+	return s.evaluateDeviceHealthTx(ctx, tx, cfg, deviceID, asOf, readSMART)
+}
+
+func (s *PostgresRepository) evaluateDeviceHealthTx(ctx context.Context, q dbQueryer, cfg HealthConfig, deviceID string, asOf time.Time, readSMART func(evidenceRef) health.SMARTReading) (DeviceHealth, error) {
+	if !repositoryIDPattern.MatchString(deviceID) || asOf.IsZero() || cfg.MaxEvidenceAge < 0 {
+		return DeviceHealth{}, ErrDeviceStateInvalid
+	}
+	asOf = asOf.UTC()
+	to := asOf.Truncate(time.Microsecond).Add(time.Microsecond)
 
 	var revokedAt sql.NullTime
-	if err := tx.QueryRowContext(ctx, `SELECT revoked_at FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`,
+	if err := q.QueryRowContext(ctx, `SELECT revoked_at FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`,
 		s.deploymentID, deviceID).Scan(&revokedAt); err != nil {
 		return DeviceHealth{}, repositoryReadError(err)
 	}
@@ -147,26 +153,26 @@ func (s *PostgresRepository) evaluateDeviceHealth(ctx context.Context, cfg Healt
 		out.RevokedAt = &revoked
 	}
 
-	latest, err := s.latestDeviceEvidence(ctx, tx, deviceID, to)
+	latest, err := s.latestDeviceEvidence(ctx, q, deviceID, to)
 	if err != nil {
 		return DeviceHealth{}, err
 	}
 	out.LatestSample = latest
 
-	model, modelStatus, modelErrCode, modelErr := s.loadActiveEvaluatedModel(ctx, tx, cfg)
+	model, modelStatus, modelErrCode, modelErr := s.loadActiveEvaluatedModel(ctx, q, cfg)
 	if modelErr != nil && (errors.Is(modelErr, ErrRepositoryUnavailable) || ctx.Err() != nil) {
 		return DeviceHealth{}, modelErr
 	}
 	out.ModelStatus = modelStatus
 	out.ModelError = modelErrCode
 
-	features, err := buildDeviceFeatures(ctx, txFeatureEvidence{repo: s, q: tx}, deviceID, asOf, readSMART)
+	features, err := buildDeviceFeatures(ctx, txFeatureEvidence{repo: s, q: q}, deviceID, asOf, readSMART)
 	if err != nil {
 		return DeviceHealth{}, err
 	}
 	out.Features = features
 
-	faultHistory, err := s.deviceFaultHistory(ctx, tx, deviceID, asOf)
+	faultHistory, err := s.deviceFaultHistory(ctx, q, deviceID, asOf)
 	if err != nil {
 		return DeviceHealth{}, err
 	}

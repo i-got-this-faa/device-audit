@@ -1322,6 +1322,26 @@ model, complete CT03 vector, fresh telemetry, and sufficient current fault
 window: critical model -> `critical`; degraded model + `recurrent` fault with
 `increased` count change -> `critical`, else `degraded`; healthy model +
 `recurrent` fault -> `degraded`; healthy model requires a sufficient 21-day
-baseline and no `insufficient_history` fault to report `healthy`, otherwise
-yielding `unknown` (`insufficient_evidence`). Persisted prediction storage and
-HTTP endpoints remain scoped to downstream ML11 `#107`.
+baseline and no `insufficient_history` fault to report `healthy`, otherwise yielding `unknown` (`insufficient_evidence`).
+
+## Prediction history persistence and queries, ML11 #107
+
+Migration `009_prediction_history.sql` adds append-only `device_predictions` to
+persist `EvaluateDeviceHealth` assessments with full provenance: `rules_version`,
+`rule_reason`, nullable health (`probability`, `probability_unit`, `horizon_hours`,
+`unknown_reason`), `model_status`/`model_error`, evaluated model and ML05 approval
+digests, referenced `device_evidence` sequence/timestamps/digests/source/schema,
+CT03 feature summary and vector, and ML10 7-day/21-day fault baseline metadata
+plus the validated `PredictionV2` payload (`prediction` and `expires_at` remain
+`NULL` only when no telemetry existed at or before `as_of`). Foreign keys and
+database triggers reject missing/mismatched evidence or model approvals on insert
+and refuse updates or deletes. `PostgresRepository.EvaluateAndRecordDeviceHealth`
+evaluates and records atomically inside a `REPEATABLE READ` synchronous-commit
+transaction; `PredictionHistory` (`GET /console/api/devices/{id}/predictions`)
+uses `(as_of, id)` keyset pagination over a max 31-day window and max 100-row
+page; `LatestDevicePrediction` (`GET /console/api/devices/{id}/predictions/latest`)
+derives `current_health` fail-closed to `unknown` (`stale_evidence`) once
+`expires_at` passes. Every read re-verifies referenced `device_evidence` byte
+digests and `model_approvals`, failing closed with `ErrPredictionEvidenceBroken`
+(HTTP 500) rather than presenting a broken risk value. Console UI rendering
+remains scoped to WEB03 `#39`.
