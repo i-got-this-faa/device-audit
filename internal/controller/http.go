@@ -34,24 +34,26 @@ type Config struct {
 	Revocation     *RevocationService
 	ModelRegistry  *ModelRegistryService
 	Diagnostics    *DiagnosticService
+	AuditManifests *AuditManifestService
 	MeshStatus     string
 }
 
 type API struct {
-	mu          sync.Mutex
-	devices     map[string]Device
-	maxDevices  int
-	database    string
-	schema      int
-	auth        *auth.Service
-	authStatus  string
-	enrollment  *EnrollmentService
-	inventory   *InventoryService
-	deviceState *DeviceStateService
-	revocation  *RevocationService
-	models      *ModelRegistryService
-	diagnostics *DiagnosticService
-	meshStatus  string
+	mu             sync.Mutex
+	devices        map[string]Device
+	maxDevices     int
+	database       string
+	schema         int
+	auth           *auth.Service
+	authStatus     string
+	enrollment     *EnrollmentService
+	inventory      *InventoryService
+	deviceState    *DeviceStateService
+	revocation     *RevocationService
+	models         *ModelRegistryService
+	diagnostics    *DiagnosticService
+	auditManifests *AuditManifestService
+	meshStatus     string
 }
 
 func NewAPI(cfg Config) *API {
@@ -68,19 +70,20 @@ func NewAPI(cfg Config) *API {
 		cfg.MeshStatus = "not_configured"
 	}
 	return &API{
-		devices:     make(map[string]Device),
-		maxDevices:  cfg.MaxDevices,
-		database:    cfg.DatabaseStatus,
-		schema:      cfg.SchemaVersion,
-		auth:        cfg.Auth,
-		authStatus:  cfg.AuthStatus,
-		enrollment:  cfg.Enrollment,
-		inventory:   cfg.Inventory,
-		deviceState: cfg.DeviceState,
-		revocation:  cfg.Revocation,
-		models:      cfg.ModelRegistry,
-		diagnostics: cfg.Diagnostics,
-		meshStatus:  cfg.MeshStatus,
+		devices:        make(map[string]Device),
+		maxDevices:     cfg.MaxDevices,
+		database:       cfg.DatabaseStatus,
+		schema:         cfg.SchemaVersion,
+		auth:           cfg.Auth,
+		authStatus:     cfg.AuthStatus,
+		enrollment:     cfg.Enrollment,
+		inventory:      cfg.Inventory,
+		deviceState:    cfg.DeviceState,
+		revocation:     cfg.Revocation,
+		models:         cfg.ModelRegistry,
+		diagnostics:    cfg.Diagnostics,
+		auditManifests: cfg.AuditManifests,
+		meshStatus:     cfg.MeshStatus,
 	}
 }
 
@@ -95,21 +98,26 @@ func (a *API) Handler() http.Handler {
 		if a.models != nil {
 			modelRegistry = "configured"
 		}
+		auditManifests := "not_configured"
+		if a.auditManifests != nil {
+			auditManifests = "configured"
+		}
 		diagnostics := "not_configured"
 		if a.diagnostics != nil {
 			diagnostics = "configured"
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
-			"status":         "ok",
-			"mode":           "development",
-			"sample_storage": "memory",
-			"database":       a.database,
-			"schema_version": a.schema,
-			"auth":           a.authStatus,
-			"mesh":           a.meshStatus,
-			"enrollment":     enrollment,
-			"model_registry": modelRegistry,
-			"diagnostics":    diagnostics,
+			"status":          "ok",
+			"mode":            "development",
+			"sample_storage":  "memory",
+			"database":        a.database,
+			"schema_version":  a.schema,
+			"auth":            a.authStatus,
+			"mesh":            a.meshStatus,
+			"enrollment":      enrollment,
+			"model_registry":  modelRegistry,
+			"diagnostics":     diagnostics,
+			"audit_manifests": auditManifests,
 		})
 	})
 	mux.HandleFunc("POST /v1/telemetry", a.ingest)
@@ -134,6 +142,9 @@ func (a *API) Handler() http.Handler {
 	}
 	if a.diagnostics != nil {
 		a.diagnostics.Register(mux)
+	}
+	if a.auditManifests != nil {
+		a.auditManifests.Register(mux)
 	}
 	return mux
 }

@@ -70,7 +70,8 @@
                 "enum": [
                   "device-audit.evidence.v1",
                   "device-audit.prediction.v2",
-                  "device-audit.lifecycle.v2"
+                  "device-audit.lifecycle.v2",
+                  "device-audit.diagnostic-result.v1"
                 ]
               },
               "sha256": {

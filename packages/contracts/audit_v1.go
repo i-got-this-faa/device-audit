@@ -140,9 +140,7 @@ func (m AuditManifestV1) validateBody() error {
 			return fmt.Errorf("invalid, duplicate or unsorted evidence")
 		}
 		previous = e.ReferenceID
-		switch e.SchemaVersion {
-		case EvidenceEnvelopeV1Version, PredictionV2Version, LifecycleV2Version:
-		default:
+		if !AuditManifestEvidenceSupportedV1(e.SchemaVersion) {
 			return fmt.Errorf("unsupported evidence schema")
 		}
 		expiry, err := parseEnvelopeTime(e.ExpiresAt)
@@ -154,6 +152,17 @@ func (m AuditManifestV1) validateBody() error {
 		}
 	}
 	return nil
+}
+
+// AuditManifestEvidenceSupportedV1 reports whether a manifest may reference
+// evidence of this schema version: signed evidence v1, prediction v2, lifecycle
+// v2 and the device-signed diagnostic result v1.
+func AuditManifestEvidenceSupportedV1(schemaVersion string) bool {
+	switch schemaVersion {
+	case EvidenceEnvelopeV1Version, PredictionV2Version, LifecycleV2Version, DiagnosticResultV1Version:
+		return true
+	}
+	return false
 }
 
 func (m AuditManifestV1) Validate() error {

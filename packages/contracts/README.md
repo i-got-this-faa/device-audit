@@ -109,6 +109,8 @@ provenance alongside nullable risk/horizon states.
 
 [Forecast-driven diagnostics v1](forecast-diagnostics-v1.md) defines the decisions and trace that launch bounded diagnostics from evaluated, fresh forecasts (`FED06 #70`).
 
+[Audit manifest signing v1](audit-manifests-v1.md) defines how the controller signs canonical manifests over stored evidence (`AUD02 #45`).
+
 [Audit evidence store v1](audit-evidence-v1.md) defines the bounded, immutable off-chain store of signed telemetry, prediction and diagnostic evidence (`AUD01 #119`).
 
 ## Off-chain audit manifests and opaque commitments v1, #79

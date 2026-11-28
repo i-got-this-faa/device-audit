@@ -89,6 +89,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	tlsCertFile := flags.String("tls-cert-file", defaults.TLSCertFile, "TLS certificate PEM file for the controller listener")
 	tlsKeyFile := flags.String("tls-key-file", defaults.TLSKeyFile, "TLS private-key PEM file for the controller listener")
 	publisherKeyFile := flags.String("model-publisher-key-file", "", "PKIX PEM Ed25519 public key that model manifests must verify against; enables the model registry")
+	auditKeyFile := flags.String("audit-signing-key-file", "", "PKCS#8 PEM Ed25519 private key that signs off-chain audit manifests; enables audit manifests")
 	diagnosticKeyFile := flags.String("diagnostic-signing-key-file", "", "PKCS#8 PEM Ed25519 private key that signs controller diagnostic assignments; enables diagnostics")
 	if err := flags.Parse(args); err != nil {
 		return err
@@ -194,6 +195,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	var revocation *controller.RevocationService
 	var modelRegistry *controller.ModelRegistryService
 	var diagnostics *controller.DiagnosticService
+	var diagnosticKeyID string
 	if *publisherKeyFile != "" {
 		if repository == nil || consoleAuth == nil {
 			return errors.New("the model registry requires --deployment-id, a durable database and administrator authentication")
@@ -215,8 +217,27 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			return err
 		}
 		diagKeyID, _ := contracts.SigningKeyIDV1(diagKey.Public().(ed25519.PublicKey))
+		diagnosticKeyID = diagKeyID
 		slog.Info("diagnostic assignment key loaded", "controller_key_id", diagKeyID)
 		if diagnostics, err = controller.NewDiagnosticService(repository, consoleAuth, diagKey); err != nil {
+			return err
+		}
+	}
+	var auditManifests *controller.AuditManifestService
+	if *auditKeyFile != "" {
+		if repository == nil || consoleAuth == nil {
+			return errors.New("audit manifests require --deployment-id, a durable database and administrator authentication")
+		}
+		auditKey, err := loadEd25519PrivateKey(*auditKeyFile, "--audit-signing-key-file")
+		if err != nil {
+			return err
+		}
+		auditKeyID, _ := contracts.SigningKeyIDV1(auditKey.Public().(ed25519.PublicKey))
+		if auditKeyID == diagnosticKeyID {
+			return errors.New("--audit-signing-key-file must not reuse the diagnostic signing key")
+		}
+		slog.Info("audit manifest key loaded", "controller_key_id", auditKeyID)
+		if auditManifests, err = controller.NewAuditManifestService(repository, consoleAuth, auditKey); err != nil {
 			return err
 		}
 	}
@@ -255,6 +276,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		Revocation:     revocation,
 		ModelRegistry:  modelRegistry,
 		Diagnostics:    diagnostics,
+		AuditManifests: auditManifests,
 		MeshStatus:     *transport,
 	})
 	if tlsConfig != nil {

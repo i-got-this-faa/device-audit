@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"time"
 
@@ -56,6 +57,8 @@ type PostgresRepository struct {
 	auditEvidenceMaxBytes int
 	// forecastDiagnosticMinProbability overrides the policy threshold in tests.
 	forecastDiagnosticMinProbability float64
+	// manifestRandom replaces crypto/rand for manifest IDs and nonces in tests.
+	manifestRandom io.Reader
 }
 
 type EnrollmentChallenge struct {

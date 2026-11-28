@@ -15,7 +15,8 @@ and 1..64 evidence references. Manifest lifetime is positive and at most 365 day
 Every reference has an opaque local reference ID, exact schema version, SHA-256,
 positive size up to 10 MiB in explicit bytes, and expiry after manifest creation.
 References must be strictly sorted by ASCII reference ID, without duplicates.
-Supported references are signed evidence v1, prediction v2 and lifecycle v2.
+Supported references are signed evidence v1, prediction v2, lifecycle v2 and
+the device-signed diagnostic result v1 (added by `AUD02 #45`).
 The reference digest covers exact stored bytes; JSON reserialization changes it.
 The existing envelope and lifecycle fixtures provide the synthetic example bytes.
 

@@ -1607,3 +1607,25 @@ posts to launch; no scheduler is added, so the controller never runs
 diagnostics on a timer. The link records the model and evaluation digests but
 not result bytes. The trace reads the result through the assignment.
 
+## The controller signs canonical audit manifests over stored evidence, AUD02 #45
+
+The controller builds every manifest itself, from evidence it already stores and
+re-verifies (AUD01). The caller names the manifest ID, policy, expiry and
+evidence, and never supplies a digest, size, nonce or creation time. The
+commitment ID and blinding nonce are 256-bit values from the system random
+generator, chosen once and stored with the manifest. Evidence is ordered by
+reference ID, so the same request in any order is the same request.
+
+A manifest ID names one manifest forever. A repeat of the identical request
+returns the stored manifest, even after its evidence has expired. Any other
+request for that ID is a conflict and nothing is replaced. The same evidence
+under a new ID gets a new nonce and an unrelated commitment. Each reference
+records the model and methodology version that produced it, read from the
+stored bytes and their durable source, and no manifest outlives its evidence.
+
+Audit manifests use their own Ed25519 key (`--audit-signing-key-file`), which
+the controller refuses to share with the diagnostic key. The manifest holds the
+nonce, so reading it needs the administrator role. Only the public commitment is
+visible to viewers. The diagnostic result schema joins the manifest's
+supported references.
+
