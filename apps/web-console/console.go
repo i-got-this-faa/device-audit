@@ -20,17 +20,18 @@ type Binding struct {
 }
 
 type Page struct {
-	Title     string
-	Section   string
-	Subject   string
-	Role      string
-	CSRFToken string
-	ExpiresAt string
-	Message   string
-	Bindings  []Binding
-	Devices   *DeviceView
-	Inventory *InventoryView
-	History   *HistoryView
+	Title       string
+	Section     string
+	Subject     string
+	Role        string
+	CSRFToken   string
+	ExpiresAt   string
+	Message     string
+	Bindings    []Binding
+	Devices     *DeviceView
+	Inventory   *InventoryView
+	History     *HistoryView
+	Predictions *PredictionView
 }
 
 func RegisterAssets(mux *http.ServeMux) {

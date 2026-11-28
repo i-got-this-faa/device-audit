@@ -95,6 +95,7 @@ type browserDevices struct {
 	mu       sync.Mutex
 	observed map[string]time.Duration
 	fail     bool
+	denied   bool
 }
 
 var browserDeviceIDs = []string{"endpoint:browser-a", "endpoint:browser-b", "endpoint:browser-fixture"}
@@ -182,6 +183,78 @@ func (d *browserDevices) TelemetryHistory(_ context.Context, id string, from, to
 	return page, nil
 }
 
+// browserPrediction builds browser-a's records: an unknown, evidence-less
+// assessment and a known, expiring one. Browser-b's newest record has expired.
+func browserPrediction(id uint64, deviceID string, asOf time.Time, known bool) contracts.PredictionHistoryRecordV1 {
+	rec := contracts.PredictionHistoryRecordV1{ID: id, AsOf: asOf, RecordedAt: asOf, RulesVersion: "rules.v1", RuleReason: "no_telemetry_evidence",
+		ModelStatus: "unavailable", Features: contracts.PredictionFeatureRefV1{FeatureVersion: "ct03.v1", Status: "missing"},
+		Health: contracts.HealthV2{Status: "unknown", ProbabilityUnit: "probability", UnknownReason: "insufficient_evidence"}}
+	if !known {
+		return rec
+	}
+	probability, horizon, expires := 0.125, uint32(72), asOf.Add(time.Hour)
+	rec.RuleReason, rec.ModelStatus, rec.ExpiresAt = "model_ready", "ready", &expires
+	rec.Health = contracts.HealthV2{Status: "degraded", Probability: &probability, ProbabilityUnit: "probability", HorizonHours: &horizon}
+	rec.ModelProvenance = &contracts.PredictionModelProvenanceV1{Version: "model:browser", SHA256: strings.Repeat("aa", 32),
+		PolicyVersion: "ml05.v1", PolicySHA256: strings.Repeat("bb", 32), EvaluationSHA256: strings.Repeat("cc", 32)}
+	rec.Evidence = &contracts.PredictionEvidenceRefV1{Sequence: 9, CollectedAt: asOf.Add(-time.Minute), ReceivedAt: asOf.Add(-time.Minute),
+		PayloadSHA256: strings.Repeat("dd", 32), RequestSHA256: strings.Repeat("0f", 32), Source: "endpoint", TelemetrySchemaVersion: contracts.TelemetryV2Version}
+	rec.Features.Status, rec.Features.FeatureCount, rec.Features.SamplesRead = contracts.FeatureStatusComplete, 12, 60
+	rec.Prediction = &contracts.PredictionV2{DeviceID: deviceID, GeneratedAt: asOf, ExpiresAt: expires, Health: rec.Health,
+		Forecasts: []contracts.FaultForecastV2{{Category: "storage", Probability: probability, ProbabilityUnit: "probability", HorizonHours: horizon}}}
+	return rec
+}
+
+func (d *browserDevices) predictionRecords(id string, now time.Time) []contracts.PredictionHistoryRecordV1 {
+	now = now.UTC().Truncate(time.Second)
+	switch id {
+	case "endpoint:browser-a":
+		return []contracts.PredictionHistoryRecordV1{browserPrediction(1, id, now.Add(-2*time.Hour), false), browserPrediction(2, id, now.Add(-10*time.Minute), true)}
+	case "endpoint:browser-b":
+		return []contracts.PredictionHistoryRecordV1{browserPrediction(3, id, now.Add(-3*time.Hour), true)}
+	}
+	return nil
+}
+
+func (d *browserDevices) PredictionHistory(_ context.Context, id string, from, to time.Time, after string, _ int) (contracts.PredictionHistoryV1, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	switch {
+	case d.fail:
+		return contracts.PredictionHistoryV1{}, errors.New("synthetic inventory outage")
+	case d.denied:
+		return contracts.PredictionHistoryV1{}, webconsole.ErrPredictionEvidenceDenied
+	case !slices.Contains(browserDeviceIDs, id):
+		return contracts.PredictionHistoryV1{}, webconsole.ErrDeviceNotFound
+	case !from.Before(to) || to.Sub(from) > contracts.PredictionHistoryWindowMaxV1:
+		return contracts.PredictionHistoryV1{}, webconsole.ErrDeviceQueryInvalid
+	}
+	page := contracts.PredictionHistoryV1{From: from, To: to, Records: []contracts.PredictionHistoryRecordV1{}}
+	for _, rec := range d.predictionRecords(id, time.Now()) {
+		if !rec.AsOf.Before(from) && rec.AsOf.Before(to) && after == "" {
+			page.Records = append(page.Records, rec)
+		}
+	}
+	return page, nil
+}
+
+func (d *browserDevices) LatestPrediction(_ context.Context, id string) (contracts.LatestPredictionV1, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	now := time.Now().UTC()
+	records := d.predictionRecords(id, now)
+	if len(records) == 0 {
+		return contracts.LatestPredictionV1{}, webconsole.ErrDeviceNotFound
+	}
+	rec := records[len(records)-1]
+	latest := contracts.LatestPredictionV1{EvaluatedAt: now, Record: rec, CurrentHealth: rec.Health}
+	if rec.ExpiresAt != nil && !now.Before(*rec.ExpiresAt) {
+		latest.Stale = true
+		latest.CurrentHealth = contracts.HealthV2{Status: "unknown", ProbabilityUnit: "probability", UnknownReason: "stale_evidence"}
+	}
+	return latest, nil
+}
+
 func (d *browserDevices) set(update func()) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -238,6 +311,10 @@ func consoleBrowserFixture(t *testing.T) *httptest.Server {
 			devices.set(func() { devices.fail = true })
 		case "devices-restore":
 			devices.set(func() { devices.fail = false })
+		case "predictions-denied":
+			devices.set(func() { devices.denied = true })
+		case "predictions-restore":
+			devices.set(func() { devices.denied = false })
 		default:
 			http.NotFound(w, r)
 			return

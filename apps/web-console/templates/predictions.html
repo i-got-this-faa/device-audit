@@ -1,0 +1,65 @@
+{{define "prediction-record"}}
+<dl class="inventory-meta">
+<div><dt>Failure risk</dt><dd class="prediction-risk" data-known="{{.RiskKnown}}">{{.Risk}}</dd></div>
+<div><dt>Horizon</dt><dd>{{.Horizon}}</dd></div>
+<div><dt>Assessed at</dt><dd><time>{{.AsOf}}</time></dd></div>
+<div><dt>Recorded at</dt><dd><time>{{.RecordedAt}}</time></dd></div>
+<div><dt>Expires at</dt><dd>{{if .ExpiresAt}}<time>{{.ExpiresAt}}</time>{{else}}No expiry: no evidence{{end}}</dd></div>
+<div><dt>Rule</dt><dd>{{.RuleReason}} ({{.RulesVersion}})</dd></div>
+</dl>
+{{if .UnknownExplanation}}<p class="state-warning">{{.UnknownExplanation}}</p>{{end}}
+{{if .Expired}}<p class="state-warning">Expired reference: this assessment passed its expiry and does not describe current health.</p>{{end}}
+<h4>Model</h4>
+{{if .Model}}<dl class="inventory-meta"><div><dt>Model</dt><dd>{{.Model.Version}}</dd></div><div><dt>Model SHA-256</dt><dd>{{.Model.SHA256}}</dd></div><div><dt>Promotion policy</dt><dd>{{.Model.PolicyVersion}}</dd></div><div><dt>Evaluation report SHA-256</dt><dd>{{.Model.EvaluationSHA256}}</dd></div><div><dt>Model status</dt><dd>{{.ModelStatus}}</dd></div></dl>
+{{else}}<p class="supporting">No approved model: status {{.ModelStatus}}{{if .ModelError}} ({{.ModelError}}){{end}}.</p>{{end}}
+<h4>Explanation</h4>
+<p class="supporting prediction-features">{{.FeatureExplanation}}</p>
+<p class="supporting prediction-faults">{{.FaultExplanation}}</p>
+{{if .Forecasts}}<ul class="log-refs prediction-forecasts">{{range .Forecasts}}<li>{{.Category}}: {{.Risk}} within {{.Horizon}}</li>{{end}}</ul>{{end}}
+<h4>Evidence</h4>
+{{if .Evidence}}<dl class="inventory-meta prediction-evidence"><div><dt>Sample</dt><dd>Sequence {{.Evidence.Sequence}}, observed <time>{{.Evidence.CollectedAt}}</time>, received <time>{{.Evidence.ReceivedAt}}</time></dd></div><div><dt>Source</dt><dd>{{.Evidence.Source}}{{if .Evidence.FixtureSource}} <span class="fixture-badge">Fixture source</span>{{end}}</dd></div><div><dt>Payload SHA-256</dt><dd>{{.Evidence.PayloadSHA256}}</dd></div><div><dt>Request SHA-256</dt><dd>{{.Evidence.RequestSHA256}}</dd></div><div><dt>Schema</dt><dd>{{.Evidence.TelemetrySchema}}</dd></div></dl>
+<p><a href="{{.Evidence.HistoryURL}}">Open the evidence sample in telemetry history →</a></p>
+{{else}}<p class="supporting">No telemetry evidence existed at or before this assessment.</p>{{end}}
+{{end}}
+
+{{define "predictions"}}
+<p class="supporting">Persisted health assessments for one device, oldest first, with their model, horizon, explanation and evidence. The window includes its start and excludes its end, at most {{.MaxWindow}}, shown in UTC. An unknown risk is not a zero risk.</p>
+<a class="back-link" href="{{.DeviceURL}}">← Back to device</a>
+{{if eq .State "error"}}
+<section class="empty-state" role="alert"><span class="status">Read error</span><h2>Predictions could not be loaded</h2><p>The durable prediction history could not be read. This is not an empty history and not a healthy result. No risk values are shown.</p><a href="{{.DeviceURL}}/predictions">Try again</a></section>
+{{else if eq .State "denied"}}
+<section class="empty-state" role="alert"><span class="status" data-state="denied">Evidence denied</span><h2>Prediction evidence failed verification</h2><p>At least one assessment in this window refers to evidence or a model approval that is missing, outside this deployment, or does not match its recorded digest. No risk values from this window are shown, because they cannot be traced to verified evidence.</p><a href="{{.DeviceURL}}/history">Browse telemetry history instead</a></section>
+{{else if eq .State "not-configured"}}
+<section class="empty-state"><span class="status">Not configured</span><h2>Predictions are not configured</h2><p>This controller has no deployment configured, so no prediction history can be read. Health is unknown.</p></section>
+{{else if eq .State "not-found"}}
+<section class="empty-state"><h2>Device not found</h2><p>No enrolled device has this ID in the configured deployment.</p><a href="/console/devices">Open enrolled devices</a></section>
+{{else if eq .State "invalid"}}
+<section class="empty-state"><h2>Prediction selection is not valid</h2><p>The window needs a start before its end, both in RFC 3339 and at most {{.MaxWindow}} apart. The page cursor and query parameters must come from this page.</p><a href="{{.DeviceURL}}/predictions">Open the last 7 days</a></section>
+{{else}}
+<section class="prediction-current" aria-labelledby="current-health">
+<h2 id="current-health">Current health</h2>
+{{if .Current}}
+<div class="device-title"><span class="device-status" data-state="{{.Current.Status}}">{{.Current.StatusLabel}}</span>{{if .Current.Expired}}<span class="device-status" data-state="stale">Stale prediction</span>{{end}}</div>
+<dl class="inventory-meta"><div><dt>Failure risk now</dt><dd class="prediction-risk" data-known="{{.Current.RiskKnown}}">{{.Current.Risk}}</dd></div><div><dt>Horizon</dt><dd>{{.Current.Horizon}}</dd></div><div><dt>Evaluated at</dt><dd><time>{{.Current.EvaluatedAt}}</time></dd></div></dl>
+{{if .Current.Expired}}<p class="state-warning">Stale: the newest assessment from <time>{{.Current.Record.AsOf}}</time> has expired or relied on stale evidence. Current health is unknown; the values below are historical.</p>{{else if .Current.UnknownExplanation}}<p class="state-warning">{{.Current.UnknownExplanation}}</p>{{end}}
+<details><summary>Newest assessment</summary>{{template "prediction-record" .Current.Record}}</details>
+{{else}}
+<div class="device-title"><span class="device-status" data-state="unknown">Unknown health</span></div>
+<p class="state-warning">No assessment has been recorded for this device. Health is unknown, not healthy.</p>
+{{end}}
+</section>
+<h2>Prediction history</h2>
+<nav aria-label="Prediction window"><ul class="history-presets">{{range .Presets}}<li><a href="{{.URL}}">{{.Label}}</a></li>{{end}}</ul></nav>
+<form method="get" class="history-window"><label>From (RFC 3339)<input name="from" value="{{.From}}" required></label><label>To (RFC 3339)<input name="to" value="{{.To}}" required></label><button type="submit">Show window</button></form>
+<p class="supporting">Window <time>{{.From}}</time> to <time>{{.To}}</time>.</p>
+{{if eq .State "empty"}}
+<section class="empty-state"><span class="status">No assessments</span><h2>No assessments {{if .Paged}}after this point{{else}}in this window{{end}}</h2><p>An empty window is not evidence that the device was healthy. Try a wider window.</p></section>
+{{else}}
+<ol class="history-list prediction-list" aria-label="Assessments">{{range .Records}}<li data-record="{{.ID}}">
+<div class="device-title"><h3><time>{{.AsOf}}</time></h3><span class="device-status" data-state="{{.Status}}">{{.StatusLabel}}</span>{{if .Expired}}<span class="device-status" data-state="stale">Expired</span>{{end}}{{if .StaleEvidence}}<span class="device-status" data-state="stale">Stale evidence</span>{{end}}</div>
+{{template "prediction-record" .}}
+</li>{{end}}</ol>
+{{if .NextURL}}<a href="{{.NextURL}}">Next page <span aria-hidden="true">→</span></a>{{end}}
+{{end}}
+{{end}}
+{{end}}
