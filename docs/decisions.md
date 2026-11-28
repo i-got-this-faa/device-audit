@@ -1287,3 +1287,39 @@ Release gates continue to require measured evidence. MDM, automatic
 remediation and arbitrary deployment remain excluded. Any later expansion
 requires an approved rebaseline with an owner, dependencies and acceptance
 evidence.
+
+## Evaluated controller inference and health assignment, ML04 #35
+
+The controller scores complete CT03 feature vectors only with a registry
+artifact whose signed manifest targets `ControllerInferenceRuntime()`
+(`device-audit-controller-go` version `1.0.0`, architecture
+`logistic-baseline.v1`) for purpose `inference` and whose permanent approval
+cites a verified passing ML05 evaluation report under policy `ml05.v1`.
+`VerifyEvaluationReport` pins `ML05PolicySHA256`, `ML01PartitionManifestSHA256`,
+the 168-hour horizon, minimum cohort counts, device-clustered bootstrap
+parameters, all 14 gate thresholds recomputed directly from the metric
+intervals, and finite ordered logit operating points
+(`degraded_logit <= critical_logit`). The real ML06 baseline evaluation
+(`models/evaluation/results/logistic-baseline.backblaze-2013.v1.json`) failed
+precision and calibration gates and is rejected alongside forged pass
+statuses.
+
+`AssessHealth` (`health-rules.v1`, `packages/health/rules.go`) and
+`PostgresRepository.EvaluateDeviceHealth` (`internal/controller/health.go`) read
+enrollment state, latest persisted `device_evidence` up to `asOf`, `active`
+model registry references, CT03 features (`FeatureEvidence`), and 28-day ML10
+fault history (`DeviceFaultHistory`) inside one `REPEATABLE READ READ ONLY`
+transaction snapshot. Latest telemetry aged `>= 1h` (`MaxEvidenceAge`) or
+collected after `asOf` yields `unknown` (`stale_evidence`). Missing or failed
+models, mismatched policy/runtime/digest, incomplete CT03 vectors (including
+all real `device-audit.telemetry.v2` samples, which carry no SMART counters),
+or insufficient fault windows fail closed to `unknown` (`model_unavailable` or
+`insufficient_evidence`) with null probability, null horizon, and empty
+forecasts instead of inventing numerical failure risk. With a valid evaluated
+model, complete CT03 vector, fresh telemetry, and sufficient current fault
+window: critical model -> `critical`; degraded model + `recurrent` fault with
+`increased` count change -> `critical`, else `degraded`; healthy model +
+`recurrent` fault -> `degraded`; healthy model requires a sufficient 21-day
+baseline and no `insufficient_history` fault to report `healthy`, otherwise
+yielding `unknown` (`insufficient_evidence`). Persisted prediction storage and
+HTTP endpoints remain scoped to downstream ML11 `#107`.

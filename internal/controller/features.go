@@ -80,15 +80,28 @@ func buildDeviceFeatures(ctx context.Context, evidence featureEvidence, deviceID
 // and 37,000 decoded payloads cost seconds and 450 MB for a 15 s sampler's week.
 // An unknown device is ErrRepositoryNotFound, not an empty window.
 func (s *PostgresRepository) FeatureEvidence(ctx context.Context, deviceID string, from, to time.Time) (string, []evidenceRef, error) {
+	return s.featureEvidence(ctx, s.db, deviceID, from, to)
+}
+
+type txFeatureEvidence struct {
+	repo *PostgresRepository
+	q    dbQueryer
+}
+
+func (t txFeatureEvidence) FeatureEvidence(ctx context.Context, deviceID string, from, to time.Time) (string, []evidenceRef, error) {
+	return t.repo.featureEvidence(ctx, t.q, deviceID, from, to)
+}
+
+func (s *PostgresRepository) featureEvidence(ctx context.Context, q dbQueryer, deviceID string, from, to time.Time) (string, []evidenceRef, error) {
 	from, to = from.UTC().Truncate(time.Microsecond), to.UTC().Truncate(time.Microsecond)
 	if !repositoryIDPattern.MatchString(deviceID) || !from.Before(to) || to.Sub(from) > contracts.TelemetryHistoryWindowMaxV1 {
 		return "", nil, ErrDeviceStateInvalid
 	}
 	var exists bool
-	if err := s.db.QueryRowContext(ctx, `SELECT true FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`, s.deploymentID, deviceID).Scan(&exists); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT true FROM device_enrollments WHERE deployment_id=$1 AND device_id=$2`, s.deploymentID, deviceID).Scan(&exists); err != nil {
 		return "", nil, repositoryReadError(err)
 	}
-	rows, err := s.db.QueryContext(ctx, `SELECT sequence, collected_at FROM device_evidence
+	rows, err := q.QueryContext(ctx, `SELECT sequence, collected_at FROM device_evidence
 		WHERE deployment_id=$1 AND device_id=$2 AND collected_at >= $3 AND collected_at < $4
 		ORDER BY collected_at, sequence`, s.deploymentID, deviceID, from, to)
 	if err != nil {

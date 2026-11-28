@@ -1,8 +1,10 @@
 package health
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"math"
 	"slices"
 	"strconv"
@@ -15,6 +17,16 @@ import (
 func EndpointInferenceRuntime() contracts.ModelRuntimeV1 {
 	return contracts.ModelRuntimeV1{
 		Name: "device-audit-endpoint-go", Version: "1.0.0",
+		Architectures: []string{"logistic-baseline.v1"},
+	}
+}
+
+// ControllerInferenceRuntime identifies the exact controller implementation of
+// the ML02 artifact. A publisher manifest for controller inference must target
+// this runtime explicitly.
+func ControllerInferenceRuntime() contracts.ModelRuntimeV1 {
+	return contracts.ModelRuntimeV1{
+		Name: "device-audit-controller-go", Version: "1.0.0",
 		Architectures: []string{"logistic-baseline.v1"},
 	}
 }
@@ -37,6 +49,20 @@ type logisticParameters struct {
 	clip                 float64
 }
 
+func (m logisticParameters) score(values []float64) (float64, error) {
+	if len(values) != len(m.mean) || len(m.weights) != len(values)+1 {
+		return 0, errors.New("logistic feature vector length mismatch")
+	}
+	score := m.weights[0]
+	for i, value := range values {
+		score += m.weights[i+1] * ((value - m.mean[i]) / m.scale[i])
+	}
+	if math.IsNaN(score) || math.IsInf(score, 0) {
+		return 0, errors.New("logistic score is not finite")
+	}
+	return min(m.clip, max(-m.clip, score)), nil
+}
+
 // LogisticLogit scores one complete CT03 vector with an artifact that the
 // caller has authenticated through CT10.
 func LogisticLogit(manifest contracts.ModelManifestV1, artifact []byte, vector contracts.FeatureVectorV1) (float64, error) {
@@ -51,14 +77,7 @@ func LogisticLogit(manifest contracts.ModelManifestV1, artifact []byte, vector c
 	if err != nil {
 		return 0, err
 	}
-	score := model.weights[0]
-	for i, value := range values {
-		score += model.weights[i+1] * ((value - model.mean[i]) / model.scale[i])
-	}
-	if math.IsNaN(score) || math.IsInf(score, 0) {
-		return 0, errors.New("logistic score is not finite")
-	}
-	return min(model.clip, max(-model.clip, score)), nil
+	return model.score(values)
 }
 
 func readLogisticParameters(manifest contracts.ModelManifestV1, artifact []byte) (logisticParameters, error) {
@@ -69,7 +88,8 @@ func readLogisticParameters(manifest contracts.ModelManifestV1, artifact []byte)
 	}
 	featureCount := len(names)
 	var model logisticArtifact
-	if json.Unmarshal(artifact, &model) != nil ||
+	decoder := json.NewDecoder(bytes.NewReader(artifact))
+	if decoder.Decode(&model) != nil || decoder.Decode(&struct{}{}) != io.EOF ||
 		model.SchemaVersion != "device-audit.logistic-baseline.v1" ||
 		model.Architecture != manifest.Architecture || model.ModelVersion != manifest.ModelVersion ||
 		model.FeatureVersion != manifest.FeatureVersion || !slices.Equal(model.Features, manifest.Features) ||
