@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
@@ -15,6 +16,7 @@ import (
 	"github.com/i-got-this-faa/device-audit/networking/mesh"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/federated"
+	"github.com/i-got-this-faa/device-audit/packages/workflows"
 )
 
 type MeshRepository interface {
@@ -26,6 +28,13 @@ type MeshRepository interface {
 // validation and persistence for signed federated updates (FED09 #114).
 type FederatedUpdateRepository interface {
 	AcceptUpdate(context.Context, contracts.FederatedUpdateV1) (federated.AcceptedUpdate, bool, error)
+}
+
+// DiagnosticMeshRepository optionally extends MeshRepository with authenticated
+// diagnostic assignment polling and terminal result ingestion (DIA05 #109).
+type DiagnosticMeshRepository interface {
+	PollDiagnosticAssignments(ctx context.Context, deviceID string, leaseTTL time.Duration) (workflows.PollResponse, error)
+	SubmitDiagnosticResult(ctx context.Context, result contracts.DiagnosticResultV1) (workflows.AssignmentRecord, bool, error)
 }
 
 // MeshConfig wires the device-only server. Nil Logger and Now use the process defaults.
@@ -100,6 +109,12 @@ func MeshHTTPServer(cfg MeshConfig) (*http.Server, error) {
 	})
 	mux.HandleFunc("POST /v1/federated/updates", func(w http.ResponseWriter, r *http.Request) {
 		handleFederatedUpdate(w, r, cfg)
+	})
+	mux.HandleFunc("POST /v1/diagnostics/poll", func(w http.ResponseWriter, r *http.Request) {
+		handleDiagnosticPoll(w, r, cfg)
+	})
+	mux.HandleFunc("POST /v1/diagnostics/results", func(w http.ResponseWriter, r *http.Request) {
+		handleDiagnosticResult(w, r, cfg)
 	})
 	return &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second,
 		ConnContext: func(ctx context.Context, conn net.Conn) context.Context {
@@ -261,6 +276,34 @@ type federatedUpdateResponse struct {
 	RejectionReason string `json:"rejection_reason,omitempty"`
 }
 
+func authenticateMeshPeer(ctx context.Context, cfg MeshConfig, peer string) (DeviceNetworkBinding, int, string, bool) {
+	binding, err := cfg.Repository.NetworkPeerBinding(ctx, peer)
+	if err != nil || binding.NetworkPublicKey != peer {
+		_ = cfg.Node.DisconnectClient(peer)
+		if errors.Is(err, ErrRepositoryUnavailable) {
+			return DeviceNetworkBinding{}, http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable, false
+		}
+		return DeviceNetworkBinding{}, http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer, false
+	}
+	return binding, 0, "", true
+}
+
+func decodeBoundedMeshJSON(w http.ResponseWriter, r *http.Request, limit int64, target any) (int, string, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
+	defer r.Body.Close()
+	d := json.NewDecoder(r.Body)
+	if err := d.Decode(target); err != nil {
+		if _, tooLarge := errors.AsType[*http.MaxBytesError](err); tooLarge {
+			return http.StatusRequestEntityTooLarge, "payload_too_large", false
+		}
+		return http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload, false
+	}
+	if d.Decode(new(json.RawMessage)) != io.EOF {
+		return http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload, false
+	}
+	return 0, "", true
+}
+
 func handleFederatedUpdate(w http.ResponseWriter, r *http.Request, cfg MeshConfig) {
 	w.Header().Set("Cache-Control", "no-store")
 	peer, _ := r.Context().Value(meshPeerContextKey{}).(string)
@@ -278,14 +321,9 @@ func handleFederatedUpdate(w http.ResponseWriter, r *http.Request, cfg MeshConfi
 		writeJSON(status, federatedUpdateResponse{Status: "rejected", RejectionReason: reason})
 	}
 
-	binding, err := cfg.Repository.NetworkPeerBinding(ctx, peer)
-	if err != nil || binding.NetworkPublicKey != peer {
-		_ = cfg.Node.DisconnectClient(peer)
-		if errors.Is(err, ErrRepositoryUnavailable) {
-			reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
-			return
-		}
-		reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+	binding, statusCode, reason, ok := authenticateMeshPeer(ctx, cfg, peer)
+	if !ok {
+		reject(statusCode, reason)
 		return
 	}
 	updateRepo, ok := cfg.Repository.(FederatedUpdateRepository)
@@ -299,21 +337,9 @@ func handleFederatedUpdate(w http.ResponseWriter, r *http.Request, cfg MeshConfi
 	}
 
 	// 4096 binary64 weights base64-encoded (~44 KiB) plus envelope headers fits inside 64 KiB.
-	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
-	defer r.Body.Close()
 	var update contracts.FederatedUpdateV1
-	d := json.NewDecoder(r.Body)
-	if decodeErr := d.Decode(&update); decodeErr != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(decodeErr, &maxErr) {
-			reject(http.StatusRequestEntityTooLarge, "payload_too_large")
-			return
-		}
-		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
-		return
-	}
-	if d.Decode(new(json.RawMessage)) != io.EOF {
-		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+	if code, rejReason, ok := decodeBoundedMeshJSON(w, r, 64<<10, &update); !ok {
+		reject(code, rejReason)
 		return
 	}
 
@@ -372,5 +398,151 @@ func handleFederatedUpdate(w http.ResponseWriter, r *http.Request, cfg MeshConfi
 		Sequence:    accepted.Sequence,
 		AcceptedAt:  accepted.AcceptedAt.UTC().Format(time.RFC3339),
 		Created:     created,
+	})
+}
+
+func handleDiagnosticPoll(w http.ResponseWriter, r *http.Request, cfg MeshConfig) {
+	w.Header().Set("Cache-Control", "no-store")
+	peer, _ := r.Context().Value(meshPeerContextKey{}).(string)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	reject := func(status int, reason string) {
+		cfg.Logger.LogAttrs(r.Context(), slog.LevelWarn, "diagnostic poll rejected",
+			slog.String("event", "diagnostic_poll_rejected"), slog.String("reason", reason), slog.String("peer", peer))
+		writeJSON(w, status, workflows.ResultReceipt{Status: "rejected", Reason: reason})
+	}
+	binding, statusCode, reason, ok := authenticateMeshPeer(ctx, cfg, peer)
+	if !ok {
+		reject(statusCode, reason)
+		return
+	}
+	diagRepo, ok := cfg.Repository.(DiagnosticMeshRepository)
+	if !ok {
+		reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		return
+	}
+	if r.URL.RawQuery != "" {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
+	defer r.Body.Close()
+	if body, err := io.ReadAll(r.Body); err != nil {
+		if _, tooLarge := errors.AsType[*http.MaxBytesError](err); tooLarge {
+			reject(http.StatusRequestEntityTooLarge, "payload_too_large")
+			return
+		}
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	} else if trimmed := bytes.TrimSpace(body); len(trimmed) > 0 && string(trimmed) != "{}" {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+
+	poll, err := diagRepo.PollDiagnosticAssignments(ctx, binding.DeviceID, defaultDiagnosticLeaseTTL)
+	if err != nil {
+		switch {
+		case errors.Is(err, workflows.ErrAssignmentDeviceRevoked):
+			reject(http.StatusForbidden, contracts.EnvelopeRejectionRevokedKey)
+		case errors.Is(err, workflows.ErrAssignmentCorrupt):
+			reject(http.StatusInternalServerError, contracts.EnvelopeRejectionStorageUnavailable)
+		default:
+			reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		}
+		return
+	}
+	writeJSON(w, http.StatusOK, poll)
+}
+
+func handleDiagnosticResult(w http.ResponseWriter, r *http.Request, cfg MeshConfig) {
+	w.Header().Set("Cache-Control", "no-store")
+	peer, _ := r.Context().Value(meshPeerContextKey{}).(string)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	reject := func(status int, reason string) {
+		cfg.Logger.LogAttrs(r.Context(), slog.LevelWarn, "diagnostic result rejected",
+			slog.String("event", "diagnostic_result_rejected"), slog.String("reason", reason), slog.String("peer", peer))
+		writeJSON(w, status, workflows.ResultReceipt{Status: "rejected", Reason: reason})
+	}
+	binding, statusCode, reason, ok := authenticateMeshPeer(ctx, cfg, peer)
+	if !ok {
+		reject(statusCode, reason)
+		return
+	}
+	diagRepo, ok := cfg.Repository.(DiagnosticMeshRepository)
+	if !ok {
+		reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		return
+	}
+	if r.URL.RawQuery != "" {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+	var result contracts.DiagnosticResultV1
+	if code, rejReason, ok := decodeBoundedMeshJSON(w, r, 64<<10, &result); !ok {
+		reject(code, rejReason)
+		return
+	}
+	if result.Validate() != nil {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+	switch {
+	case result.DeploymentID != binding.DeploymentID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionDeploymentMismatch)
+		return
+	case result.DeviceID != binding.DeviceID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+		return
+	case result.SigningKeyID != binding.SigningKeyID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionKeyMismatch)
+		return
+	case result.VerifySignature(binding.SigningPublicKey) != nil:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionInvalidSignature)
+		return
+	}
+
+	rec, created, err := diagRepo.SubmitDiagnosticResult(ctx, result)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrRepositoryUnavailable):
+			reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		case errors.Is(err, workflows.ErrAssignmentInvalid):
+			reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		case errors.Is(err, workflows.ErrAssignmentDeviceRevoked):
+			reject(http.StatusForbidden, contracts.EnvelopeRejectionRevokedKey)
+		case errors.Is(err, workflows.ErrAssignmentUnauthorized):
+			reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+		case errors.Is(err, workflows.ErrAssignmentNotFound):
+			reject(http.StatusNotFound, "assignment_not_found")
+		case errors.Is(err, workflows.ErrAssignmentReplay):
+			reject(http.StatusConflict, contracts.EnvelopeRejectionReplay)
+		case errors.Is(err, workflows.ErrAssignmentExpired):
+			reject(http.StatusConflict, contracts.EnvelopeRejectionExpired)
+		case errors.Is(err, workflows.ErrAssignmentConflict), errors.Is(err, workflows.ErrAssignmentTerminal):
+			reject(http.StatusConflict, "assignment_conflict")
+		default:
+			reject(http.StatusInternalServerError, contracts.EnvelopeRejectionStorageUnavailable)
+		}
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	acceptedAt := ""
+	if rec.ResultAcceptedAt != nil {
+		acceptedAt = rec.ResultAcceptedAt.UTC().Format(time.RFC3339)
+	}
+	writeJSON(w, status, workflows.ResultReceipt{
+		Status:       "accepted",
+		AssignmentID: rec.AssignmentID,
+		DeviceID:     rec.DeviceID,
+		State:        string(rec.Status),
+		Sequence:     result.Sequence,
+		AcceptedAt:   acceptedAt,
+		Created:      created,
 	})
 }
