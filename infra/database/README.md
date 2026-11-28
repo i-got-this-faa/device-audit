@@ -58,6 +58,12 @@ telemetry ingestion remains separate work.
   and `BEFORE INSERT` / `BEFORE UPDATE OR DELETE` triggers reject missing or
   mismatched evidence digests, model approvals, or mutations, and preserve
   nullable risk/horizon on `unknown` states.
+- `010_federated_updates.sql` adds append-only `federated_updates` storing one
+  validated signed participant update per `(deployment_id, round_id, device_id)`
+  with `UNIQUE (deployment_id, device_id, sequence)` and finite binary64 weights.
+  Foreign keys and triggers require an open matching round, matching candidate/base/
+  feature/parameter counts, an eligible admitted unrevoked device key, verified
+  `sha256(weights_bytes) = update_sha256`, and immutability.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -82,7 +88,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 9 and the configured
+- health output for a connected database, schema version 10 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;

@@ -1,11 +1,14 @@
 # Federated round lifecycle, FED01 #40
 
 `PostgresRepository` implements `federated.Coordinator`
-([migration 008](../../infra/database/migrations/008_federated_rounds.sql)). It
-stores the [round contract](../../packages/contracts/federated-v1.md) and its
-state. There is no HTTP route, flag or endpoint client yet: FED02 #42 trains,
-FED03 #43 admits updates and FED10 #115 promotes. Each of them starts from this
-state.
+([migration 008](../../infra/database/migrations/008_federated_rounds.sql) and
+[migration 010](../../infra/database/migrations/010_federated_updates.sql)). It
+stores the [round and update contracts](../../packages/contracts/federated-v1.md),
+its round state, and validated participant updates (`FED09 #114`) over both the
+Go `Coordinator` (`AcceptUpdate`, `AcceptedUpdates`) and the admitted mesh
+route `POST /v1/federated/updates`. FED02 #42 local endpoint training, FED03 #43
+aggregation into candidate models, and FED10 #115 promotion build on these
+stored updates.
 
 ## Lifecycle
 
@@ -47,8 +50,10 @@ admission and wins if it came first.
 ## Not done
 
 - The controller does not choose participants. The caller supplies the snapshot.
-- Admission is not an accepted update. It does not read a signed update, count
-  samples or assess quorum. FED03 #43 must bind admitted updates to it.
+- `FED09 #114` stores validated signed participant updates in `federated_updates`
+  (atomically advancing `device_enrollments.last_sequence`) without computing
+  aggregates or quorum promotion: candidate model averaging (`FED03 #43`) and
+  promotion (`FED10 #115`) remain separate downstream work.
 - Nothing calls `CloseExpiredRounds` on a schedule; a round past its deadline is
   closed when touched.
 - The base need not be approved or active. The round fixes its digest.
