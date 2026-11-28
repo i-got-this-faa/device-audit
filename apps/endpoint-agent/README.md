@@ -533,10 +533,10 @@ of those bytes. Raw examples stay in the local request.
 
 The offline command is for operator-run fitting and fixture verification.
 Endpoint telemetry currently supplies neither the CT03 SMART counters nor
-verified outcome labels. Authenticated round delivery, signed update admission,
-and the ML05 Windows training limits for scheduled service use are still
-pending. Two-device qualification requires two enrolled endpoints, reviewed
-local histories on each, and a shared publisher-signed training artifact.
+verified outcome labels. Authenticated round delivery and scheduled training
+in the Windows service are still pending. Two-device qualification requires
+two enrolled endpoints, reviewed local histories on each, and a shared
+publisher-signed training artifact.
 
 ## Budgeted federated update staging, FED08 #113
 
@@ -582,8 +582,12 @@ set. The scheduler delivered a valid telemetry snapshot.
 This operator path requires exclusive access to the identity directory for attempt
 reservation and staging, so it cannot use the live service's state
 directory while the service holds it open. The command stages the envelope
-for a future controller admission and upload path. A production-history
-soak and Windows LocalService qualification remain pending.
+locally. The controller has a signed-update admission route, and scheduled
+endpoint delivery remains pending. The
+[FED12 validation record](../../docs/validation/federated-minimization-117.md)
+documents the captured request and log fields and what the controller can infer
+from individual updates. A production-history soak and Windows LocalService
+qualification remain pending.
 
 ## Stage an approved registry model, FED04 #44
 
