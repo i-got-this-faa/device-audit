@@ -174,6 +174,7 @@ func (s *DeviceStateService) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/api/devices/{id}/history", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.history)))
 	mux.Handle("GET /console/api/devices/{id}/predictions", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.predictions)))
 	mux.Handle("GET /console/api/devices/{id}/predictions/latest", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.latestPrediction)))
+	mux.Handle("GET /console/api/devices/{id}/forecast", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.forecast)))
 }
 
 // parseDeviceStateQuery requires an explicit deployment_id so a client cannot
