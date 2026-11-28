@@ -1345,3 +1345,24 @@ derives `current_health` fail-closed to `unknown` (`stale_evidence`) once
 digests and `model_approvals`, failing closed with `ErrPredictionEvidenceBroken`
 (HTTP 500) rather than presenting a broken risk value. Console UI rendering
 remains scoped to WEB03 `#39`.
+
+## Validating signed federated updates, FED09 #114
+
+Migration `010_federated_updates.sql` adds append-only `federated_updates`
+keyed by `(deployment_id, round_id, device_id)` with
+`UNIQUE (deployment_id, device_id, sequence)` and foreign keys to
+`federated_rounds`, `federated_round_participants`, `device_enrollments`, and
+`model_artifacts`, plus triggers enforcing immutability, open-round/window
+checks, matching candidate/base/feature/parameter counts, verified
+`sha256(weights_bytes) = update_sha256`, finite IEEE754 binary64 weights, and
+unrevoked eligible participant keys. `PostgresRepository.AcceptUpdate` and the
+admitted mesh route `POST /v1/federated/updates` (capped at 64 KiB for HTTP bodies
+and 4096 parameters) acquire locks in `federated_rounds ->
+federated_round_participants -> device_enrollments` order to avoid deadlocks with
+`AcceptParticipant`, `AcceptEvidence`, and `RevokeDevice`, authenticate the
+device key and Ed25519 signature before checking retries, treat identical retries
+as idempotent while rejecting different updates (`ErrUpdateConflict`), auto-admit
+eligible snapshot participants on first valid update if not already admitted, and
+advance `device_enrollments.last_sequence` atomically so telemetry and updates
+share one replay high-water mark. Aggregation (`FED03 #43`) and candidate
+promotion (`FED10 #115`) remain separate downstream steps.
