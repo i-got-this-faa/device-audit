@@ -53,7 +53,18 @@ func main() {
 	asOf := flag.String("as-of", "", "RFC 3339 time that ends the --features window")
 	probeWorker := flag.Bool("probe-worker", false, "internal: read one isolated probe request")
 	inferenceWorker := flag.Bool("inference-worker", false, "internal: read one isolated inference request")
+	fitLocalCandidate := flag.Bool("fit-local-candidate", false, "fit one offline federated candidate from a local JSON request")
+	trainingPublisherKey := flag.String("training-publisher-key-file", "", "pinned Ed25519 publisher key for offline local training")
 	flag.Parse()
+	if *fitLocalCandidate || *trainingPublisherKey != "" {
+		if !*fitLocalCandidate || *trainingPublisherKey == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--fit-local-candidate runs alone and requires --training-publisher-key-file"))
+		}
+		if err := runLocalCandidate(context.Background(), *trainingPublisherKey, os.Stdin, os.Stdout, time.Now); err != nil {
+			fail(err)
+		}
+		return
+	}
 	if *inferenceWorker {
 		if flag.NFlag() != 1 || flag.NArg() != 0 {
 			fail(fmt.Errorf("invalid inference worker arguments"))
