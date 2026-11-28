@@ -14,11 +14,18 @@ import (
 
 	"github.com/i-got-this-faa/device-audit/networking/mesh"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
+	"github.com/i-got-this-faa/device-audit/packages/federated"
 )
 
 type MeshRepository interface {
 	NetworkPeerBinding(context.Context, string) (DeviceNetworkBinding, error)
 	AcceptEvidence(context.Context, contracts.EvidenceEnvelopeV1) (time.Time, error)
+}
+
+// FederatedUpdateRepository optionally extends MeshRepository with durable
+// validation and persistence for signed federated updates (FED09 #114).
+type FederatedUpdateRepository interface {
+	AcceptUpdate(context.Context, contracts.FederatedUpdateV1) (federated.AcceptedUpdate, bool, error)
 }
 
 // MeshConfig wires the device-only server. Nil Logger and Now use the process defaults.
@@ -90,6 +97,9 @@ func MeshHTTPServer(cfg MeshConfig) (*http.Server, error) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_ = json.NewEncoder(w).Encode(ack)
+	})
+	mux.HandleFunc("POST /v1/federated/updates", func(w http.ResponseWriter, r *http.Request) {
+		handleFederatedUpdate(w, r, cfg)
 	})
 	return &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second,
 		ConnContext: func(ctx context.Context, conn net.Conn) context.Context {
@@ -238,4 +248,129 @@ func logEvidenceRejection(ctx context.Context, logger *slog.Logger, attempt evid
 		}
 	}
 	logger.LogAttrs(ctx, level, "evidence rejected", attrs...)
+}
+
+type federatedUpdateResponse struct {
+	Status          string `json:"status"`
+	RoundID         string `json:"round_id,omitempty"`
+	CandidateID     string `json:"candidate_id,omitempty"`
+	DeviceID        string `json:"device_id,omitempty"`
+	Sequence        uint64 `json:"sequence,omitempty"`
+	AcceptedAt      string `json:"accepted_at,omitempty"`
+	Created         bool   `json:"created,omitempty"`
+	RejectionReason string `json:"rejection_reason,omitempty"`
+}
+
+func handleFederatedUpdate(w http.ResponseWriter, r *http.Request, cfg MeshConfig) {
+	w.Header().Set("Cache-Control", "no-store")
+	peer, _ := r.Context().Value(meshPeerContextKey{}).(string)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	writeJSON := func(status int, body federatedUpdateResponse) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(body)
+	}
+	reject := func(status int, reason string) {
+		cfg.Logger.LogAttrs(r.Context(), slog.LevelWarn, "federated update rejected",
+			slog.String("event", "federated_update_rejected"), slog.String("reason", reason), slog.String("peer", peer))
+		writeJSON(status, federatedUpdateResponse{Status: "rejected", RejectionReason: reason})
+	}
+
+	binding, err := cfg.Repository.NetworkPeerBinding(ctx, peer)
+	if err != nil || binding.NetworkPublicKey != peer {
+		_ = cfg.Node.DisconnectClient(peer)
+		if errors.Is(err, ErrRepositoryUnavailable) {
+			reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+			return
+		}
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+		return
+	}
+	updateRepo, ok := cfg.Repository.(FederatedUpdateRepository)
+	if !ok {
+		reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		return
+	}
+	if r.URL.RawQuery != "" {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+
+	// 4096 binary64 weights base64-encoded (~44 KiB) plus envelope headers fits inside 64 KiB.
+	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
+	defer r.Body.Close()
+	var update contracts.FederatedUpdateV1
+	d := json.NewDecoder(r.Body)
+	if decodeErr := d.Decode(&update); decodeErr != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(decodeErr, &maxErr) {
+			reject(http.StatusRequestEntityTooLarge, "payload_too_large")
+			return
+		}
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+	if d.Decode(new(json.RawMessage)) != io.EOF {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+
+	if update.Validate() != nil {
+		reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		return
+	}
+	switch {
+	case update.DeploymentID != binding.DeploymentID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionDeploymentMismatch)
+		return
+	case update.DeviceID != binding.DeviceID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+		return
+	case update.SigningKeyID != binding.SigningKeyID:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionKeyMismatch)
+		return
+	case update.VerifySignature(binding.SigningPublicKey) != nil:
+		reject(http.StatusForbidden, contracts.EnvelopeRejectionInvalidSignature)
+		return
+	}
+
+	accepted, created, err := updateRepo.AcceptUpdate(ctx, update)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrRepositoryUnavailable):
+			reject(http.StatusServiceUnavailable, contracts.EnvelopeRejectionStorageUnavailable)
+		case errors.Is(err, federated.ErrUpdateInvalid):
+			reject(http.StatusBadRequest, contracts.EnvelopeRejectionInvalidPayload)
+		case errors.Is(err, federated.ErrUpdateUnauthorized), errors.Is(err, federated.ErrParticipantNotEligible):
+			reject(http.StatusForbidden, contracts.EnvelopeRejectionUnauthorizedPeer)
+		case errors.Is(err, federated.ErrRoundNotFound):
+			reject(http.StatusNotFound, "round_not_found")
+		case errors.Is(err, federated.ErrUpdateConflict):
+			reject(http.StatusConflict, "update_conflict")
+		case errors.Is(err, federated.ErrUpdateReplay):
+			reject(http.StatusConflict, contracts.EnvelopeRejectionReplay)
+		case errors.Is(err, federated.ErrUpdateExpired), errors.Is(err, federated.ErrRoundNotOpen):
+			reject(http.StatusConflict, contracts.EnvelopeRejectionExpired)
+		case errors.Is(err, federated.ErrUpdateIncompatible):
+			reject(http.StatusConflict, "incompatible_update")
+		default:
+			reject(http.StatusInternalServerError, contracts.EnvelopeRejectionStorageUnavailable)
+		}
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	writeJSON(status, federatedUpdateResponse{
+		Status:      "accepted",
+		RoundID:     accepted.RoundID,
+		CandidateID: accepted.CandidateID,
+		DeviceID:    accepted.DeviceID,
+		Sequence:    accepted.Sequence,
+		AcceptedAt:  accepted.AcceptedAt.UTC().Format(time.RFC3339),
+		Created:     created,
+	})
 }
