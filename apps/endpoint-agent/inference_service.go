@@ -18,7 +18,7 @@ type serviceInference struct {
 	latestDay time.Time
 }
 
-func startServiceInference(ctx context.Context, config *inferenceConfig, run inferenceRunner, logf func(string, ...any)) *serviceInference {
+func startServiceInference(ctx context.Context, config *inferenceConfig, store *identityStore, deployment string, run inferenceRunner, logf func(string, ...any)) *serviceInference {
 	if config == nil {
 		return nil
 	}
@@ -35,6 +35,10 @@ func startServiceInference(ctx context.Context, config *inferenceConfig, run inf
 	}
 	go func() {
 		defer close(worker.done)
+		active := *config
+		if active.StagedEvaluationFile != "" {
+			active = activateStagedModel(ctx, active, store, deployment, run, logf)
+		}
 		for {
 			select {
 			case <-ctx.Done():
@@ -43,7 +47,7 @@ func startServiceInference(ctx context.Context, config *inferenceConfig, run inf
 				if ctx.Err() != nil {
 					return
 				}
-				prediction := predictSample(ctx, *config, sample, time.Now().UTC(), loggedRun)
+				prediction := predictSample(ctx, active, sample, time.Now().UTC(), loggedRun)
 				if data, err := json.Marshal(prediction); err == nil && ctx.Err() == nil {
 					logf("endpoint inference: %s", data)
 				}

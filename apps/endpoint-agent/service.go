@@ -227,7 +227,7 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 			deliveryDone <- err
 		}()
 	}
-	inference := startServiceInference(ctx, cfg.Inference, runInference, logf)
+	inference := startServiceInference(ctx, cfg.Inference, store, receipt.DeploymentID, runInference, logf)
 	defer inference.close()
 	unsigned, overflow := 0, 0
 	report, err := newScheduler(sampling).Run(ctx, func(sample telemetry.SensorSample) error {

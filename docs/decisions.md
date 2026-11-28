@@ -1516,3 +1516,26 @@ Raw evidence stays in the private endpoint directory. CT06 wire formats and
 fixtures carry over.
 
 See [DIA06 validation](validation/diagnostic-recovery-110.md).
+
+## Atomic staged model activation, FED11 #116
+
+The service activates staged downloads at startup when an administrator
+provisions the registry's exact evaluation report. The endpoint rechecks the
+deployment, CT10 signature, runtime, features, artifact bytes, and the approved
+evaluation digest and gates. It runs the existing isolated worker against a
+complete synthetic CT03 feature window and checks the result's model reference
+and health fields. The probe runs in the inference goroutine so telemetry
+sampling, signing, and spooling can continue.
+
+The identity store holds an activation journal and three rotating snapshot
+slots for manifest, artifact, and evaluation. A pending attempt names the
+staged input and preserves existing slot references. Activation writes only
+to an unreferenced slot and commits the active and last-working references
+in one atomic journal replacement. The provisioned baseline is snapshotted
+and checked on the first switch. Rejection keeps the active slot selected.
+Recovery records an interrupted pending attempt and keeps the active slot.
+A fresh staging request can retry the same artifact after an operator
+corrects an issue. Inference uses the configured publisher trust root and
+rechecks the selected snapshot whenever it scores.
+
+See [FED11 validation](validation/model-activation-116.md).

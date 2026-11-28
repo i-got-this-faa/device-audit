@@ -47,15 +47,20 @@ func inferenceFailureCode(err error) string {
 }
 
 type inferenceConfig struct {
-	ManifestFile     string `json:"manifest_file"`
-	ArtifactFile     string `json:"artifact_file"`
-	PublisherKeyFile string `json:"publisher_key_file"`
-	EvaluationFile   string `json:"evaluation_file"`
-	EvaluationSHA256 string `json:"evaluation_sha256"`
+	ManifestFile         string `json:"manifest_file"`
+	ArtifactFile         string `json:"artifact_file"`
+	PublisherKeyFile     string `json:"publisher_key_file"`
+	EvaluationFile       string `json:"evaluation_file"`
+	EvaluationSHA256     string `json:"evaluation_sha256"`
+	StagedEvaluationFile string `json:"staged_evaluation_file,omitempty"`
 }
 
 func (c inferenceConfig) paths() []string {
-	return []string{c.ManifestFile, c.ArtifactFile, c.PublisherKeyFile, c.EvaluationFile}
+	paths := []string{c.ManifestFile, c.ArtifactFile, c.PublisherKeyFile, c.EvaluationFile}
+	if c.StagedEvaluationFile != "" {
+		paths = append(paths, c.StagedEvaluationFile)
+	}
+	return paths
 }
 
 type inferenceRequest struct {
@@ -100,8 +105,13 @@ func approvedEvaluation(c inferenceConfig, m contracts.ModelManifestV1) (inferen
 	if err != nil {
 		return report, err
 	}
+	return checkInferenceEvaluation(c.EvaluationSHA256, m, payload)
+}
+
+func checkInferenceEvaluation(expectedSHA string, m contracts.ModelManifestV1, payload []byte) (inferenceEvaluation, error) {
+	var report inferenceEvaluation
 	digest := sha256.Sum256(payload)
-	if hex.EncodeToString(digest[:]) != c.EvaluationSHA256 ||
+	if hex.EncodeToString(digest[:]) != expectedSHA ||
 		json.Unmarshal(payload, &report) != nil ||
 		report.SchemaVersion != "device-audit.evaluation-report.v1" ||
 		report.PolicySHA256 != inferencePolicy || report.Gate.PolicySHA256 != inferencePolicy ||
