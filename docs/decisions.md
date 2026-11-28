@@ -1461,18 +1461,17 @@ authority signs assignments. The enrolled device key signs results with
 sequences reserved by the same allocator used for telemetry. The mesh key
 continues to identify the network peer.
 
-Under the identity lock, the endpoint reserves a result sequence, commits an
-immutable claim for the assignment ID, and advances the controller sequence
-high-water mark for the pinned signing key before starting the worker. This
+Under the identity lock, the endpoint reserves a result sequence and commits
+the controller sequence high-water mark for the pinned signing key and the
+immutable assignment claim before starting the worker. This
 orders acceptance by controller sequence and keeps assignment IDs consumed
 across restarts and controller key changes. A crash between durable writes
-can leave a sequence gap or a claimed assignment with no result. Hold that
-claim for reconciliation in DIA06 #110. The result carries the Windows boot
-identifier and the digest of the signed assignment. Before signing a result
-that references evidence, the endpoint saves the corresponding bytes in the
-private identity directory. Automatic polling, terminal result spooling,
-offline cancellation and reboot reporting remain open. The wire schema and
-fixtures carry over from CT06.
+can leave a sequence gap or a claimed assignment with no result. The result
+carries the Windows boot identifier and the digest of the signed assignment.
+Before signing a result that references evidence, the endpoint saves the
+corresponding bytes in the private identity directory. The standalone command
+relies on the operator to retain its result. The service uses the DIA06
+outbox below. The wire schema and fixtures carry over from CT06.
 
 See [the validation record](validation/diagnostic-execution-38.md).
 
@@ -1495,3 +1494,25 @@ approved evaluation digest for handoff. Activation requires its own evaluation
 evidence and authorization checks.
 
 See [FED04 validation](validation/model-staging-44.md).
+
+## Managed diagnostic recovery, DIA06 #110
+
+The opt-in service reuses CT06 assignments and results, the admitted device
+signature, and the TEL09 mesh connection. It serializes delivery across the
+telemetry queue and a one-job diagnostic outbox because the controller uses a
+shared device sequence. The outbox durably records claim, start, and signed
+terminal envelope. A matching receipt from the pinned controller mesh peer
+retires the outbox. Exact retries of a committed result return the original
+receipt. CT04 signed telemetry acknowledgements continue to govern telemetry.
+
+Dispatch maintains one live lease per device so a running probe can poll for
+cancellation. The controller retains already-dispatched jobs through a
+reporting window of 24 hours after the signed deadline and accepts valid
+result envelopes within that window. An unfinished claim resolves to
+`cancelled` if cancellation is observed, `rebooted` if it had started, or
+`rejected` if it had only been claimed. A committed signed outcome retains
+its original evidence references across retries and subsequent cancellation.
+Raw evidence stays in the private endpoint directory. CT06 wire formats and
+fixtures carry over.
+
+See [DIA06 validation](validation/diagnostic-recovery-110.md).

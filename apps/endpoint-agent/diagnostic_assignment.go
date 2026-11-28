@@ -10,7 +10,10 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -60,38 +63,60 @@ func executeDiagnosticAssignment(ctx context.Context, stateDir, keyPath string, 
 	if err != nil {
 		return contracts.DiagnosticResultV1{}, err
 	}
-	return store.executeDiagnosticAssignment(ctx, runner, assignment, key, identity, receipt, boot)
+	if err := store.requireNoDiagnosticJob(); err != nil {
+		return contracts.DiagnosticResultV1{}, err
+	}
+	return store.executeDiagnosticAssignment(ctx, runner, assignment, key, identity, receipt, boot, nil, nil)
 }
 
-func (s *identityStore) executeDiagnosticAssignment(ctx context.Context, runner *workflows.ProbeRunner, assignment contracts.DiagnosticAssignmentV1, authority ed25519.PublicKey, identity *identity, receipt contracts.EnrollmentAcceptedV1, bootID string) (contracts.DiagnosticResultV1, error) {
+func (s *identityStore) executeDiagnosticAssignment(ctx context.Context, runner *workflows.ProbeRunner, assignment contracts.DiagnosticAssignmentV1, authority ed25519.PublicKey, identity *identity, receipt contracts.EnrollmentAcceptedV1, bootID string, job *diagnosticJob, sequenceMu *sync.Mutex) (contracts.DiagnosticResultV1, error) {
 	id := fmt.Sprintf("%x", sha256.Sum256([]byte(assignment.AssignmentID)))
-	return workflows.ExecuteDiagnosticAssignment(ctx, runner, assignment, authority, workflows.AssignmentExecution{
+	execution := workflows.AssignmentExecution{
 		DeploymentID: receipt.DeploymentID,
 		DeviceID:     receipt.DeviceID,
 		BootID:       bootID,
 		SigningKey:   identity.signing,
 		Claim: func(digest string, admittedAt time.Time) (uint64, error) {
-			return s.claimDiagnosticAssignment(assignment, receipt, id, digest, bootID, admittedAt)
+			if sequenceMu != nil {
+				sequenceMu.Lock()
+				defer sequenceMu.Unlock()
+			}
+			return s.claimDiagnosticAssignment(assignment, receipt, id, digest, bootID, admittedAt, job)
 		},
 		SaveEvidence: func(output []byte) (string, error) {
 			ref := "diagnostic-" + id
-			return ref, s.write(ref+".evidence", output)
+			return ref, s.replace(ref+".evidence", ref+".evidence.tmp", output)
 		},
-	})
+	}
+	if job != nil {
+		execution.RecordStart = func(startedAt time.Time) error {
+			job.StartedAt = startedAt
+			return s.saveDiagnosticJob(job)
+		}
+	}
+	result, err := workflows.ExecuteDiagnosticAssignment(ctx, runner, assignment, authority, execution)
+	if err == nil && job != nil {
+		err = s.finishDiagnosticJob(job, result)
+	}
+	return result, err
 }
 
 // Claim runs under the identity lock. The immutable assignment marker and
 // controller high-water mark are both durable before a worker can start. A
 // crash between writes can consume an assignment without running it.
-func (s *identityStore) claimDiagnosticAssignment(a contracts.DiagnosticAssignmentV1, receipt contracts.EnrollmentAcceptedV1, id, digest, bootID string, admittedAt time.Time) (uint64, error) {
+func (s *identityStore) claimDiagnosticAssignment(a contracts.DiagnosticAssignmentV1, receipt contracts.EnrollmentAcceptedV1, id, digest, bootID string, admittedAt time.Time, job *diagnosticJob) (uint64, error) {
 	claimFile := "diagnostic-" + id + ".claim"
 	if _, err := s.root.Lstat(claimFile); err == nil {
 		return 0, workflows.ErrAssignmentReplay
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return 0, errors.New("inspect diagnostic claim")
 	}
-	watermark := "diagnostic-authority-" + a.SigningKeyID + ".sequence"
+	watermark := "diagnostic-authority-" + strings.TrimPrefix(a.SigningKeyID, "ed25519:") + ".sequence"
 	data, err := s.read(watermark)
+	if errors.Is(err, os.ErrNotExist) && runtime.GOOS != "windows" {
+		// Earlier builds used a colon, which is reserved in Windows paths.
+		data, err = s.read("diagnostic-authority-" + a.SigningKeyID + ".sequence")
+	}
 	switch {
 	case err == nil:
 		body, valid := verifyChecksum(data)
@@ -109,17 +134,23 @@ func (s *identityStore) claimDiagnosticAssignment(a contracts.DiagnosticAssignme
 	if err != nil {
 		return 0, err
 	}
-	claim, _ := json.Marshal(struct {
-		AssignmentSHA256 string    `json:"assignment_sha256"`
-		BootID           string    `json:"boot_id"`
-		AdmittedAt       time.Time `json:"admitted_at"`
-		ResultSequence   uint64    `json:"result_sequence"`
-	}{digest, bootID, admittedAt, sequence})
-	if err := s.write(claimFile, checksummed(claim)); err != nil {
-		return 0, err
-	}
+	claim := diagnosticClaim{digest, bootID, admittedAt, sequence}
 	if err := s.replace(watermark, watermark+".tmp", checksummed([]byte(strconv.FormatUint(a.Sequence, 10)))); err != nil {
 		return 0, err
 	}
-	return sequence, nil
+	if job != nil {
+		job.Assignment, job.diagnosticClaim = a, claim
+		if err := s.saveDiagnosticJob(job); err != nil {
+			return 0, err
+		}
+	}
+	return sequence, s.saveDiagnosticClaim(claimFile, claim)
+}
+
+func (s *identityStore) saveDiagnosticClaim(name string, claim diagnosticClaim) error {
+	data, err := json.Marshal(claim)
+	if err != nil {
+		return err
+	}
+	return s.replace(name, name+".tmp", checksummed(data))
 }

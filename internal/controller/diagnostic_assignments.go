@@ -21,7 +21,7 @@ import (
 const (
 	DiagnosticAssignmentRecordVersion = "device-audit.diagnostic-assignment-record.v1"
 	DiagnosticAssignmentListVersion   = "device-audit.diagnostic-assignment-list.v1"
-	defaultDiagnosticLeaseTTL         = time.Minute
+	defaultDiagnosticLeaseTTL         = 6 * time.Minute
 	maxDiagnosticLeaseTTL             = 24 * time.Hour
 	diagnosticPageMax                 = 100
 	diagnosticPageDefault             = 50
@@ -256,8 +256,8 @@ func (s *PostgresRepository) CancelDiagnosticAssignment(ctx context.Context, ass
 	return updated, nil
 }
 
-// PollDiagnosticAssignments expires overdue leases/deadlines, refuses revoked
-// devices, leases at most one eligible pending signed assignment, and returns
+// PollDiagnosticAssignments expires overdue dispatch and reporting windows, refuses revoked
+// devices, leases an eligible pending assignment when no live lease exists, and returns
 // active cancellation IDs.
 func (s *PostgresRepository) PollDiagnosticAssignments(ctx context.Context, deviceID string, leaseTTL time.Duration) (workflows.PollResponse, error) {
 	if !repositoryIDPattern.MatchString(deviceID) {
@@ -324,8 +324,11 @@ func (s *PostgresRepository) PollDiagnosticAssignments(ctx context.Context, devi
 	err = tx.QueryRowContext(ctx, `SELECT assignment_id, expires_at, wall_seconds, signed_assignment
 		FROM diagnostic_assignments
 		WHERE deployment_id=$1 AND device_id=$2 AND status='pending'
+			AND NOT EXISTS (SELECT 1 FROM diagnostic_assignments
+				WHERE deployment_id=$1 AND device_id=$2 AND status IN ('leased','cancel_requested')
+					AND lease_expires_at > $3)
 		ORDER BY issued_at ASC, assignment_sequence ASC
-		LIMIT 1 FOR UPDATE`, s.deploymentID, deviceID).
+		LIMIT 1 FOR UPDATE`, s.deploymentID, deviceID, now).
 		Scan(&pendingID, &expiresAt, &wallSeconds, &signedJSON)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return workflows.PollResponse{}, repositoryUnavailable(err)
@@ -462,7 +465,7 @@ func (s *PostgresRepository) SubmitDiagnosticResult(ctx context.Context, result 
 		if err := repositoryCommit(tx); err != nil {
 			return workflows.AssignmentRecord{}, false, err
 		}
-		return workflows.AssignmentRecord{}, false, fmt.Errorf("%w: %w: lease or deadline expired before result ingestion", workflows.ErrAssignmentExpired, workflows.ErrAssignmentTerminal)
+		return workflows.AssignmentRecord{}, false, fmt.Errorf("%w: %w: reporting window expired before result ingestion", workflows.ErrAssignmentExpired, workflows.ErrAssignmentTerminal)
 	}
 
 	rIssued, _ := time.Parse(time.RFC3339, result.IssuedAt)
@@ -480,6 +483,9 @@ func (s *PostgresRepository) SubmitDiagnosticResult(ctx context.Context, result 
 	var startedAt sql.NullTime
 	if result.StartedAt != nil {
 		st, _ := time.Parse(time.RFC3339, *result.StartedAt)
+		if rec.LeaseExpiresAt == nil || !st.Before(*rec.LeaseExpiresAt) {
+			return workflows.AssignmentRecord{}, false, fmt.Errorf("%w: probe started after its dispatch lease", workflows.ErrAssignmentInvalid)
+		}
 		startedAt = sql.NullTime{Time: st.UTC(), Valid: true}
 	}
 	finishedAt, _ := time.Parse(time.RFC3339, result.FinishedAt)
@@ -536,7 +542,7 @@ func (s *PostgresRepository) SubmitDiagnosticResult(ctx context.Context, result 
 	return committed, true, nil
 }
 
-// DiagnosticAssignment reads one assignment (closing an overdue lease/deadline
+// DiagnosticAssignment reads one assignment (closing an overdue dispatch/reporting window
 // first if non-terminal so callers always observe consistent lease expiry).
 func (s *PostgresRepository) DiagnosticAssignment(ctx context.Context, assignmentID string) (workflows.AssignmentRecord, error) {
 	if !repositoryIDPattern.MatchString(assignmentID) {
@@ -696,9 +702,9 @@ func (s *PostgresRepository) expireDeviceAssignmentsIfAny(ctx context.Context, d
 	err := s.db.QueryRowContext(ctx, `SELECT EXISTS (
 			SELECT 1 FROM diagnostic_assignments
 			WHERE deployment_id=$1 AND device_id=$2 AND status IN ('pending','leased','cancel_requested')
-				AND (expires_at <= $3 OR (lease_expires_at IS NOT NULL AND lease_expires_at <= $3)
-					OR (status='pending' AND ($3 + make_interval(secs => wall_seconds)) > expires_at))
-		)`, s.deploymentID, deviceID, now).Scan(&needs)
+				AND ((status='pending' AND (expires_at <= $3 OR ($3 + make_interval(secs => wall_seconds)) > expires_at))
+					OR (status IN ('leased','cancel_requested') AND expires_at <= $4))
+		)`, s.deploymentID, deviceID, now, now.Add(-workflows.DiagnosticReportingWindow)).Scan(&needs)
 	if err != nil {
 		return repositoryUnavailable(err)
 	}
@@ -719,10 +725,10 @@ func (s *PostgresRepository) expireDeviceAssignmentsIfAny(ctx context.Context, d
 func (s *PostgresRepository) expireDeviceAssignmentsTx(ctx context.Context, tx *sql.Tx, deviceID string, now time.Time) error {
 	rows, err := tx.QueryContext(ctx, `SELECT assignment_id FROM diagnostic_assignments
 		WHERE deployment_id=$1 AND device_id=$2 AND status IN ('pending','leased','cancel_requested')
-			AND (expires_at <= $3 OR (lease_expires_at IS NOT NULL AND lease_expires_at <= $3)
-				OR (status='pending' AND ($3 + make_interval(secs => wall_seconds)) > expires_at))
+			AND ((status='pending' AND (expires_at <= $3 OR ($3 + make_interval(secs => wall_seconds)) > expires_at))
+				OR (status IN ('leased','cancel_requested') AND expires_at <= $4))
 		ORDER BY issued_at ASC, assignment_sequence ASC FOR UPDATE`,
-		s.deploymentID, deviceID, now)
+		s.deploymentID, deviceID, now, now.Add(-workflows.DiagnosticReportingWindow))
 	if err != nil {
 		return repositoryUnavailable(err)
 	}
@@ -757,16 +763,10 @@ func assignmentNeedsExpiry(rec workflows.AssignmentRecord, now time.Time) bool {
 	if rec.Status.IsTerminal() {
 		return false
 	}
-	if !now.Before(rec.ExpiresAt) {
-		return true
+	if rec.Status == workflows.StatusPending {
+		return !now.Before(rec.ExpiresAt) || now.Add(time.Duration(rec.SignedAssignment.Budget.WallSeconds)*time.Second).After(rec.ExpiresAt)
 	}
-	if rec.LeaseExpiresAt != nil && !now.Before(*rec.LeaseExpiresAt) {
-		return true
-	}
-	if rec.Status == workflows.StatusPending && now.Add(time.Duration(rec.SignedAssignment.Budget.WallSeconds)*time.Second).After(rec.ExpiresAt) {
-		return true
-	}
-	return false
+	return !now.Before(rec.ExpiresAt.Add(workflows.DiagnosticReportingWindow))
 }
 
 func (s *PostgresRepository) expireAssignmentTx(ctx context.Context, tx *sql.Tx, rec workflows.AssignmentRecord, now time.Time) (bool, error) {
@@ -778,8 +778,6 @@ func (s *PostgresRepository) expireAssignmentTx(ctx context.Context, tx *sql.Tx,
 	if rec.Status == workflows.StatusCancelRequested {
 		toStatus = "cancelled"
 		reason = "cancel_requested"
-	} else if rec.LeaseExpiresAt != nil && !now.Before(*rec.LeaseExpiresAt) && now.Before(rec.ExpiresAt) {
-		reason = "lease_expired"
 	}
 	if _, err := tx.ExecContext(ctx, `UPDATE diagnostic_assignments
 		SET status=$3, terminal_reason=$4, terminal_at=$5

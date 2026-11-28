@@ -165,7 +165,7 @@ func TestDiagnosticAssignmentsSignDispatchCancelStatusAndRestart(t *testing.T) {
 		t.Fatalf("cancelled assignment dispatched to devB: %+v", pollB)
 	}
 
-	// DevA polls once -> leases assign:1; second duplicate poll must NOT re-lease assign:1 (assign:2 leased next).
+	// Only one live lease per device lets a running endpoint poll for cancellation.
 	var pollA1 workflows.PollResponse
 	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &pollA1) != nil ||
 		len(pollA1.Assignments) != 1 || pollA1.Assignments[0].AssignmentID != req1.AssignmentID {
@@ -173,22 +173,8 @@ func TestDiagnosticAssignmentsSignDispatchCancelStatusAndRestart(t *testing.T) {
 	}
 	var pollA2 workflows.PollResponse
 	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &pollA2) != nil ||
-		len(pollA2.Assignments) != 1 || pollA2.Assignments[0].AssignmentID != req2.AssignmentID {
-		t.Fatalf("second poll devA unexpected: %+v", pollA2)
-	}
-	// Third poll receives zero new assignments and zero cancellations so far.
-	var pollA3 workflows.PollResponse
-	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &pollA3) != nil ||
-		len(pollA3.Assignments) != 0 || len(pollA3.CancelAssignmentIDs) != 0 {
-		t.Fatalf("duplicate third poll should return empty: %+v", pollA3)
-	}
-
-	// Cancel leased assign:2 -> enters persistent cancel_requested; device poll sees cancel_assignment_ids.
-	callConsole(handler, http.MethodPost, "/console/api/diagnostics/assignments/"+req2.AssignmentID+"/cancel", nil, freshAdmin, adminCSRF, http.StatusOK)
-	var pollCancel workflows.PollResponse
-	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &pollCancel) != nil ||
-		len(pollCancel.CancelAssignmentIDs) != 1 || pollCancel.CancelAssignmentIDs[0] != req2.AssignmentID {
-		t.Fatalf("poll did not report cancel_requested for assign:2: %+v", pollCancel)
+		len(pollA2.Assignments) != 0 || len(pollA2.CancelAssignmentIDs) != 0 {
+		t.Fatalf("second poll during live lease should be empty: %+v", pollA2)
 	}
 
 	// Device A executes assign:1 cleanly and submits signed DiagnosticResultV1 (seq 2).
@@ -244,6 +230,20 @@ func TestDiagnosticAssignmentsSignDispatchCancelStatusAndRestart(t *testing.T) {
 		t.Fatal("telemetry reusing diagnostic sequence 2 was accepted")
 	}
 
+	var nextOffer workflows.PollResponse
+	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &nextOffer) != nil ||
+		len(nextOffer.Assignments) != 1 || nextOffer.Assignments[0].AssignmentID != req2.AssignmentID {
+		t.Fatalf("poll after completion did not dispatch next assignment: %+v", nextOffer)
+	}
+
+	// Cancel leased assign:2 -> enters persistent cancel_requested; device poll sees cancel_assignment_ids.
+	callConsole(handler, http.MethodPost, "/console/api/diagnostics/assignments/"+req2.AssignmentID+"/cancel", nil, freshAdmin, adminCSRF, http.StatusOK)
+	var pollCancel workflows.PollResponse
+	if json.Unmarshal(postMesh(devA.peer, "/v1/diagnostics/poll", nil, http.StatusOK), &pollCancel) != nil ||
+		len(pollCancel.CancelAssignmentIDs) != 1 || pollCancel.CancelAssignmentIDs[0] != req2.AssignmentID {
+		t.Fatalf("poll did not report cancel_requested for assign:2: %+v", pollCancel)
+	}
+
 	// Controller restart preserves cancel_requested, signed assignment, terminal result, and paginated device list.
 	db2, err := database.Open(ctx, b.url)
 	if err != nil {
@@ -294,7 +294,8 @@ func TestDiagnosticAssignmentsExpiredLeasesRevocationAndDatabaseGuards(t *testin
 	actor := workflows.Actor{Issuer: "https://id.example.test", Subject: "admin:diag"}
 	comp := "storage:disk-0"
 
-	// 1. Expired lease transitions once to expired; subsequent poll, cancel, or late result creates no second transition.
+	// 1. Lease expiry closes dispatch. A signed offline outcome may still
+	// report after the lease and assignment deadline, within the reporting window.
 	leaseReq := workflows.AssignmentRequest{
 		AssignmentID: "assign:lease-exp", DeviceID: devLease.id, ProbeID: contracts.DiagnosticProbeStorageHealthV1,
 		Arguments: contracts.DiagnosticArgumentsV1{ComponentID: &comp},
@@ -308,32 +309,78 @@ func TestDiagnosticAssignmentsExpiredLeasesRevocationAndDatabaseGuards(t *testin
 	if err != nil || len(poll.Assignments) != 1 {
 		t.Fatalf("poll failed: %+v err=%v", poll, err)
 	}
-	// Advance past 30s lease -> DiagnosticAssignment sweeps it cleanly to terminal expired ONCE.
-	b.clock.Advance(31 * time.Second)
-	expRec, err := b.repo.DiagnosticAssignment(ctx, leaseReq.AssignmentID)
-	if err != nil || expRec.Status != workflows.StatusExpired || len(expRec.Events) != 3 {
-		t.Fatalf("expired lease not finalized: %+v err=%v", expRec, err)
+	b.clock.Advance(601 * time.Second)
+	leased, err := b.repo.DiagnosticAssignment(ctx, leaseReq.AssignmentID)
+	if err != nil || leased.Status != workflows.StatusLeased || len(leased.Events) != 2 {
+		t.Fatalf("lost reporting window: %+v err=%v", leased, err)
 	}
-	// Poll again and try Cancel after expiry -> no re-dispatch, still 3 events.
 	pollAfter, err := b.repo.PollDiagnosticAssignments(ctx, devLease.id, 30*time.Second)
 	if err != nil || len(pollAfter.Assignments) != 0 {
-		t.Fatalf("expired assignment re-dispatched: %+v err=%v", pollAfter, err)
+		t.Fatalf("offline assignment re-dispatched: %+v err=%v", pollAfter, err)
 	}
-	cancelAfterExp, err := b.repo.CancelDiagnosticAssignment(ctx, leaseReq.AssignmentID, actor)
-	if err != nil || cancelAfterExp.Status != workflows.StatusExpired || len(cancelAfterExp.Events) != 3 {
-		t.Fatalf("cancel after lease expiry created extra transition: %+v err=%v", cancelAfterExp, err)
-	}
-	// Late result after expired lease fails closed as terminal conflict.
 	runner := workflows.NewProbeRunner(func(_ context.Context, _ workflows.Request) ([]byte, error) {
 		return []byte(`{"ok":true}`), nil
 	})
+	startedAfterLease, err := workflows.ExecuteAssignedToResult(ctx, runner, createdRec.SignedAssignment, diagPub, devLease.signing,
+		b.repo.deploymentID, devLease.id, "boot:late", "ref:late:1", 2, func() time.Time { return createdRec.IssuedAt.Add(31 * time.Second) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.repo.SubmitDiagnosticResult(ctx, startedAfterLease); !errors.Is(err, workflows.ErrAssignmentInvalid) {
+		t.Fatalf("reporting window allowed a late execution start: %v", err)
+	}
 	lateResult, err := workflows.ExecuteAssignedToResult(ctx, runner, createdRec.SignedAssignment, diagPub, devLease.signing,
 		b.repo.deploymentID, devLease.id, "boot:late", "ref:late:1", 2, func() time.Time { return createdRec.IssuedAt })
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := b.repo.SubmitDiagnosticResult(ctx, lateResult); !errors.Is(err, workflows.ErrAssignmentTerminal) {
-		t.Fatalf("expected ErrAssignmentTerminal after lease expiry, got %v", err)
+	reported, created, err := b.repo.SubmitDiagnosticResult(ctx, lateResult)
+	if err != nil || !created || len(reported.Events) != 3 || reported.Result.Evidence[0].ReferenceID != "ref:late:1" {
+		t.Fatalf("offline result lost: %+v, created=%v, err=%v", reported, created, err)
+	}
+	replayed, created, err := b.repo.SubmitDiagnosticResult(ctx, lateResult)
+	if err != nil || created || len(replayed.Events) != 3 {
+		t.Fatalf("offline result retry changed terminal state: %+v, created=%v, err=%v", replayed, created, err)
+	}
+
+	leaseReq.AssignmentID = "assign:offline-cancel"
+	cancelCandidate, created, err := b.repo.CreateDiagnosticAssignment(ctx, leaseReq, diagKey, actor)
+	if err != nil || !created {
+		t.Fatalf("create offline cancellation candidate: %v", err)
+	}
+	if poll, err := b.repo.PollDiagnosticAssignments(ctx, devLease.id, 30*time.Second); err != nil || len(poll.Assignments) != 1 {
+		t.Fatalf("poll cancellation candidate: %+v, %v", poll, err)
+	}
+	b.clock.Advance(601 * time.Second)
+	cancelled, err := b.repo.CancelDiagnosticAssignment(ctx, leaseReq.AssignmentID, actor)
+	if err != nil || cancelled.Status != workflows.StatusCancelRequested || cancelled.CancelRequestedAt == nil {
+		t.Fatalf("cancellation lost after lease and deadline: %+v, %v", cancelled, err)
+	}
+	reconnect, err := b.repo.PollDiagnosticAssignments(ctx, devLease.id, 30*time.Second)
+	if err != nil || len(reconnect.Assignments) != 0 || len(reconnect.CancelAssignmentIDs) != 1 || reconnect.CancelAssignmentIDs[0] != leaseReq.AssignmentID {
+		t.Fatalf("offline cancellation missing from reconnect poll: %+v, %v", reconnect, err)
+	}
+	cancelResult, err := workflows.RecoverDiagnosticAssignment(cancelCandidate.SignedAssignment, devLease.signing, "boot:before",
+		cancelCandidate.AssignmentSHA256, 3, cancelCandidate.IssuedAt, cancelCandidate.IssuedAt, *cancelled.CancelRequestedAt, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovered, created, err := b.repo.SubmitDiagnosticResult(ctx, cancelResult)
+	if err != nil || !created || recovered.Status != workflows.StatusCancelled || len(recovered.Events) != 4 {
+		t.Fatalf("could not report recovered cancellation: %+v, %v", recovered, err)
+	}
+
+	leaseReq.AssignmentID = "assign:no-report"
+	if _, _, err := b.repo.CreateDiagnosticAssignment(ctx, leaseReq, diagKey, actor); err != nil {
+		t.Fatal(err)
+	}
+	if poll, err := b.repo.PollDiagnosticAssignments(ctx, devLease.id, 30*time.Second); err != nil || len(poll.Assignments) != 1 {
+		t.Fatalf("poll for no-report job: %+v, %v", poll, err)
+	}
+	b.clock.Advance(workflows.DiagnosticReportingWindow + 601*time.Second)
+	expired, err := b.repo.DiagnosticAssignment(ctx, leaseReq.AssignmentID)
+	if err != nil || expired.Status != workflows.StatusExpired || len(expired.Events) != 3 {
+		t.Fatalf("reporting window did not expire: %+v, %v", expired, err)
 	}
 
 	// 2. Pending assignment whose target device gets revoked -> poll refuses dispatch; Create after revocation refused.
@@ -391,8 +438,8 @@ func TestDiagnosticAssignmentsExpiredLeasesRevocationAndDatabaseGuards(t *testin
 			t.Fatalf("database allowed %s", name)
 		}
 	}
-	if expRec.Result != nil {
-		t.Fatalf("unexpected result on expired lease: %+v", expRec.Result)
+	if expired.Result != nil {
+		t.Fatalf("unexpected result on expired reporting window: %+v", expired.Result)
 	}
 }
 

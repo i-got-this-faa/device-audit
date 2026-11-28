@@ -16,6 +16,7 @@ import (
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 	"github.com/i-got-this-faa/device-audit/packages/telemetry"
+	"github.com/i-got-this-faa/device-audit/packages/workflows"
 )
 
 // TEL02 #26: the Windows service host for the real collector pipeline.
@@ -97,6 +98,12 @@ func (c serviceConfig) validate() error {
 			return errors.New("delivery requires a valid mesh_server_key")
 		}
 		paths = append(paths, d.DERPRegionFile, d.ControllerAckKeyFile)
+		if d.DiagnosticControllerKeyFile != "" {
+			if within(c.EvidenceDir, d.DiagnosticControllerKeyFile) {
+				return errors.New("diagnostic controller key must be outside the writable evidence directory")
+			}
+			paths = append(paths, d.DiagnosticControllerKeyFile)
+		}
 	}
 	if c.Inference != nil {
 		for _, p := range c.Inference.paths() {
@@ -171,6 +178,26 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 	if sink.recoveredTail {
 		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
 	}
+	var sequenceMu sync.Mutex
+	var diagnostics *diagnosticDelivery
+	if cfg.Delivery != nil && cfg.Delivery.DiagnosticControllerKeyFile != "" {
+		key, err := loadControllerPublicKey(cfg.Delivery.DiagnosticControllerKeyFile)
+		if err != nil {
+			return fmt.Errorf("configure diagnostic assignment authority: %w", err)
+		}
+		boot, err := diagnosticBootID()
+		if err != nil {
+			return err
+		}
+		diagnostics = &diagnosticDelivery{
+			store: store, identity: i, receipt: receipt, authority: key, bootID: boot,
+			runner: workflows.NewProbeRunner(executeProbeWorker), sequenceMu: &sequenceMu,
+		}
+	} else if cfg.Delivery != nil {
+		if err := store.requireNoDiagnosticJob(); err != nil {
+			return err
+		}
+	}
 	var wake chan struct{}
 	var deliveryDone chan error
 	ctx, stopDelivery := context.WithCancel(ctx)
@@ -183,7 +210,13 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 		wake = make(chan struct{}, 1)
 		deliveryDone = make(chan error, 1)
 		go func() {
-			err := drainEvidence(ctx, sink, sender.controllerKey, sender.send, wake, logf)
+			var err error
+			if diagnostics != nil {
+				diagnostics.transport = sender
+				err = diagnostics.run(ctx, sink, sender.controllerKey, sender.send, wake, logf)
+			} else {
+				err = drainEvidence(ctx, sink, sender.controllerKey, sender.send, wake, logf)
+			}
 			sender.close()
 			if errors.Is(err, errDeliveryBlocked) {
 				logf("spool delivery stopped: %v", err)
@@ -211,11 +244,15 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 		if err != nil {
 			return errors.New("encode sampled telemetry")
 		}
+		sequenceMu.Lock()
 		envelope, err := store.signEvidence(data, time.Now())
 		if err != nil {
+			sequenceMu.Unlock()
 			return fmt.Errorf("sign evidence: %w", err)
 		}
-		if err := sink.append(envelope); errors.Is(err, errEvidenceFull) {
+		err = sink.append(envelope)
+		sequenceMu.Unlock()
+		if errors.Is(err, errEvidenceFull) {
 			if overflow++; overflow == 1 {
 				logf("%s", errEvidenceFull)
 			}
