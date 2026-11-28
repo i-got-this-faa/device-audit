@@ -76,6 +76,10 @@ func (s *identityStore) write(name string, data []byte) error {
 }
 
 func (s *identityStore) read(name string) ([]byte, error) {
+	return s.readBounded(name, 16<<10)
+}
+
+func (s *identityStore) readBounded(name string, limit int64) ([]byte, error) {
 	info, err := s.root.Lstat(name)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -98,8 +102,8 @@ func (s *identityStore) read(name string) ([]byte, error) {
 	if err := checkPrivateFile(f, s.principal); err != nil {
 		return nil, err
 	}
-	data, err := io.ReadAll(io.LimitReader(f, 16385))
-	if err != nil || len(data) > 16384 {
+	data, err := io.ReadAll(io.LimitReader(f, limit+1))
+	if err != nil || int64(len(data)) > limit {
 		return nil, errors.New("read identity state")
 	}
 	return data, nil

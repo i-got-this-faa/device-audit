@@ -26,6 +26,9 @@ func sendMeshEvidence(ctx context.Context, stateDir, serverKey string, controlle
 		return contracts.AcknowledgementV1{}, err
 	}
 	defer s.close()
+	if err := s.requireNoDiagnosticJob(); err != nil {
+		return contracts.AcknowledgementV1{}, err
+	}
 	i, receipt, err := s.admitted()
 	if err != nil {
 		return contracts.AcknowledgementV1{}, err
@@ -102,26 +105,37 @@ func (s *meshEvidenceSender) close() {
 }
 
 func (s *meshEvidenceSender) send(ctx context.Context, data []byte, envelope contracts.EvidenceEnvelopeV1) (contracts.AcknowledgementV1, error) {
+	if err := s.connect(ctx); err != nil {
+		return contracts.AcknowledgementV1{}, err
+	}
+	ack, err := postMeshEvidence(ctx, s.client.HTTPClient(), s.controllerKey, data, envelope)
+	s.resetOnRetry(err)
+	return ack, err
+}
+
+func (s *meshEvidenceSender) connect(ctx context.Context) error {
 	if s.preflight {
 		if err := mesh.CheckRelay(ctx, s.config.DERP, s.config.NetworkPrivateKey); err != nil {
-			return contracts.AcknowledgementV1{}, fmt.Errorf("%w: %v; evidence not sent", errDeliveryRetry, err)
+			return fmt.Errorf("%w: %v", errDeliveryRetry, err)
 		}
 		s.preflight = false
 	}
 	if s.client == nil {
 		client, err := mesh.NewClient(s.config)
 		if err != nil {
-			return contracts.AcknowledgementV1{}, err
+			return err
 		}
 		s.client = client
 	}
-	ack, err := postMeshEvidence(ctx, s.client.HTTPClient(), s.controllerKey, data, envelope)
-	if errors.Is(err, errDeliveryRetry) {
+	return nil
+}
+
+func (s *meshEvidenceSender) resetOnRetry(err error) {
+	if errors.Is(err, errDeliveryRetry) && s.client != nil {
 		s.client.Close()
 		s.client = nil
 		s.preflight = true
 	}
-	return ack, err
 }
 
 func postMeshEvidence(ctx context.Context, client *http.Client, key ed25519.PublicKey, data []byte, envelope contracts.EvidenceEnvelopeV1) (contracts.AcknowledgementV1, error) {

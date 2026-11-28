@@ -19,9 +19,10 @@ const (
 
 // Delivery is optional so existing offline services keep sampling and spooling.
 type deliveryConfig struct {
-	MeshServerKey        string `json:"mesh_server_key"`
-	DERPRegionFile       string `json:"derp_region_file"`
-	ControllerAckKeyFile string `json:"controller_ack_key_file"`
+	MeshServerKey               string `json:"mesh_server_key"`
+	DERPRegionFile              string `json:"derp_region_file"`
+	ControllerAckKeyFile        string `json:"controller_ack_key_file"`
+	DiagnosticControllerKeyFile string `json:"diagnostic_controller_key_file,omitempty"`
 }
 
 func (c deliveryConfig) sender(store *identityStore, id *identity) (*meshEvidenceSender, error) {

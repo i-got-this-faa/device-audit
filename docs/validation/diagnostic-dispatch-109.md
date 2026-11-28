@@ -23,3 +23,7 @@ Issue `#109` adds controller signing, authorized creation and cancellation, boun
 
 - **Offline/reboot spool recovery**: Local diagnostic assignment execution persistence across endpoint reboots (`rebooted` synthesis after endpoint restart) belongs to downstream issue `#110` (`DIA06`).
 - **Forecast-driven diagnostic triggers**: Automatic forecast-driven assignment triggers belong to downstream issue `#70` (`FED06`). Shell execution and remediation remain out of scope.
+
+DIA06 #110 later distinguishes the dispatch lease from the result reporting
+window and supersedes the lease expiry behavior described here. See
+[DIA06 validation](diagnostic-recovery-110.md).

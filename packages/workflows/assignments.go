@@ -9,6 +9,10 @@ import (
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
+// DiagnosticReportingWindow is the CT06 result lifetime and the time the
+// controller allows a dispatched job to report after its assignment deadline.
+const DiagnosticReportingWindow = 24 * time.Hour
+
 // AssignmentStatus is the lifecycle state of one signed diagnostic assignment.
 type AssignmentStatus string
 

@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/i-got-this-faa/device-audit/internal/controller"
 	"github.com/i-got-this-faa/device-audit/networking/mesh"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
+	"github.com/i-got-this-faa/device-audit/packages/workflows"
 	"tailscale.com/derp/derpserver"
 	"tailscale.com/tailcfg"
 	"tailscale.com/types/key"
@@ -271,6 +273,108 @@ func endpointMeshRoundTrip(t *testing.T, repo *controller.PostgresRepository, db
 	if _, err := repo.Evidence(ctx, receipt.DeviceID, next); err != nil {
 		t.Fatalf("service retired sequence %d without a stored sample: %v", next, err)
 	}
+
+	// Poll through the pinned mesh, finish during an outage, then recover the
+	// controller's committed receipt after the first result response is lost.
+	component := "storage:disk-0"
+	request := workflows.AssignmentRequest{
+		AssignmentID: "assignment:mesh-recovery", DeviceID: receipt.DeviceID,
+		ProbeID:   contracts.DiagnosticProbeStorageHealthV1,
+		Arguments: contracts.DiagnosticArgumentsV1{ComponentID: &component},
+		Budget:    contracts.DiagnosticBudgetV1{WallSeconds: 10, MaxOutputBytes: 128}, ExpiresInSeconds: 600,
+	}
+	assignment, created, err := repo.CreateDiagnosticAssignment(ctx, request, ackKey, workflows.Actor{
+		Issuer: "https://id.example.test", Subject: "admin:recovery",
+	})
+	if err != nil || !created {
+		t.Fatalf("create diagnostic: %v", err)
+	}
+
+	store, err := openIdentityStore(path, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.close()
+	spool, err := openEvidenceSpool(cfg.EvidenceDir, cfg.MaxEvidenceBytes, cfg.MaxEvidenceRecords, i.signing.Public().(ed25519.PublicKey), receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer spool.close()
+	sender, err := cfg.Delivery.sender(store, i)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer sender.close()
+	probes := 0
+	delivery := diagnosticDelivery{
+		store: store, identity: i, receipt: receipt, authority: ackPublic, bootID: "boot:mesh",
+		sequenceMu: new(sync.Mutex), transport: sender,
+		runner: workflows.NewProbeRunner(func(context.Context, workflows.Request) ([]byte, error) {
+			probes++
+			stop()
+			stop = nil
+			return []byte(`{"mesh_fixture":true}`), nil
+		}),
+	}
+	pollCtx, endPoll := context.WithTimeout(ctx, 20*time.Second)
+	err = delivery.pollAndExecute(pollCtx, time.Now())
+	endPoll()
+	if err != nil || probes != 1 || delivery.job == nil {
+		t.Fatalf("did not spool the offline completion: probes=%d, err=%v", probes, err)
+	}
+	original, err := delivery.job.result()
+	if err != nil || original.CheckAssignment(assignment.SignedAssignment) != nil || original.State != "succeeded" {
+		t.Fatalf("invalid offline result: %+v, %v", original, err)
+	}
+	offlineCtx, endOffline := context.WithTimeout(ctx, time.Second)
+	err = sender.sendDiagnostic(offlineCtx, delivery.job)
+	endOffline()
+	if !errors.Is(err, errDeliveryRetry) {
+		t.Fatalf("expected result transport to be offline: %v", err)
+	}
+	// In case sampling queued an older envelope before it stopped, drain it
+	// through the same ordered service delivery path before faulting the result.
+	_, stop = start(repo, nil)
+	for {
+		_, head, err := spool.head()
+		if errors.Is(err, io.EOF) || (err == nil && head.Sequence > original.Sequence) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := delivery.step(ctx, spool, ackPublic, sender.send); err != nil {
+			t.Fatal(err)
+		}
+	}
+	stop()
+	sender.resetOnRetry(errDeliveryRetry)
+	diagnosticReply := make(chan []byte, 1)
+	_, stop = start(repo, diagnosticReply)
+	if err := sender.sendDiagnostic(ctx, delivery.job); !errors.Is(err, errDeliveryRetry) {
+		t.Fatalf("lost diagnostic response should be retryable: %v", err)
+	}
+	select {
+	case data := <-diagnosticReply:
+		var ack workflows.ResultReceipt
+		if json.Unmarshal(data, &ack) != nil || ack.Status != "accepted" || !ack.Created || ack.Sequence != original.Sequence {
+			t.Fatalf("controller did not commit the first result: %+v", ack)
+		}
+	case <-ctx.Done():
+		t.Fatal(ctx.Err())
+	}
+	stop()
+	_, stop = start(repo, nil)
+	if _, err := delivery.step(ctx, spool, ackPublic, sender.send); err != nil || delivery.job != nil || probes != 1 {
+		t.Fatalf("did not retire the original diagnostic after retry: %v", err)
+	}
+	reported, err := repo.DiagnosticAssignment(ctx, request.AssignmentID)
+	if err != nil || reported.Result == nil || reported.Result.Signature != original.Signature ||
+		len(reported.Events) != 3 || len(reported.Result.Evidence) != 1 ||
+		reported.Result.Evidence[0] != original.Evidence[0] {
+		t.Fatalf("durable result lost its signature or evidence reference: %+v, %v", reported, err)
+	}
+	t.Log("diagnostic completed with the mesh down and retired after retrying a committed result whose reply was dropped")
 }
 
 // runEndpointMeshProcess submits one envelope from a fresh endpoint process and

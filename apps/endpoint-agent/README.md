@@ -262,10 +262,10 @@ to be submitted or retried. If execution is interrupted after the claim is
 committed, the assignment stays consumed.
 
 Use an identity enrolled by the account running the command. The command
-holds the identity lock for the duration of execution. Automated polling,
-service-hosted execution, result delivery, reconciliation of interrupted
-claims and offline recovery are tracked in the diagnostic workflow. See
-[diagnostic-execution-38.md](../../docs/validation/diagnostic-execution-38.md).
+holds the identity lock for the duration of execution. For managed recovery,
+configure the [diagnostic service outbox](#managed-diagnostic-recovery-dia06-110).
+See [diagnostic-execution-38.md](../../docs/validation/diagnostic-execution-38.md)
+for the standalone command's validation.
 
 ## Windows service host, TEL02 #26
 
@@ -615,3 +615,52 @@ local commit, a `staged-model.json.tmp` file remains unpublished and the next
 verified write removes it. This command stages a bundle for handoff. The
 inference service continues to use the files and evaluation report in its
 protected configuration.
+
+## Managed diagnostic recovery, DIA06 #110
+
+On Windows, add `diagnostic_controller_key_file` to the service's `delivery`
+object. Use the absolute path to the diagnostic authority's Ed25519 PKIX public
+key PEM. Give the service SID read access to the file and keep it outside the
+writable identity and evidence directories. Keep the existing mesh peer pin and
+CT04 acknowledgement key settings. Start the service with a controller that
+supports DIA06 reporting windows. Before changing the diagnostic key pin,
+drain the active diagnostic job using the original pin.
+
+The service polls over the admitted mesh and runs one signed assignment at a
+time. It records the claim and start before invoking the bounded worker. While
+the worker runs, polling can observe a cancellation after the connection returns.
+An observed cancellation cancels the worker and spools `cancelled` with
+`cancel_requested`. If a restart finds an unfinished job, the service polls
+for cancellation before terminalizing it. It reports `cancelled` if the
+controller reports a cancellation and `rebooted` with `agent_restarted` if
+the job had started. A claim that never reached the start marker is reported
+as `rejected` with `assignment_denied`. A process restart on the same OS
+boot follows the same path. The result identifies the original boot.
+
+The private `state_dir` holds the active job, its signed terminal envelope and
+any referenced evidence. A terminal envelope commits after its evidence and
+survives reconnects and restarts byte for byte, including its original
+evidence references. A cancellation observed after that commit leaves the
+outcome intact. Recovery of an unfinished job never launches a worker. A crash
+between saving evidence and committing the terminal envelope can leave an
+unreferenced local evidence file. Standalone commands from earlier versions
+leave replay claims only and need their operator-retained results.
+
+Diagnostics and telemetry share the enrolled device's sequence. The service
+reports them in order and retires a diagnostic result after the pinned mesh
+controller returns acceptance for that assignment, device, state and sequence.
+A lost response triggers an exact retry and the controller returns the
+original acceptance. Dispatch is limited to the lease. A dispatched job can
+report for up to 24 hours past its signed assignment deadline, while its
+result envelope remains valid. Exact retries of already accepted results
+can recover their receipt after expiry.
+
+For a permanent rejection, inspect the service log and controller job record
+before resuming delivery. For an expired, unaccepted diagnostic at the head,
+stop the service and use `--spool-archive-expired` with the same service config
+to preserve it as `diagnostic-expired-<sequence>.json` in `state_dir`.
+Restart the service to resume delivery. Claims and local evidence remain in
+protected storage after result retirement. Standalone delivery commands defer
+to the service while a managed job owns the sequence.
+
+See [DIA06 validation](../../docs/validation/diagnostic-recovery-110.md).

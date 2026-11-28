@@ -45,11 +45,16 @@ func runSpoolCommand(ctx context.Context, configPath, controllerKeyPath string, 
 	}
 	var outputAfterUnlock []byte
 	err = withEvidenceSpool(configPath, warnings, func(cfg serviceConfig, store *identityStore, id *identity, spool *evidenceSpool) error {
+		if operation != spoolArchiveHead {
+			if err := store.requireNoDiagnosticJob(); err != nil {
+				return err
+			}
+		}
 		switch operation {
 		case spoolAcceptHead:
 			return spool.acknowledge(key, ack)
 		case spoolArchiveHead:
-			name, err := spool.archiveExpired(time.Now())
+			name, err := archiveExpiredDelivery(cfg, store, id, spool, time.Now())
 			outputAfterUnlock = []byte(name + "\n")
 			return err
 		case spoolSession:
@@ -146,4 +151,38 @@ func parseSpoolAck(data []byte, ack *contracts.AcknowledgementV1) error {
 		return errors.New("invalid signed acknowledgement")
 	}
 	return nil
+}
+
+// Expired diagnostic jobs remain signed and keep their evidence references in
+// the protected identity directory. Only the oldest delivery can be archived.
+func archiveExpiredDelivery(cfg serviceConfig, store *identityStore, id *identity, spool *evidenceSpool, now time.Time) (string, error) {
+	if err := store.requireNoDiagnosticJob(); err == nil {
+		return spool.archiveExpired(now)
+	}
+	if cfg.Delivery == nil || cfg.Delivery.DiagnosticControllerKeyFile == "" {
+		return "", errors.New("configure the diagnostic controller key to archive a diagnostic job")
+	}
+	key, err := loadControllerPublicKey(cfg.Delivery.DiagnosticControllerKeyFile)
+	if err != nil {
+		return "", err
+	}
+	job, err := store.loadDiagnosticJob(key, id.signing.Public().(ed25519.PublicKey), spool.receipt)
+	if err != nil {
+		return "", err
+	}
+	if job == nil {
+		return "", errors.New("inspect diagnostic outbox")
+	}
+	_, envelope, err := spool.head()
+	if err != nil && !errors.Is(err, io.EOF) {
+		return "", err
+	}
+	if err == nil && envelope.Sequence < job.ResultSequence {
+		return spool.archiveExpired(now)
+	}
+	if !job.expired(now) {
+		return "", errors.New("only an expired diagnostic outbox head may be archived")
+	}
+	name := fmt.Sprintf("diagnostic-expired-%016d.json", job.ResultSequence)
+	return name, commitSpoolRename(store.root, activeDiagnosticJob, name)
 }
