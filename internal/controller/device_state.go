@@ -125,8 +125,28 @@ func (c consoleDevices) TelemetryHistory(ctx context.Context, deviceID string, f
 	return page, consoleDeviceError(err)
 }
 
+func (c consoleDevices) PredictionHistory(ctx context.Context, deviceID string, from, to time.Time, after string, limit int) (contracts.PredictionHistoryV1, error) {
+	var cursor *predictionHistoryCursor
+	if after != "" {
+		parsed, err := parsePredictionHistoryCursor(after)
+		if err != nil {
+			return contracts.PredictionHistoryV1{}, consoleDeviceError(err)
+		}
+		cursor = &parsed
+	}
+	page, err := c.repository.PredictionHistory(ctx, deviceID, from, to, cursor, limit)
+	return page, consoleDeviceError(err)
+}
+
+func (c consoleDevices) LatestPrediction(ctx context.Context, deviceID string) (contracts.LatestPredictionV1, error) {
+	latest, err := c.repository.LatestDevicePrediction(ctx, deviceID)
+	return latest, consoleDeviceError(err)
+}
+
 func consoleDeviceError(err error) error {
 	switch {
+	case errors.Is(err, ErrPredictionEvidenceBroken):
+		return fmt.Errorf("%w: %w", webconsole.ErrPredictionEvidenceDenied, err)
 	case errors.Is(err, ErrRepositoryNotFound):
 		return fmt.Errorf("%w: %w", webconsole.ErrDeviceNotFound, err)
 	case errors.Is(err, ErrDeviceStateInvalid):

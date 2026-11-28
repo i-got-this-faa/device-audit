@@ -31,6 +31,7 @@
 <h3>Measurements</h3><p class="supporting">Disk space used is not disk health. Battery charge is not battery health or remaining life. Network latency is not throughput.</p>
 <dl class="sensor-list">{{range .Sensors}}<div><dt>{{.Name}}</dt><dd><span class="sensor-value">{{.Value}}</span> <span class="sensor-unit">{{.Unit}}</span><small>{{.Explanation}}</small></dd></div>{{end}}</dl>
 <p><a href="{{.URL}}/history">Browse telemetry and error history →</a></p>
+<p><a href="{{.URL}}/predictions">View health predictions and evidence →</a></p>
 <p class="supporting">Component inventory metadata is read through the inventory API and is not shown here.</p>
 </section>
 {{end}}

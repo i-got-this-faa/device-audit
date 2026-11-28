@@ -235,6 +235,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/devices", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/devices/{device}", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/devices/{device}/history", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
+	mux.Handle("GET /console/devices/{device}/predictions", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/workflows", s.RequireRole(RoleViewer, http.HandlerFunc(s.console)))
 	mux.Handle("GET /console/access", s.RequireRole(RoleAdmin, http.HandlerFunc(s.console)))
 	mux.Handle("GET /admin/role-bindings", s.RequireRole(RoleAdmin, http.HandlerFunc(s.listBindings)))
@@ -480,7 +481,10 @@ func (s *Service) console(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		if deviceID := r.PathValue("device"); deviceID != "" {
-			if webconsole.IsDeviceHistoryPath(r.URL.Path) {
+			if webconsole.IsDevicePredictionsPath(r.URL.Path) {
+				page.Title, page.Section = "Device predictions", "devices"
+				status = s.predictionsPage(r, &page, deviceID)
+			} else if webconsole.IsDeviceHistoryPath(r.URL.Path) {
 				page.Title, page.Section = "Device history", "devices"
 				status = s.historyPage(r, &page, deviceID)
 			} else {
@@ -516,6 +520,16 @@ func (s *Service) historyPage(r *http.Request, page *webconsole.Page, deviceID s
 		s.logger.Error("console history read failed", "error", err)
 	}
 	page.History = history
+	return status
+}
+
+// predictionsPage always reads the durable repository; it has no fixture mode.
+func (s *Service) predictionsPage(r *http.Request, page *webconsole.Page, deviceID string) int {
+	predictions, status, err := webconsole.DevicePredictions(r.Context(), s.devices, r.URL.Query(), deviceID, s.now())
+	if err != nil {
+		s.logger.Error("console prediction read failed", "error", err)
+	}
+	page.Predictions = predictions
 	return status
 }
 
@@ -796,7 +810,7 @@ func isConsolePage(target string) bool {
 	case "/console", "/console/devices", "/console/workflows", "/console/access":
 		return true
 	}
-	return webconsole.IsDeviceDetailPath(target) || webconsole.IsDeviceHistoryPath(target)
+	return webconsole.IsDeviceDetailPath(target) || webconsole.IsDeviceHistoryPath(target) || webconsole.IsDevicePredictionsPath(target)
 }
 
 func allowedReturnToRequest(r *http.Request) string {

@@ -202,6 +202,47 @@ try {
   await page.setViewportSize({ width: 1280, height: 900 });
   console.log("PASS device history: units, denied collection, error evidence, paging, invalid window, unknown device and outage");
 
+  // Persisted predictions: model, horizon, explanation, evidence, unknown, stale, denied and expired.
+  await page.goto(origin + "/console/devices/endpoint:browser-a");
+  await page.getByRole("link", { name: /View health predictions and evidence/ }).click();
+  await heading("Device predictions");
+  const records = page.locator(".prediction-list > li");
+  assert.equal(await records.count(), 2);
+  const unknownRow = records.nth(0), knownRow = records.nth(1);
+  assert.equal(await unknownRow.locator(".prediction-risk").first().innerText(), "Unknown");
+  assert.equal(await unknownRow.locator(".prediction-risk").first().getAttribute("data-known"), "false");
+  assert.doesNotMatch(await unknownRow.innerText(), /0% failure|failure probability/);
+  assert.match(await unknownRow.innerText(), /not a healthy result/);
+  assert.match(await knownRow.locator(".prediction-risk").first().innerText(), /^12\.5% failure probability$/);
+  assert.match(await knownRow.innerText(), /72 hours[\s\S]*model:browser[\s\S]*12 features from 60 samples[\s\S]*Sequence 9/);
+  assert.match(await page.locator(".prediction-current").innerText(), /Degraded[\s\S]*12\.5% failure probability/);
+  assert.equal(await page.locator(".prediction-current").getByText("Stale prediction").count(), 0);
+  await knownRow.getByRole("link", { name: /Open the evidence sample/ }).click();
+  await heading("Device history");
+  await page.goto(origin + "/console/devices/endpoint:browser-b/predictions");
+  const current = page.locator(".prediction-current");
+  assert.match(await current.innerText(), /Unknown health[\s\S]*Stale prediction/);
+  assert.equal(await current.locator(".prediction-risk").first().innerText(), "Unknown");
+  assert.match(await page.locator(".prediction-list").innerText(), /Expired reference/);
+  await page.goto(origin + "/console/devices/endpoint:browser-fixture/predictions");
+  assert.match(await page.locator(".prediction-current").innerText(), /No assessment has been recorded/);
+  await control("predictions-denied");
+  assert.equal((await page.goto(origin + "/console/devices/endpoint:browser-a/predictions")).status(), 502);
+  assert.match(await page.getByRole("alert").innerText(), /Evidence denied/);
+  assert.doesNotMatch(await page.locator("main").innerText(), /failure probability|model:browser/);
+  await control("predictions-restore");
+  await control("devices-outage");
+  assert.equal((await page.goto(origin + "/console/devices/endpoint:browser-a/predictions")).status(), 503);
+  assert.doesNotMatch(await page.locator("main").innerText(), /failure probability/);
+  await control("devices-restore");
+  assert.equal((await page.goto(origin + "/console/devices/no-such-device/predictions")).status(), 404);
+  await page.goto(origin + "/console/devices/endpoint:browser-a/predictions");
+  await page.setViewportSize({ width: 320, height: 760 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: resolve(artifacts, "predictions-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  console.log("PASS device predictions: model, horizon, explanation, evidence, unknown, stale, expired, denied, outage and unknown device");
+
   await page.setViewportSize({ width: 320, height: 760 });
   for (const name of ["Workspace", "Devices", "Workflows"]) {
     const link = page.getByRole("navigation", { name: "Main navigation", exact: true }).getByRole("link", { name, exact: true });

@@ -104,6 +104,27 @@ Console access to history needs the viewer role; the console reads its own
 deployment, so there is no cross-deployment denial path on this page.
 History is retained in PostgreSQL, so it survives refresh and controller restart.
 
+## Health predictions and evidence
+
+`/console/devices/{id}/predictions` (WEB03 [#39](https://github.com/i-got-this-faa/device-audit/issues/39)) shows a device's current health and its persisted assessments from the
+[prediction history](../../packages/contracts/prediction-history-v1.md) (ML11 #107), oldest first, 50 at a time,
+over a default window of seven days (at most 31). It has no fixture mode and needs the viewer role.
+
+Each assessment shows failure risk with its horizon, the model version, digests and promotion policy, the feature
+window and fault-baseline explanation, any per-category forecasts, and the exact telemetry sample it rests on,
+with a link to that sample in telemetry history. Failure states stay distinct:
+
+| State | Display |
+| --- | --- |
+| Null risk (unknown health) | `Unknown` with the reason; never `0%`. A genuine zero probability is shown as a measurement. |
+| Expired or `stale_evidence` | Marked stale/expired; the current-health panel shows unknown with no risk value. |
+| Evidence or model reference failed verification | HTTP 502 "Evidence denied"; no risk value from the window is shown. |
+| No assessment, empty window | "Unknown health" / "No assessments"; not evidence of health. |
+| Read failure, unknown device, bad window | 503, 404, 400 with no values. |
+
+Real telemetry v2 omits SMART counters and the baseline model failed its gates, so current deployments are expected
+to show unknown health. See the [WEB03 validation record](../../docs/validation/console-predictions-39.md).
+
 ## Device fixtures
 
 Open `/console/devices?fixture=live` after sign-in. The `live` scenario includes
