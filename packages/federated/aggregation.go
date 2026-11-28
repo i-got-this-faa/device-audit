@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
@@ -165,7 +166,10 @@ func exactFloat64Sum(xs []float64) (float64, error) {
 			}
 			x = hi
 		}
-		partials = append(partials[:i], x)
+		partials = partials[:i]
+		if x != 0 {
+			partials = append(partials, x)
+		}
 	}
 	n := len(partials)
 	if n == 0 {
@@ -294,6 +298,9 @@ func BuildCandidateArtifact(round contracts.FederatedRoundV1, baseManifest contr
 }
 
 func buildLogisticCandidate(round contracts.FederatedRoundV1, baseManifest contracts.ModelManifestV1, baseArtifact []byte, weights []float64) ([]byte, error) {
+	if !utf8.Valid(baseArtifact) {
+		return nil, fmt.Errorf("%w: base logistic artifact is not valid UTF-8", ErrAggregationFailed)
+	}
 	dec := json.NewDecoder(bytes.NewReader(baseArtifact))
 	dec.UseNumber()
 	var doc map[string]any
@@ -327,10 +334,195 @@ func buildLogisticCandidate(round contracts.FederatedRoundV1, baseManifest contr
 
 func encodeCanonicalJSON(v any) ([]byte, error) {
 	var buf bytes.Buffer
-	enc := json.NewEncoder(&buf)
-	enc.SetEscapeHTML(false)
-	if err := enc.Encode(v); err != nil {
+	if err := writeCanonicalValue(&buf, v); err != nil {
 		return nil, err
 	}
+	buf.WriteByte('\n')
 	return buf.Bytes(), nil
+}
+
+func writeCanonicalValue(buf *bytes.Buffer, v any) error {
+	switch x := v.(type) {
+	case nil:
+		buf.WriteString("null")
+	case bool:
+		if x {
+			buf.WriteString("true")
+		} else {
+			buf.WriteString("false")
+		}
+	case string:
+		return writeCanonicalString(buf, x)
+	case json.Number:
+		raw := string(x)
+		if raw == "-0" {
+			buf.WriteByte('0')
+			return nil
+		}
+		if isCanonicalJSONInteger(raw) {
+			buf.WriteString(raw)
+			return nil
+		}
+		f, err := strconv.ParseFloat(raw, 64)
+		if err != nil || math.IsNaN(f) || math.IsInf(f, 0) {
+			return fmt.Errorf("%w: nonfinite or invalid JSON number %q", ErrAggregationFailed, raw)
+		}
+		buf.WriteString(formatPythonJSONFloat(f))
+	case float64:
+		if math.IsNaN(x) || math.IsInf(x, 0) {
+			return fmt.Errorf("%w: nonfinite float in JSON", ErrAggregationFailed)
+		}
+		buf.WriteString(formatPythonJSONFloat(x))
+	case int:
+		buf.WriteString(strconv.Itoa(x))
+	case int64:
+		buf.WriteString(strconv.FormatInt(x, 10))
+	case uint:
+		buf.WriteString(strconv.FormatUint(uint64(x), 10))
+	case uint32:
+		buf.WriteString(strconv.FormatUint(uint64(x), 10))
+	case uint64:
+		buf.WriteString(strconv.FormatUint(x, 10))
+	case []string:
+		buf.WriteByte('[')
+		for i, elem := range x {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeCanonicalString(buf, elem); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte(']')
+	case []any:
+		buf.WriteByte('[')
+		for i, elem := range x {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeCanonicalValue(buf, elem); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte(']')
+	case map[string]any:
+		keys := make([]string, 0, len(x))
+		for k := range x {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		buf.WriteByte('{')
+		for i, k := range keys {
+			if i > 0 {
+				buf.WriteByte(',')
+			}
+			if err := writeCanonicalString(buf, k); err != nil {
+				return err
+			}
+			buf.WriteByte(':')
+			if err := writeCanonicalValue(buf, x[k]); err != nil {
+				return err
+			}
+		}
+		buf.WriteByte('}')
+	default:
+		return fmt.Errorf("%w: unsupported JSON value type %T", ErrAggregationFailed, v)
+	}
+	return nil
+}
+
+func writeCanonicalString(buf *bytes.Buffer, s string) error {
+	if !utf8.ValidString(s) {
+		return fmt.Errorf("%w: invalid UTF-8 string", ErrAggregationFailed)
+	}
+	buf.WriteByte('"')
+	for _, r := range s {
+		switch r {
+		case '"':
+			buf.WriteString(`\"`)
+		case '\\':
+			buf.WriteString(`\\`)
+		case '\b':
+			buf.WriteString(`\b`)
+		case '\f':
+			buf.WriteString(`\f`)
+		case '\n':
+			buf.WriteString(`\n`)
+		case '\r':
+			buf.WriteString(`\r`)
+		case '\t':
+			buf.WriteString(`\t`)
+		default:
+			if r < 0x20 {
+				fmt.Fprintf(buf, `\u%04x`, r)
+			} else {
+				buf.WriteRune(r)
+			}
+		}
+	}
+	buf.WriteByte('"')
+	return nil
+}
+
+func isCanonicalJSONInteger(s string) bool {
+	if strings.HasPrefix(s, "-") {
+		s = s[1:]
+	}
+	if s == "" {
+		return false
+	}
+	if s == "0" {
+		return true
+	}
+	if s[0] < '1' || s[0] > '9' {
+		return false
+	}
+	for i := 1; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// formatPythonJSONFloat mirrors CPython float.__repr__ formatting for finite
+// IEEE-754 binary64 values so Go and Python serialize identical float tokens.
+func formatPythonJSONFloat(f float64) string {
+	if f == 0 {
+		if math.Signbit(f) {
+			return "-0.0"
+		}
+		return "0.0"
+	}
+	sign := ""
+	if f < 0 {
+		sign = "-"
+		f = -f
+	}
+	expStr := strconv.FormatFloat(f, 'e', -1, 64)
+	eIdx := strings.IndexByte(expStr, 'e')
+	mant := expStr[:eIdx]
+	exp, _ := strconv.Atoi(expStr[eIdx+1:])
+	digits := strings.ReplaceAll(mant, ".", "")
+	if -4 <= exp && exp < 16 {
+		if exp < 0 {
+			return sign + "0." + strings.Repeat("0", -exp-1) + digits
+		}
+		intLen := exp + 1
+		if len(digits) <= intLen {
+			return sign + digits + strings.Repeat("0", intLen-len(digits)) + ".0"
+		}
+		return sign + digits[:intLen] + "." + digits[intLen:]
+	}
+	expSign := "+"
+	absExp := exp
+	if exp < 0 {
+		expSign = "-"
+		absExp = -exp
+	}
+	mantOut := digits[:1]
+	if len(digits) > 1 {
+		mantOut += "." + digits[1:]
+	}
+	return fmt.Sprintf("%s%se%s%02d", sign, mantOut, expSign, absExp)
 }

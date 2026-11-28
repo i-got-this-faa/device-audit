@@ -45,6 +45,10 @@ CREATE TRIGGER federated_aggregations_immutable
 CREATE FUNCTION federated_aggregation_insert_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
     r federated_rounds%ROWTYPE;
+    u_count integer;
+    u_samples bigint;
+    matched_count integer;
+    distinct_count integer;
 BEGIN
     SELECT * INTO r
     FROM federated_rounds
@@ -63,8 +67,44 @@ BEGIN
         RAISE EXCEPTION 'federated aggregation requires a closed or cancelled round' USING ERRCODE = 'integrity_constraint_violation';
     END IF;
     IF NEW.status = 'succeeded' THEN
-        IF r.status <> 'closed' OR NEW.participant_count < (r.record ->> 'min_participants')::integer OR NEW.participant_count = 0 THEN
+        IF r.status <> 'closed'
+            OR NEW.participant_count < (r.record ->> 'min_participants')::integer
+            OR NEW.participant_count = 0
+            OR jsonb_array_length(NEW.participants) <> NEW.participant_count THEN
             RAISE EXCEPTION 'succeeded aggregation requires a closed round meeting quorum' USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        SELECT COUNT(*), COALESCE(SUM(sample_count), 0)
+        INTO u_count, u_samples
+        FROM federated_updates
+        WHERE deployment_id = NEW.deployment_id AND round_id = NEW.round_id;
+        IF u_count <> NEW.participant_count
+            OR u_count < (r.record ->> 'min_participants')::integer
+            OR u_samples <> NEW.total_samples THEN
+            RAISE EXCEPTION 'succeeded aggregation participant count or samples do not match federated_updates' USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        SELECT COUNT(*)
+        INTO matched_count
+        FROM jsonb_array_elements(NEW.participants) AS elem
+        JOIN federated_updates AS u
+          ON u.deployment_id = NEW.deployment_id
+         AND u.round_id = NEW.round_id
+         AND u.device_id = elem ->> 'device_id'
+         AND u.signing_key_id = elem ->> 'signing_key_id'
+         AND jsonb_typeof(elem -> 'sequence') = 'number'
+         AND (elem ->> 'sequence') ~ '^[0-9]+$'
+         AND u.sequence = (elem ->> 'sequence')::bigint
+         AND jsonb_typeof(elem -> 'sample_count') = 'number'
+         AND (elem ->> 'sample_count') ~ '^[0-9]+$'
+         AND u.sample_count = (elem ->> 'sample_count')::bigint
+         AND (elem ->> 'update_sha256') ~ '^[0-9a-f]{64}$'
+         AND u.update_sha256 = decode(elem ->> 'update_sha256', 'hex')
+         AND (elem ->> 'request_sha256') ~ '^[0-9a-f]{64}$'
+         AND u.request_sha256 = decode(elem ->> 'request_sha256', 'hex');
+        SELECT COUNT(DISTINCT elem ->> 'device_id')
+        INTO distinct_count
+        FROM jsonb_array_elements(NEW.participants) AS elem;
+        IF matched_count <> NEW.participant_count OR distinct_count <> NEW.participant_count THEN
+            RAISE EXCEPTION 'succeeded aggregation participants do not match stored federated_updates' USING ERRCODE = 'integrity_constraint_violation';
         END IF;
     ELSIF NEW.failure_reason = 'cancelled' AND r.status <> 'cancelled' THEN
         RAISE EXCEPTION 'cancelled aggregation requires a cancelled round' USING ERRCODE = 'integrity_constraint_violation';

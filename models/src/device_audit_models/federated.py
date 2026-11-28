@@ -110,13 +110,17 @@ def aggregation_input_sha256(
     return hashlib.sha256(bytes(buf)).hexdigest(), total_samples
 
 
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"nonfinite JSON constant {value!r} is not allowed")
+
+
 def build_logistic_candidate_artifact(
     base_artifact: bytes,
     candidate_model_version: str,
     weights: Sequence[float],
 ) -> bytes:
     """Produce deterministic logistic-baseline.v1 JSON bytes matching Go."""
-    doc = json.loads(base_artifact)
+    doc = json.loads(base_artifact, parse_constant=_reject_json_constant)
     if not isinstance(doc, dict) or doc.get("schema_version") != LOGISTIC_BASELINE_SCHEMA:
         raise ValueError("base artifact is not logistic-baseline.v1")
     features = doc.get("features")
@@ -127,4 +131,4 @@ def build_logistic_candidate_artifact(
     doc["model_version"] = candidate_model_version
     doc["intercept"] = float(weights[0]).hex()
     doc["weights"] = [float(w).hex() for w in weights[1:]]
-    return json.dumps(doc, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n"
+    return json.dumps(doc, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n"

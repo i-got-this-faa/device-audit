@@ -1,8 +1,10 @@
 package federated
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"math"
 	"os"
 	"path/filepath"
@@ -134,5 +136,66 @@ func TestWeightedAverageAndReproducibleLogisticCandidate(t *testing.T) {
 		if err != nil || got != tc.want {
 			t.Fatalf("FormatPythonHexFloat(%v) = %q, %v want %q", tc.v, got, err, tc.want)
 		}
+	}
+
+	// Negative zero summation + non-ASCII UTF-8 + scientific numeric metadata parity with Python.
+	negZero := math.Copysign(0.0, -1)
+	nzRound := round
+	nzRound.CandidateID = "candidate:fed03:canonical"
+	nzUpdates := []AcceptedUpdate{
+		{
+			DeploymentID: nzRound.DeploymentID, RoundID: nzRound.RoundID, CandidateID: nzRound.CandidateID,
+			BaseModelVersion: nzRound.BaseModelVersion, BaseModelSHA256: nzRound.BaseModelSHA256,
+			FeatureVersion: nzRound.FeatureVersion, ParameterCount: 7,
+			DeviceID: "device:a", SigningKeyID: "ed25519:" + strings.Repeat("a", 64), Sequence: 2,
+			SampleCount: 10, Weights: []float64{negZero, 1, 2, 3, 4, 5, 6},
+		},
+		{
+			DeploymentID: nzRound.DeploymentID, RoundID: nzRound.RoundID, CandidateID: nzRound.CandidateID,
+			BaseModelVersion: nzRound.BaseModelVersion, BaseModelSHA256: nzRound.BaseModelSHA256,
+			FeatureVersion: nzRound.FeatureVersion, ParameterCount: 7,
+			DeviceID: "device:b", SigningKeyID: "ed25519:" + strings.Repeat("b", 64), Sequence: 2,
+			SampleCount: 10, Weights: []float64{negZero, 1, 2, 3, 4, 5, 6},
+		},
+	}
+	nzWeights, nzTotal, err := WeightedAverage(nzRound, nzUpdates)
+	if err != nil || nzTotal != 20 {
+		t.Fatalf("negative zero weighted average failed: total=%d err=%v", nzTotal, err)
+	}
+	if hex0, _ := FormatPythonHexFloat(nzWeights[0]); hex0 != "0x0.0p+0" {
+		t.Fatalf("negative zero weighted average=%s want +0.0 (0x0.0p+0) to match Python fsum", hex0)
+	}
+	var baseObj map[string]any
+	dec := json.NewDecoder(bytes.NewReader(baseArtifact))
+	dec.UseNumber()
+	if err := dec.Decode(&baseObj); err != nil {
+		t.Fatal(err)
+	}
+	baseObj["label"] = "café\b\f\t<>&\u2028"
+	baseObj["raw_sci"] = json.Number("1e0")
+	baseObj["neg_zero"] = json.Number("-0.0")
+	baseObj["small_exp"] = json.Number("1e-5")
+	baseObj["big_exp"] = json.Number("1e16")
+	baseObj["int_count"] = 42
+	rawMetaBase, err := encodeCanonicalJSON(baseObj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rawMetaBase = bytes.Replace(rawMetaBase, []byte(`"raw_sci":1.0`), []byte(`"raw_sci":1e0`), 1)
+	rawMetaBase = bytes.TrimSuffix(rawMetaBase, []byte("\n"))
+	metaBaseSum := sha256.Sum256(rawMetaBase)
+	nzRound.BaseModelSHA256 = hex.EncodeToString(metaBaseSum[:])
+	nzManifest := baseManifest
+	nzManifest.ArtifactSHA256 = nzRound.BaseModelSHA256
+	nzRawW, _ := EncodeBinary64Weights(nzWeights)
+	nzWSum := sha256.Sum256(nzRawW)
+	candMeta, err := BuildCandidateArtifact(nzRound, nzManifest, rawMetaBase, nzWeights, hex.EncodeToString(nzWSum[:]), in1, 2, nzTotal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const wantMetaCandSHA = "d0644649a39752895b583494ed90bdccfea5c3ffd79e657dcc7cac78108ee055"
+	candMetaSum := sha256.Sum256(candMeta)
+	if got := hex.EncodeToString(candMetaSum[:]); got != wantMetaCandSHA {
+		t.Fatalf("canonical metadata/negative-zero candidate=%s want Python parity %s\nbody=%s", got, wantMetaCandSHA, candMeta)
 	}
 }

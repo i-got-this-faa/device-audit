@@ -226,9 +226,9 @@ func (s *PostgresRepository) AcceptedUpdates(ctx context.Context, roundID string
 		}
 		return nil, repositoryUnavailable(err)
 	}
-	var round contracts.FederatedRoundV1
-	if err := json.Unmarshal(encodedRound, &round); err != nil || round.Validate() != nil {
-		return nil, fmt.Errorf("%w: corrupt stored round %s", federated.ErrUpdateCorrupt, roundID)
+	round, err := s.decodeStoredRound(roundID, encodedRound)
+	if err != nil {
+		return nil, err
 	}
 
 	return s.acceptedUpdatesTx(ctx, tx, round)
@@ -280,11 +280,20 @@ func (s *PostgresRepository) lockRoundWithRecord(ctx context.Context, tx *sql.Tx
 	if err != nil {
 		return "", time.Time{}, contracts.FederatedRoundV1{}, repositoryUnavailable(err)
 	}
-	var round contracts.FederatedRoundV1
-	if err := json.Unmarshal(encoded, &round); err != nil || round.Validate() != nil {
-		return "", time.Time{}, contracts.FederatedRoundV1{}, fmt.Errorf("%w: corrupt stored round %s", federated.ErrUpdateCorrupt, roundID)
+	round, err := s.decodeStoredRound(roundID, encoded)
+	if err != nil {
+		return "", time.Time{}, contracts.FederatedRoundV1{}, err
 	}
 	return federated.RoundStatus(status), deadline.UTC(), round, nil
+}
+
+func (s *PostgresRepository) decodeStoredRound(roundID string, encoded []byte) (contracts.FederatedRoundV1, error) {
+	var round contracts.FederatedRoundV1
+	if err := json.Unmarshal(encoded, &round); err != nil || round.Validate() != nil ||
+		round.DeploymentID != s.deploymentID || round.RoundID != roundID {
+		return contracts.FederatedRoundV1{}, fmt.Errorf("%w: corrupt stored round %s", federated.ErrUpdateCorrupt, roundID)
+	}
+	return round, nil
 }
 
 func (s *PostgresRepository) readAcceptedUpdateTx(ctx context.Context, tx *sql.Tx, roundID, deviceID string) (federated.AcceptedUpdate, []byte, bool, error) {

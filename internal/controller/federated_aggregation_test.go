@@ -3,11 +3,14 @@ package controller
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -318,23 +321,193 @@ func TestFederatedAggregationConcurrencyDatabaseGuardsAndSyntheticCandidate(t *t
 					0, 0, input_sha256, '[]'::jsonb, NULL, NULL, NULL, NULL, created_at, actor_issuer, actor_subject
 				FROM federated_aggregations LIMIT 1`, openR.RoundID, openR.CandidateID)
 		}(),
+		"forged succeeded aggregation without stored updates": func() string {
+			forgedR := b.round("round:forged:closed")
+			_, _, _ = b.repo.OpenRound(ctx, forgedR, b.actor)
+			_, _ = b.db.Exec(`UPDATE federated_rounds SET status='closed' WHERE round_id=$1`, forgedR.RoundID)
+			return fmt.Sprintf(`INSERT INTO federated_aggregations
+				SELECT deployment_id, '%s', '%s', base_model_version, base_model_sha256,
+					feature_version, parameter_count, weighting_policy, 'succeeded', NULL,
+					participant_count, total_samples, input_sha256, participants,
+					weights_bytes, weights_sha256, candidate_model_version, candidate_model_sha256,
+					created_at, actor_issuer, actor_subject
+				FROM federated_aggregations WHERE round_id='%s'`, forgedR.RoundID, forgedR.CandidateID, round.RoundID)
+		}(),
 	} {
 		if _, err := b.db.Exec(stmt); err == nil {
 			t.Fatalf("database allowed %s", name)
 		}
 	}
 
-	// Tamper stored participants at rest -> Aggregation fails closed with ErrAggregationCorrupt.
+	// Tamper stored participant sample_count without changing array length -> ErrAggregationCorrupt.
 	if _, err := b.db.Exec(`ALTER TABLE federated_aggregations DISABLE TRIGGER federated_aggregations_immutable`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.db.Exec(`UPDATE federated_aggregations SET participants = '[]'::jsonb WHERE round_id=$1`, round.RoundID); err != nil {
+	if _, err := b.db.Exec(`UPDATE federated_aggregations
+		SET participants = jsonb_set(participants, '{0,sample_count}', '99'::jsonb)
+		WHERE round_id=$1`, round.RoundID); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := b.db.Exec(`ALTER TABLE federated_aggregations ENABLE TRIGGER federated_aggregations_immutable`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := b.repo.Aggregation(ctx, round.RoundID); !errors.Is(err, federated.ErrAggregationCorrupt) {
-		t.Fatalf("corrupted stored aggregation err=%v want ErrAggregationCorrupt", err)
+		t.Fatalf("tampered participant sample_count err=%v want ErrAggregationCorrupt", err)
+	}
+
+	// Canceled context during lookup must preserve cancellation rather than reporting ErrAggregationCorrupt.
+	canceledCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := b.repo.Aggregation(canceledCtx, round.RoundID); !errors.Is(err, context.Canceled) || errors.Is(err, federated.ErrAggregationCorrupt) {
+		t.Fatalf("canceled Aggregation err=%v want context.Canceled without ErrAggregationCorrupt", err)
+	}
+
+	// Already-approved candidate version matching aggregated bytes cannot be reused as an unapproved candidate.
+	b.clock.Advance(time.Minute)
+	rApproved := b.round("round:approved:collision")
+	if _, _, err := b.repo.OpenRound(ctx, rApproved, b.actor); err != nil {
+		t.Fatal(err)
+	}
+	now = b.clock.Now()
+	uApp1 := signFederatedUpdate(t, b.repo.deploymentID, b.devices[0], rApproved, 3, now, now.Add(time.Hour), []float64{1, 2, 3, 4, 5, 6}, 15)
+	uApp2 := signFederatedUpdate(t, b.repo.deploymentID, b.devices[1], rApproved, 3, now, now.Add(time.Hour), []float64{2, 2, 3, 4, 5, 6}, 15)
+	if _, _, err := b.repo.AcceptUpdate(ctx, uApp1); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.repo.AcceptUpdate(ctx, uApp2); err != nil {
+		t.Fatal(err)
+	}
+	b.clock.Advance(time.Hour)
+	baseMan, baseBytes, err := b.repo.ModelArtifactBytes(ctx, rApproved.BaseModelVersion)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updatesApp, err := b.repo.AcceptedUpdates(ctx, rApproved.RoundID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pApp := []federated.AggregatedParticipant{
+		{DeviceID: updatesApp[0].DeviceID, SigningKeyID: updatesApp[0].SigningKeyID, Sequence: updatesApp[0].Sequence, SampleCount: updatesApp[0].SampleCount, UpdateSHA256: updatesApp[0].UpdateSHA256, RequestSHA256: updatesApp[0].RequestSHA256},
+		{DeviceID: updatesApp[1].DeviceID, SigningKeyID: updatesApp[1].SigningKeyID, Sequence: updatesApp[1].Sequence, SampleCount: updatesApp[1].SampleCount, UpdateSHA256: updatesApp[1].UpdateSHA256, RequestSHA256: updatesApp[1].RequestSHA256},
+	}
+	inAppSHA, totApp, err := federated.AggregationInputSHA256(rApproved, federated.WeightingPolicySampleCountV1, pApp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wApp, _, err := federated.WeightedAverage(rApproved, updatesApp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wbApp, err := federated.EncodeBinary64Weights(wApp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wAppSum := sha256.Sum256(wbApp)
+	candBytesApp, err := federated.BuildCandidateArtifact(rApproved, baseMan, baseBytes, wApp, hex.EncodeToString(wAppSum[:]), inAppSHA, len(pApp), totApp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preMan := b.manifest(t, b.publisher, rApproved.CandidateID, candBytesApp, contracts.ModelPurposeInference)
+	preMan.FeatureVersion = rApproved.FeatureVersion
+	preMan.ParameterCount = rApproved.ParameterCount
+	msg, _ := preMan.SigningBytes()
+	preMan.Signature = hex.EncodeToString(ed25519.Sign(b.publisher, msg))
+	if _, _, err := b.repo.PutModelArtifact(ctx, upload(preMan, candBytesApp), b.publisher.Public().(ed25519.PublicKey), contracts.ModelActorV1(b.actor)); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.repo.ApproveModel(ctx, contracts.ModelApprovalRequestV1{
+		SchemaVersion:    contracts.ModelApprovalRequestV1Version,
+		ModelVersion:     rApproved.CandidateID,
+		ArtifactSHA256:   preMan.ArtifactSHA256,
+		EvaluationSHA256: strings.Repeat("e", 64),
+		PolicyVersion:    health.ML05PolicyVersion,
+	}, contracts.ModelActorV1(b.actor)); err != nil {
+		t.Fatal(err)
+	}
+	if recApp, _, err := b.repo.AggregateRound(ctx, rApproved.RoundID, b.publisher, b.actor); !errors.Is(err, federated.ErrAggregationFailed) || recApp.FailureReason != "aggregation_failed" {
+		t.Fatalf("pre-approved candidate reuse rec=%+v err=%v want ErrAggregationFailed", recApp, err)
+	}
+
+	// Stored round record ID mismatch is rejected on read/lock cleanly.
+	rMismatch := b.round("round:mismatch:target")
+	if _, _, err := b.repo.OpenRound(ctx, rMismatch, b.actor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`ALTER TABLE federated_rounds DISABLE TRIGGER federated_rounds_status_guard`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`UPDATE federated_rounds SET record = (SELECT record FROM federated_rounds WHERE round_id=$1) WHERE round_id=$2`, round.RoundID, rMismatch.RoundID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`ALTER TABLE federated_rounds ENABLE TRIGGER federated_rounds_status_guard`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.repo.AcceptedUpdates(ctx, rMismatch.RoundID); !errors.Is(err, federated.ErrUpdateCorrupt) {
+		t.Fatalf("mismatched round record AcceptedUpdates err=%v want ErrUpdateCorrupt", err)
+	}
+	if _, _, err := b.repo.AggregateRound(ctx, rMismatch.RoundID, b.publisher, b.actor); !errors.Is(err, federated.ErrUpdateCorrupt) {
+		t.Fatalf("mismatched round record AggregateRound err=%v want ErrUpdateCorrupt", err)
+	}
+
+	// Corrupt stored candidate artifact bytes with matching manifest cannot be reused on aggregation.
+	b.clock.Advance(time.Minute)
+	rCorruptCand := b.round("round:corrupt:reuse")
+	if _, _, err := b.repo.OpenRound(ctx, rCorruptCand, b.actor); err != nil {
+		t.Fatal(err)
+	}
+	now = b.clock.Now()
+	uCC1 := signFederatedUpdate(t, b.repo.deploymentID, b.devices[0], rCorruptCand, 4, now, now.Add(time.Hour), []float64{1, 2, 3, 4, 5, 6}, 15)
+	uCC2 := signFederatedUpdate(t, b.repo.deploymentID, b.devices[1], rCorruptCand, 4, now, now.Add(time.Hour), []float64{2, 2, 3, 4, 5, 6}, 15)
+	if _, _, err := b.repo.AcceptUpdate(ctx, uCC1); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := b.repo.AcceptUpdate(ctx, uCC2); err != nil {
+		t.Fatal(err)
+	}
+	b.clock.Advance(time.Hour)
+	updatesCC, err := b.repo.AcceptedUpdates(ctx, rCorruptCand.RoundID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pCC := []federated.AggregatedParticipant{
+		{DeviceID: updatesCC[0].DeviceID, SigningKeyID: updatesCC[0].SigningKeyID, Sequence: updatesCC[0].Sequence, SampleCount: updatesCC[0].SampleCount, UpdateSHA256: updatesCC[0].UpdateSHA256, RequestSHA256: updatesCC[0].RequestSHA256},
+		{DeviceID: updatesCC[1].DeviceID, SigningKeyID: updatesCC[1].SigningKeyID, Sequence: updatesCC[1].Sequence, SampleCount: updatesCC[1].SampleCount, UpdateSHA256: updatesCC[1].UpdateSHA256, RequestSHA256: updatesCC[1].RequestSHA256},
+	}
+	inCCSHA, totCC, err := federated.AggregationInputSHA256(rCorruptCand, federated.WeightingPolicySampleCountV1, pCC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wCC, _, err := federated.WeightedAverage(rCorruptCand, updatesCC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wbCC, err := federated.EncodeBinary64Weights(wCC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wCCSum := sha256.Sum256(wbCC)
+	candBytesCC, err := federated.BuildCandidateArtifact(rCorruptCand, baseMan, baseBytes, wCC, hex.EncodeToString(wCCSum[:]), inCCSHA, len(pCC), totCC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	badCandMan := b.manifest(t, b.publisher, rCorruptCand.CandidateID, candBytesCC, contracts.ModelPurposeInference)
+	badCandMan.FeatureVersion = rCorruptCand.FeatureVersion
+	badCandMan.ParameterCount = rCorruptCand.ParameterCount
+	badMsg, _ := badCandMan.SigningBytes()
+	badCandMan.Signature = hex.EncodeToString(ed25519.Sign(b.publisher, badMsg))
+	if _, _, err := b.repo.PutModelArtifact(ctx, upload(badCandMan, candBytesCC), b.publisher.Public().(ed25519.PublicKey), contracts.ModelActorV1(b.actor)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`ALTER TABLE model_artifacts DISABLE TRIGGER model_artifacts_immutable`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`UPDATE model_artifacts SET artifact = '{"corrupt":true}'::bytea WHERE model_version=$1`, rCorruptCand.CandidateID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.db.Exec(`ALTER TABLE model_artifacts ENABLE TRIGGER model_artifacts_immutable`); err != nil {
+		t.Fatal(err)
+	}
+	if recCC, _, err := b.repo.AggregateRound(ctx, rCorruptCand.RoundID, b.publisher, b.actor); !errors.Is(err, federated.ErrAggregationFailed) || recCC.FailureReason != "aggregation_failed" {
+		t.Fatalf("corrupt reuse candidate rec=%+v err=%v want ErrAggregationFailed", recCC, err)
 	}
 }

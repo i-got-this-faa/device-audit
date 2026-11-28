@@ -46,7 +46,7 @@ func (s *PostgresRepository) AggregateRound(ctx context.Context, roundID string,
 		return federated.AggregationRecord{}, false, err
 	}
 
-	if existing, found, err := s.readAggregationTx(ctx, tx, roundID); err != nil {
+	if existing, found, err := s.readAggregationTx(ctx, tx, round); err != nil {
 		return federated.AggregationRecord{}, false, err
 	} else if found {
 		tx.Rollback()
@@ -188,7 +188,17 @@ func (s *PostgresRepository) AggregateRound(ctx context.Context, roundID string,
 
 	existingArtifact, err := s.modelArtifact(ctx, tx, round.CandidateID)
 	if err == nil {
-		if existingArtifact.Manifest.ArtifactSHA256 != candSHA {
+		if existingArtifact.Approval != nil {
+			return recordFailed("aggregation_failed", fmt.Errorf("%w: candidate version %s is already approved", federated.ErrAggregationFailed, round.CandidateID))
+		}
+		storedManifest, storedBytes, bytesErr := s.modelArtifactBytes(ctx, tx, round.CandidateID)
+		if bytesErr != nil {
+			if errors.Is(bytesErr, ErrModelArtifactCorrupt) {
+				return recordFailed("aggregation_failed", fmt.Errorf("%w: existing candidate artifact %s failed integrity verification: %v", federated.ErrAggregationFailed, round.CandidateID, bytesErr))
+			}
+			return federated.AggregationRecord{}, false, bytesErr
+		}
+		if existingArtifact.Manifest.ArtifactSHA256 != candSHA || storedManifest.ArtifactSHA256 != candSHA || !bytes.Equal(storedBytes, candArtifact) {
 			return recordFailed("aggregation_failed", fmt.Errorf("%w: candidate version %s already exists with a different digest", federated.ErrAggregationFailed, round.CandidateID))
 		}
 	} else if !errors.Is(err, ErrRepositoryNotFound) {
@@ -258,15 +268,19 @@ func (s *PostgresRepository) Aggregation(ctx context.Context, roundID string) (f
 	}
 	defer tx.Rollback()
 
-	var exists bool
-	if err := tx.QueryRowContext(ctx, `SELECT true FROM federated_rounds WHERE deployment_id=$1 AND round_id=$2`,
-		s.deploymentID, roundID).Scan(&exists); err != nil {
+	var encodedRound []byte
+	if err := tx.QueryRowContext(ctx, `SELECT record FROM federated_rounds WHERE deployment_id=$1 AND round_id=$2`,
+		s.deploymentID, roundID).Scan(&encodedRound); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return federated.AggregationRecord{}, federated.ErrRoundNotFound
 		}
 		return federated.AggregationRecord{}, repositoryUnavailable(err)
 	}
-	rec, found, err := s.readAggregationTx(ctx, tx, roundID)
+	round, err := s.decodeStoredRound(roundID, encodedRound)
+	if err != nil {
+		return federated.AggregationRecord{}, fmt.Errorf("%w: %v", federated.ErrAggregationCorrupt, err)
+	}
+	rec, found, err := s.readAggregationTx(ctx, tx, round)
 	if err != nil {
 		return federated.AggregationRecord{}, err
 	}
@@ -311,7 +325,7 @@ func (s *PostgresRepository) insertAggregationTx(ctx context.Context, tx *sql.Tx
 	return nil
 }
 
-func (s *PostgresRepository) readAggregationTx(ctx context.Context, q dbQueryer, roundID string) (federated.AggregationRecord, bool, error) {
+func (s *PostgresRepository) readAggregationTx(ctx context.Context, q dbQueryer, round contracts.FederatedRoundV1) (federated.AggregationRecord, bool, error) {
 	var rec federated.AggregationRecord
 	var baseDigest, inputDigest, participantsJSON, weightsBytes, weightsDigest, candDigest []byte
 	var status string
@@ -325,7 +339,7 @@ func (s *PostgresRepository) readAggregationTx(ctx context.Context, q dbQueryer,
 			weights_bytes, weights_sha256, candidate_model_version, candidate_model_sha256,
 			created_at, actor_issuer, actor_subject
 		FROM federated_aggregations
-		WHERE deployment_id=$1 AND round_id=$2`, s.deploymentID, roundID).Scan(
+		WHERE deployment_id=$1 AND round_id=$2`, s.deploymentID, round.RoundID).Scan(
 		&rec.RoundID, &rec.CandidateID, &rec.BaseModelVersion, &baseDigest,
 		&rec.FeatureVersion, &paramCount, &rec.WeightingPolicy, &status, &failureReason,
 		&partCount, &totalSamples, &inputDigest, &participantsJSON,
@@ -349,8 +363,18 @@ func (s *PostgresRepository) readAggregationTx(ctx context.Context, q dbQueryer,
 	rec.TotalSamples = uint64(totalSamples)
 	rec.InputSHA256 = hex.EncodeToString(inputDigest)
 	rec.CreatedAt = rec.CreatedAt.UTC()
+	if rec.RoundID != round.RoundID || rec.CandidateID != round.CandidateID ||
+		rec.BaseModelVersion != round.BaseModelVersion || rec.BaseModelSHA256 != round.BaseModelSHA256 ||
+		rec.FeatureVersion != round.FeatureVersion || rec.ParameterCount != round.ParameterCount ||
+		rec.WeightingPolicy != federated.WeightingPolicySampleCountV1 {
+		return federated.AggregationRecord{}, false, fmt.Errorf("%w: aggregation metadata mismatches round", federated.ErrAggregationCorrupt)
+	}
 	if err := json.Unmarshal(participantsJSON, &rec.Participants); err != nil || len(rec.Participants) != partCount {
 		return federated.AggregationRecord{}, false, fmt.Errorf("%w: stored participant list invalid", federated.ErrAggregationCorrupt)
+	}
+	gotInputSHA, gotTotalSamples, err := federated.AggregationInputSHA256(round, rec.WeightingPolicy, rec.Participants)
+	if err != nil || gotTotalSamples != rec.TotalSamples || gotInputSHA != rec.InputSHA256 {
+		return federated.AggregationRecord{}, false, fmt.Errorf("%w: stored participant commitment mismatch", federated.ErrAggregationCorrupt)
 	}
 
 	if rec.Status == federated.AggregationSucceeded {
@@ -372,8 +396,14 @@ func (s *PostgresRepository) readAggregationTx(ctx context.Context, q dbQueryer,
 
 		// Re-verify stored candidate artifact bytes against candidate digest.
 		storedManifest, _, err := s.modelArtifactBytes(ctx, q, rec.CandidateModelVersion)
-		if err != nil || storedManifest.ArtifactSHA256 != rec.CandidateModelSHA256 {
-			return federated.AggregationRecord{}, false, fmt.Errorf("%w: candidate artifact verification failed: %v", federated.ErrAggregationCorrupt, err)
+		if err != nil {
+			if errors.Is(err, ErrRepositoryNotFound) || errors.Is(err, ErrModelArtifactCorrupt) {
+				return federated.AggregationRecord{}, false, fmt.Errorf("%w: candidate artifact verification failed: %v", federated.ErrAggregationCorrupt, err)
+			}
+			return federated.AggregationRecord{}, false, err
+		}
+		if storedManifest.ArtifactSHA256 != rec.CandidateModelSHA256 {
+			return federated.AggregationRecord{}, false, fmt.Errorf("%w: candidate artifact digest mismatch", federated.ErrAggregationCorrupt)
 		}
 	}
 	return rec, true, nil

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import math
 import pathlib
 import unittest
 
@@ -79,3 +80,28 @@ class WeightedAverageTests(unittest.TestCase):
         self.assertEqual(parsed["model_version"], "candidate:fed03:1")
         self.assertEqual(parsed["intercept"], float(5.0).hex())
         self.assertEqual(len(parsed["weights"]), 6)
+
+    def test_canonical_utf8_numeric_and_negative_zero_parity(self):
+        base = json.loads((ROOT / "models" / "baseline" / "backblaze-2013" / "artifact.json").read_bytes())
+        base["label"] = "café\b\f\t<>&\u2028"
+        base["raw_sci"] = 1e0
+        base["neg_zero"] = -0.0
+        base["small_exp"] = 1e-5
+        base["big_exp"] = 1e16
+        base["int_count"] = 42
+        raw_base = (
+            json.dumps(base, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            .replace('"raw_sci":1.0', '"raw_sci":1e0')
+            .encode("utf-8")
+        )
+        neg_zero = math.copysign(0.0, -1.0)
+        weights = weighted_average([
+            Update("logistic-baseline.backblaze-2013.v1", 10, (neg_zero, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
+            Update("logistic-baseline.backblaze-2013.v1", 10, (neg_zero, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0)),
+        ])
+        cand = build_logistic_candidate_artifact(raw_base, "candidate:fed03:canonical", weights)
+        self.assertEqual(json.loads(cand)["intercept"], "0x0.0p+0")
+        self.assertEqual(
+            hashlib.sha256(cand).hexdigest(),
+            "d0644649a39752895b583494ed90bdccfea5c3ffd79e657dcc7cac78108ee055",
+        )
