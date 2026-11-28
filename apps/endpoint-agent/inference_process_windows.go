@@ -16,6 +16,10 @@ const inferenceMemoryLimit = 64 << 20
 const inferenceCPULimit = 250 * time.Millisecond
 
 func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferenceUsage, error) {
+	return runBudgetedWindowsChild(ctx, cmd, data, inferenceCPULimit, inferenceMemoryLimit, 0)
+}
+
+func runBudgetedWindowsChild(ctx context.Context, cmd *exec.Cmd, data []byte, cpuLimit time.Duration, memoryLimit, affinity uintptr) (inferenceUsage, error) {
 	var usage inferenceUsage
 	job, err := windows.CreateJobObject(nil, nil)
 	if err != nil {
@@ -39,9 +43,13 @@ func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferen
 		BasicLimitInformation: windows.JOBOBJECT_BASIC_LIMIT_INFORMATION{
 			LimitFlags: windows.JOB_OBJECT_LIMIT_ACTIVE_PROCESS | windows.JOB_OBJECT_LIMIT_JOB_TIME |
 				windows.JOB_OBJECT_LIMIT_PROCESS_MEMORY | windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
-			ActiveProcessLimit: 1, PerJobUserTimeLimit: int64(inferenceCPULimit / (100 * time.Nanosecond)),
+			ActiveProcessLimit: 1, PerJobUserTimeLimit: int64(cpuLimit / (100 * time.Nanosecond)),
 		},
-		ProcessMemoryLimit: inferenceMemoryLimit,
+		ProcessMemoryLimit: memoryLimit,
+	}
+	if affinity != 0 {
+		limits.BasicLimitInformation.LimitFlags |= windows.JOB_OBJECT_LIMIT_AFFINITY
+		limits.BasicLimitInformation.Affinity = affinity
 	}
 	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation,
 		uintptr(unsafe.Pointer(&limits)), uint32(unsafe.Sizeof(limits))); err != nil {
@@ -78,9 +86,9 @@ func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferen
 	// lack. The kernel caps commit while the parent monitors resident memory.
 	workingSetExceeded := func() bool {
 		_, peak, err := telemetry.WindowsProcessWorkingSet(process)
-		return err == nil && peak > inferenceMemoryLimit
+		return err == nil && peak > uint64(memoryLimit)
 	}
-	childErr, breach := waitForProbeJob(job, port, inferenceCPULimit, inferenceMemoryLimit, workingSetExceeded, func() {
+	childErr, breach := waitForProbeJob(job, port, cpuLimit, memoryLimit, workingSetExceeded, func() {
 		_ = windows.TerminateJobObject(job, 1)
 	}, exited)
 
@@ -101,10 +109,10 @@ func runInferenceChild(ctx context.Context, cmd *exec.Cmd, data []byte) (inferen
 	case breach == "memory_budget":
 		return usage, errInferenceMemory
 	case timesErr != nil || err != nil || usage.PeakRSS == 0:
-		return usage, errors.New("inference worker accounting unavailable")
-	case usage.CPU > inferenceCPULimit:
+		return usage, errors.New("worker accounting unavailable")
+	case usage.CPU > cpuLimit:
 		return usage, errInferenceCPU
-	case usage.PeakRSS > inferenceMemoryLimit:
+	case usage.PeakRSS > uint64(memoryLimit):
 		return usage, errInferenceMemory
 	default:
 		return usage, errors.Join(writeErr, childErr)

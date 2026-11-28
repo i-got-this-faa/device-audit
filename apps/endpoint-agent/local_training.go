@@ -68,9 +68,9 @@ type localCandidate struct {
 
 func runLocalCandidate(ctx context.Context, publisherKeyFile string, input io.Reader, out io.Writer, now func() time.Time) error {
 	var req localCandidateRequest
-	data, err := io.ReadAll(io.LimitReader(input, maxLocalTrainingRequest+1))
-	if err != nil || len(data) > maxLocalTrainingRequest {
-		return errors.New("invalid bounded local training request")
+	data, err := readLocalTrainingRequest(input)
+	if err != nil {
+		return err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -137,4 +137,12 @@ func runLocalCandidate(ctx context.Context, publisherKeyFile string, input io.Re
 		ParameterCount: manifest.ParameterCount, SampleCount: len(req.Examples),
 		WeightsBase64: base64.StdEncoding.EncodeToString(raw), UpdateSHA256: hex.EncodeToString(digest[:]),
 	})
+}
+
+func readLocalTrainingRequest(input io.Reader) ([]byte, error) {
+	data, err := io.ReadAll(io.LimitReader(input, maxLocalTrainingRequest+1))
+	if err != nil || len(data) > maxLocalTrainingRequest {
+		return nil, errors.New("invalid bounded local training request")
+	}
+	return data, nil
 }

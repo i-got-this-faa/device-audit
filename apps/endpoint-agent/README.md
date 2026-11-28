@@ -522,3 +522,50 @@ verified outcome labels. Authenticated round delivery, signed update admission,
 and the ML05 Windows training limits for scheduled service use are still
 pending. Two-device qualification requires two enrolled endpoints, reviewed
 local histories on each, and a shared publisher-signed training artifact.
+
+## Budgeted federated update staging, FED08 #113
+
+Windows operators can run the same local request against an enrolled
+endpoint's private identity directory.
+
+```powershell
+Get-Content -Raw .\local-training.json |
+  .\endpoint-agent.exe --train-federated-update --state-dir C:\DeviceAudit\state --training-publisher-key-file .\publisher.pem
+```
+
+Supply a round record from the trusted operator. The enrollment deployment,
+device and application signing key must match an eligible participant. The
+worker verifies the publisher signature, artifact digest, training purpose,
+runtime and CT03 compatibility. The parent records an attempt before starting
+the worker, and permits another attempt at least 24 hours later, even after
+an interruption. Use an open round.
+
+The Windows job limits the worker to one logical processor and 256 MiB of
+committed memory. It runs below normal priority, monitors peak working set,
+and stops at 600 seconds or the round deadline, whichever comes first.
+The parent checks AC power at launch, every 250 ms during work, and before
+staging. If a battery is present, its charge must be known and at least 20%,
+with neither the low nor critical flag set.
+
+On success, the parent reserves the next shared evidence sequence and
+atomically stages one `federated-update-<round-hash>.json` in the private
+identity directory. The signed envelope carries the round and base metadata,
+feature version, sample count and candidate weights and digest. The command
+prints the staged filename, training configuration, sample count, and worker
+runtime, CPU and memory counters.
+Run failures leave no completed update. A restart can leave a private
+temporary file or a sequence gap. The completed filename is the handoff
+boundary. Its expiry is the earlier of one hour after signing and the round
+deadline.
+
+The Windows test exercises a fixture worker alongside the Windows sensor
+scheduler and checks the signed update and cancellation separately. On an
+HP Victus 15-fb0xxx with Windows build 26200 and Go 1.27.4, one fixture run
+used 1.19 s wall time, 15.625 ms of CPU time and 62,595,072 bytes peak working
+set. The scheduler delivered a valid telemetry snapshot.
+
+This operator path requires exclusive access to the identity directory for attempt
+reservation and staging, so it cannot use the live service's state
+directory while the service holds it open. The command stages the envelope
+for a future controller admission and upload path. A production-history
+soak and Windows LocalService qualification remain pending.
