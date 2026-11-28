@@ -174,6 +174,9 @@ func (s *DeviceStateService) Register(mux *http.ServeMux) {
 	mux.Handle("GET /console/api/devices/{id}/history", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.history)))
 	mux.Handle("GET /console/api/devices/{id}/predictions", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.predictions)))
 	mux.Handle("GET /console/api/devices/{id}/predictions/latest", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.latestPrediction)))
+	mux.Handle("POST /console/api/audit-evidence", s.auth.RequireFreshAdmin(http.HandlerFunc(s.storeEvidence)))
+	mux.Handle("GET /console/api/audit-evidence/{id}", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.evidenceMetadata)))
+	mux.Handle("GET /console/api/audit-evidence/{id}/content", s.auth.RequireRole(auth.RoleAdmin, http.HandlerFunc(s.evidenceContent)))
 	mux.Handle("GET /console/api/devices/{id}/forecast", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.forecast)))
 }
 

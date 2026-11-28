@@ -52,6 +52,8 @@ type PostgresRepository struct {
 	db           *sql.DB
 	deploymentID string
 	now          func() time.Time
+	// auditEvidenceMaxBytes overrides contracts.AuditEvidenceMaxBytesV1 in tests.
+	auditEvidenceMaxBytes int
 }
 
 type EnrollmentChallenge struct {
