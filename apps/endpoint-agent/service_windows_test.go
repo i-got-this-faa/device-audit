@@ -13,7 +13,7 @@ import (
 // Outside the SCM, and under any account but LocalService, service mode
 // refuses to start instead of running with a different identity or privilege.
 func TestServiceRefusesUnsupportedRuntime(t *testing.T) {
-	if err := runService(`C:\absent\service.json`); err == nil || !strings.Contains(err.Error(), "service control manager") {
+	if err := runService(`C:\absent\service.json`, ""); err == nil || !strings.Contains(err.Error(), "service control manager") {
 		t.Fatalf("interactive --service = %v", err)
 	}
 	if _, err := checkServiceToken(); err == nil || !strings.Contains(err.Error(), "LocalService") {

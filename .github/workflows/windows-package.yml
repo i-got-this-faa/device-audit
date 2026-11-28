@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # First main commit carrying the signed Windows installer and spool delivery.
+  PRIOR_PACKAGE_COMMIT: 792361a21bd696db605577bc1168893ba501d012
+
 jobs:
   build-package:
     runs-on: ubuntu-latest
@@ -41,6 +45,18 @@ jobs:
             python3 packaging/windows/build.py --revision "$GITHUB_SHA" --output "$RUNNER_TEMP/$output" --model-dir "$DEVICE_AUDIT_INSTALLER_MODEL_FIXTURE"
           done
           diff -r "$RUNNER_TEMP/package" "$RUNNER_TEMP/rebuilt"
+      - name: Build the prior supported package and failure fixtures
+        run: |
+          git fetch --no-tags --depth=1 origin "$PRIOR_PACKAGE_COMMIT"
+          python3 packaging/windows/build.py --revision "$PRIOR_PACKAGE_COMMIT" --output "$RUNNER_TEMP/prior" --model-dir "$RUNNER_TEMP/model"
+          # Two deliberately invalid releases signed only with the ephemeral CI key.
+          # The first has an unsupported declaration. The second carries a binary
+          # that rejects trial startup despite declaring a compatible layout.
+          cp -r "$RUNNER_TEMP/package" "$RUNNER_TEMP/incompatible"
+          jq '.endpoint_state_version = 2' "$RUNNER_TEMP/package/provenance.json" > "$RUNNER_TEMP/incompatible/provenance.json"
+          cp -r "$RUNNER_TEMP/prior" "$RUNNER_TEMP/start-failure"
+          jq --arg commit "$GITHUB_SHA" '.source_commit = $commit | .endpoint_state_version = 1' \
+            "$RUNNER_TEMP/prior/provenance.json" > "$RUNNER_TEMP/start-failure/provenance.json"
       - name: Sign the qualification package with an ephemeral certificate
         id: pins
         working-directory: ${{ runner.temp }}
@@ -49,14 +65,20 @@ jobs:
           trap 'rm -f signer.key signer.crt' EXIT
           openssl req -x509 -newkey rsa:3072 -noenc -days 1 -subj '/CN=Device Audit CI fixture only' \
             -addext 'keyUsage=digitalSignature' -keyout signer.key -out signer.crt
-          openssl cms -sign -binary -md sha256 -nosmimecap -in package/provenance.json \
-            -signer signer.crt -inkey signer.key -outform DER -out package/provenance.p7s
+          for release in package prior incompatible start-failure; do
+            openssl cms -sign -binary -md sha256 -nosmimecap -in "$release/provenance.json" \
+              -signer signer.crt -inkey signer.key -outform DER -out "$release/provenance.p7s"
+          done
           printf 'signer=%s\n' "$(openssl x509 -in signer.crt -outform DER | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
           printf 'model=%s\n' "$(sha256sum model/publisher.pem | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: windows-package-fixture-only
-          path: ${{ runner.temp }}/package/
+          path: |
+            ${{ runner.temp }}/package/
+            ${{ runner.temp }}/prior/
+            ${{ runner.temp }}/incompatible/
+            ${{ runner.temp }}/start-failure/
           if-no-files-found: error
           retention-days: 3
   clean-install:
@@ -74,11 +96,22 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: windows-package-fixture-only
-          path: ${{ runner.temp }}/package
+          path: ${{ runner.temp }}/releases
       - name: Verify clean SCM start, signed native samples and rollback
         env:
-          DEVICE_AUDIT_INSTALLER_TEST_PACKAGE: ${{ runner.temp }}/package
+          DEVICE_AUDIT_INSTALLER_TEST_PACKAGE: ${{ runner.temp }}/releases/package
           DEVICE_AUDIT_INSTALLER_TEST_SIGNER: ${{ needs.build-package.outputs.signer }}
           DEVICE_AUDIT_INSTALLER_TEST_MODEL_PIN: ${{ needs.build-package.outputs.model }}
           DEVICE_AUDIT_INSTALLER_TEST_COMMIT: ${{ github.sha }}
         run: go test -count=1 -v -run '^TestWindowsReleaseCleanInstall$' ./apps/endpoint-agent
+      - name: Verify Windows SCM package upgrade, rollback, recovery and authenticated delivery
+        env:
+          DEVICE_AUDIT_INSTALLER_TEST_PACKAGE: ${{ runner.temp }}/releases/package
+          DEVICE_AUDIT_INSTALLER_TEST_SIGNER: ${{ needs.build-package.outputs.signer }}
+          DEVICE_AUDIT_INSTALLER_TEST_MODEL_PIN: ${{ needs.build-package.outputs.model }}
+          DEVICE_AUDIT_INSTALLER_TEST_COMMIT: ${{ github.sha }}
+          DEVICE_AUDIT_UPGRADE_TEST_PRIOR_PACKAGE: ${{ runner.temp }}/releases/prior
+          DEVICE_AUDIT_UPGRADE_TEST_PRIOR_COMMIT: ${{ env.PRIOR_PACKAGE_COMMIT }}
+          DEVICE_AUDIT_UPGRADE_TEST_INCOMPATIBLE_PACKAGE: ${{ runner.temp }}/releases/incompatible
+          DEVICE_AUDIT_UPGRADE_TEST_START_FAILURE_PACKAGE: ${{ runner.temp }}/releases/start-failure
+        run: go test -count=1 -v -run '^TestWindowsReleaseUpgrade$' ./apps/endpoint-agent

@@ -47,6 +47,7 @@ type serviceEnrollment struct {
 
 // serviceConfig is device-audit.endpoint-service.v1. Every path is absolute.
 type serviceConfig struct {
+	upgradeToken       string
 	SchemaVersion      string             `json:"schema_version"`
 	StateDir           string             `json:"state_dir"`
 	EvidenceDir        string             `json:"evidence_dir"`
@@ -61,6 +62,9 @@ type serviceConfig struct {
 // loadServiceConfig strictly decodes one bounded configuration file.
 func loadServiceConfig(path string) (serviceConfig, error) {
 	var cfg serviceConfig
+	if err := checkEndpointState(path, false); err != nil {
+		return cfg, err
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		return cfg, errors.New("open service config")
@@ -185,12 +189,17 @@ func runServicePipeline(ctx context.Context, cfg serviceConfig, newScheduler fun
 }
 
 func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, newScheduler func(telemetry.SamplingConfig) telemetry.Scheduler, logf func(string, ...any), runInference inferenceRunner) error {
-	store, err := openIdentityStore(cfg.StateDir, cfg.Enrollment != nil)
+	store, err := openIdentityStore(cfg.StateDir, cfg.Enrollment != nil && cfg.upgradeToken == "")
 	if err != nil {
 		return err
 	}
 	defer store.close()
-	receipt, err := admitService(ctx, store, cfg, logf)
+	var receipt contracts.EnrollmentAcceptedV1
+	if cfg.upgradeToken != "" {
+		receipt, err = store.status()
+	} else {
+		receipt, err = admitService(ctx, store, cfg, logf)
+	}
 	if err != nil {
 		return err
 	}
@@ -214,6 +223,11 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 	defer sink.close()
 	if sink.recoveredTail {
 		logf("preserved torn legacy evidence in %s", spoolLegacyTail)
+	}
+	if cfg.upgradeToken != "" {
+		if err := checkUpgradeState(ctx, cfg, store, receipt, sink, runInference); err != nil {
+			return fmt.Errorf("upgrade trial rejected: %w", err)
+		}
 	}
 	var sequenceMu sync.Mutex
 	var diagnostics *diagnosticDelivery
@@ -263,6 +277,9 @@ func runServicePipelineWithInference(ctx context.Context, cfg serviceConfig, new
 			}
 			deliveryDone <- err
 		}()
+	}
+	if cfg.upgradeToken != "" {
+		logf("endpoint upgrade ready %s", cfg.upgradeToken)
 	}
 	inference := startServiceInference(ctx, cfg.Inference, store, receipt.DeploymentID, runInference, logf)
 	defer inference.close()

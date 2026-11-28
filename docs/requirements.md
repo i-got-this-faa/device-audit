@@ -163,7 +163,7 @@ commands per class are in [validation.md](validation.md#reproducing-the-capabili
 | Lifecycle recommendations, sustainability, longevity, fleet trends | RQ-08 | Contract | [lifecycle v2](#provisional-lifecycle-wire-contract-ct08-78) | Evaluator, calibrated model, aggregator |
 | External asset integration; independent network observer | RQ-11 | Unsupported | Blocked in [release-scope](roadmap/release-scope.md#conditional-scope-decisions) | — |
 | Endpoint Windows service host as LocalService (start, stop, restart, SCM recovery, refusals) | RQ-10, RQ-02 | Target hardware | [windows-service-26](validation/windows-service-26.md), 18 Nov, four runs; enrollment through the real controller handlers on PostgreSQL 18.1; SCM restart after a kill and after a non-crash exit | Delivery and spool (#27); reboot and power loss; a real collector failure in the service (tests only) |
-| Endpoint packaging, signed install, upgrade, uninstall and release | RQ-10 | Unsupported | `tools/service` is a development install; no package (#57, #137, #68) | — |
+| Signed Windows package and state-preserving upgrade | RQ-10 | Implementation | [Windows package runbook](../packaging/windows/README.md), PKG01 #57 and PKG03 #136 | Physical target upgrade and reboot/power-loss qualification; separately scoped uninstall/recovery #137 and release #68 |
 
 Open dependencies of this matrix (#138, #51, #130, #137) and later evidence must
 update the affected rows. A row moves class only when a dated record with its

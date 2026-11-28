@@ -68,6 +68,12 @@ def build(revision, output, model):
             "runtime": "native-endpoint-agent",
             "model_included": model is not None,
         }
+        state_version = source / "apps" / "endpoint-agent" / "endpoint-state-version.txt"
+        if state_version.exists():
+            version_bytes = state_version.read_bytes()
+            if not re.fullmatch(rb"[1-9][0-9]*\n", version_bytes):
+                raise ValueError("endpoint state version must contain one positive integer and a newline")
+            provenance["endpoint_state_version"] = int(version_bytes)
         (output / "provenance.json").write_bytes(
             (json.dumps(provenance, indent=2, sort_keys=True) + "\n").encode("utf-8")
         )
