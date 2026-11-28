@@ -486,3 +486,39 @@ On Windows the worker is also restricted to 250 ms CPU and a 64 MiB working
 set. The parent discards responses taking over 1 s and terminates the child
 at the 2 s timeout. The [Windows budget harness](../../tools/inference/README.md)
 records how to measure these limits alongside real 60-second sensor sampling.
+
+## Offline local training, FED02 #42
+
+Run the standalone trainer with a trusted round record exported by the
+operator, a CT10 manifest signed by the pinned publisher for the `training`
+purpose, and the exact base artifact named in the round.
+
+```powershell
+Get-Content -Raw .\local-training.json |
+  .\endpoint-agent.exe --fit-local-candidate --training-publisher-key-file .\publisher.pem
+```
+
+The request is one local JSON object with `round`, absolute `manifest_file`
+and `artifact_file` paths, and an `examples` array. Each example contains the
+complete CT03 vector in `features` and the verified local Boolean outcome
+`failure_within_7d`. Supply examples from one endpoint in ascending UTC-day
+order, at most one per day, with a full seven-day observation horizon before
+the round opens. The trainer requires 8–4,096 examples and both outcome
+classes. A missing label or incomplete vector yields `insufficient_local_data`.
+A different feature version yields `incompatible_features`.
+
+`local-logistic-full-batch.v1` starts at the base intercept and coefficients
+with the base's mean, scale and predictor clip. It applies eight full-batch
+steps at learning rate 0.01, averaging the logistic residuals over every
+example. It uses the order supplied after validation and draws no random
+numbers. The local JSON result records the training configuration, base
+digest, round and candidate IDs, feature version, sample and parameter counts,
+canonical big-endian binary64 candidate weights in base order, and the SHA-256
+of those bytes. Raw examples stay in the local request.
+
+The offline command is for operator-run fitting and fixture verification.
+Endpoint telemetry currently supplies neither the CT03 SMART counters nor
+verified outcome labels. Authenticated round delivery, signed update admission,
+and the ML05 Windows training limits for scheduled service use are still
+pending. Two-device qualification requires two enrolled endpoints, reviewed
+local histories on each, and a shared publisher-signed training artifact.

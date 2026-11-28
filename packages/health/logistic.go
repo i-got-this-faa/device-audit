@@ -32,6 +32,11 @@ type logisticArtifact struct {
 	PredictorClip  string   `json:"predictor_clip"`
 }
 
+type logisticParameters struct {
+	weights, mean, scale []float64
+	clip                 float64
+}
+
 // LogisticLogit scores one complete CT03 vector with an artifact that the
 // caller has authenticated through CT10.
 func LogisticLogit(manifest contracts.ModelManifestV1, artifact []byte, vector contracts.FeatureVectorV1) (float64, error) {
@@ -39,34 +44,60 @@ func LogisticLogit(manifest contracts.ModelManifestV1, artifact []byte, vector c
 	if err != nil {
 		return 0, err
 	}
-	var model logisticArtifact
-	if json.Unmarshal(artifact, &model) != nil ||
-		model.SchemaVersion != "device-audit.logistic-baseline.v1" ||
-		model.Architecture != manifest.Architecture || model.ModelVersion != manifest.ModelVersion ||
-		model.FeatureVersion != manifest.FeatureVersion || vector.FeatureVersion != manifest.FeatureVersion ||
-		!slices.Equal(model.Features, manifest.Features) || manifest.ParameterCount != uint32(len(values)+1) ||
-		len(model.Mean) != len(values) || len(model.Scale) != len(values) || len(model.Weights) != len(values) {
-		return 0, errors.New("logistic artifact layout mismatch")
+	if vector.FeatureVersion != manifest.FeatureVersion {
+		return 0, errors.New("logistic feature version mismatch")
 	}
-
-	score, scoreOK := modelNumber(model.Intercept)
-	clip, clipOK := modelNumber(model.PredictorClip)
-	if !scoreOK || !clipOK || clip <= 0 {
-		return 0, errors.New("invalid logistic intercept or clip")
+	model, err := readLogisticParameters(manifest, artifact)
+	if err != nil {
+		return 0, err
 	}
+	score := model.weights[0]
 	for i, value := range values {
-		mean, meanOK := modelNumber(model.Mean[i])
-		scale, scaleOK := modelNumber(model.Scale[i])
-		weight, weightOK := modelNumber(model.Weights[i])
-		if !meanOK || !scaleOK || !weightOK || scale <= 0 {
-			return 0, errors.New("invalid logistic feature parameter")
-		}
-		score += weight * ((value - mean) / scale)
+		score += model.weights[i+1] * ((value - model.mean[i]) / model.scale[i])
 	}
 	if math.IsNaN(score) || math.IsInf(score, 0) {
 		return 0, errors.New("logistic score is not finite")
 	}
-	return min(clip, max(-clip, score)), nil
+	return min(model.clip, max(-model.clip, score)), nil
+}
+
+func readLogisticParameters(manifest contracts.ModelManifestV1, artifact []byte) (logisticParameters, error) {
+	var params logisticParameters
+	names, _, err := contracts.FeatureNamesV1(manifest.FeatureVersion)
+	if err != nil {
+		return params, err
+	}
+	featureCount := len(names)
+	var model logisticArtifact
+	if json.Unmarshal(artifact, &model) != nil ||
+		model.SchemaVersion != "device-audit.logistic-baseline.v1" ||
+		model.Architecture != manifest.Architecture || model.ModelVersion != manifest.ModelVersion ||
+		model.FeatureVersion != manifest.FeatureVersion || !slices.Equal(model.Features, manifest.Features) ||
+		manifest.ParameterCount != uint32(featureCount+1) ||
+		len(model.Mean) != featureCount || len(model.Scale) != featureCount || len(model.Weights) != featureCount {
+		return params, errors.New("logistic artifact layout mismatch")
+	}
+
+	intercept, interceptOK := modelNumber(model.Intercept)
+	clip, clipOK := modelNumber(model.PredictorClip)
+	if !interceptOK || !clipOK || clip <= 0 {
+		return params, errors.New("invalid logistic intercept or clip")
+	}
+	params = logisticParameters{
+		weights: make([]float64, featureCount+1), mean: make([]float64, featureCount),
+		scale: make([]float64, featureCount), clip: clip,
+	}
+	params.weights[0] = intercept
+	for i := range featureCount {
+		mean, meanOK := modelNumber(model.Mean[i])
+		scale, scaleOK := modelNumber(model.Scale[i])
+		weight, weightOK := modelNumber(model.Weights[i])
+		if !meanOK || !scaleOK || !weightOK || scale <= 0 {
+			return logisticParameters{}, errors.New("invalid logistic feature parameter")
+		}
+		params.mean[i], params.scale[i], params.weights[i+1] = mean, scale, weight
+	}
+	return params, nil
 }
 
 func modelNumber(encoded string) (float64, bool) {
