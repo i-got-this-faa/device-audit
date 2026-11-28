@@ -4,6 +4,10 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [FED12 training data minimization and privacy limits](validation/federated-minimization-117.md)
+captures staged update submissions and controller logs for valid and rejected
+training requests.
+
 Follow-up: [DIA05 signed diagnostic assignment dispatch and terminal results, 28 November 2026](validation/diagnostic-dispatch-109.md)
 signs, dispatches, cancels, and ingests allowlisted CT06 diagnostic assignments
 with single-terminal-transition and revocation guarantees.
