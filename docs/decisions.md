@@ -195,8 +195,7 @@ publisher is registered and the name is publisher-shaped. Otherwise it is reduce
 to its digest. A denied log or disk is a `permission_denied` failure without
 retry, elevation or state change. Each OS call is abandoned at the wall budget,
 and any outcome observed after it is `budget_exhausted`. Evidence larger than
-`max_output_bytes` is never returned. Assignment signature and target checks
-and signed results remain DIA03 #38. Evidence is in
+`max_output_bytes` is never returned. Catalog evidence is in
 [probe-catalog-36.md](validation/probe-catalog-36.md).
 
 ## Provisional lifecycle contract v2
@@ -1453,3 +1452,26 @@ must still be produced and signed outside this change. No publisher signing
 tool or key issuance exists. The recorded ML06 report for the ML02 baseline
 fails four ML05 gates, so no model can be promoted on current evidence. Console
 views are `WEB04 #49`.
+
+## Endpoint diagnostic assignment execution, DIA03 #38
+
+The existing `--run-assigned-probe` command uses the CT06 contracts published
+in #76 and the bounded worker from DIA04 #108. The locally pinned diagnostic
+authority signs assignments. The enrolled device key signs results with
+sequences reserved by the same allocator used for telemetry. The mesh key
+continues to identify the network peer.
+
+Under the identity lock, the endpoint reserves a result sequence, commits an
+immutable claim for the assignment ID, and advances the controller sequence
+high-water mark for the pinned signing key before starting the worker. This
+orders acceptance by controller sequence and keeps assignment IDs consumed
+across restarts and controller key changes. A crash between durable writes
+can leave a sequence gap or a claimed assignment with no result. Hold that
+claim for reconciliation in DIA06 #110. The result carries the Windows boot
+identifier and the digest of the signed assignment. Before signing a result
+that references evidence, the endpoint saves the corresponding bytes in the
+private identity directory. Automatic polling, terminal result spooling,
+offline cancellation and reboot reporting remain open. The wire schema and
+fixtures carry over from CT06.
+
+See [the validation record](validation/diagnostic-execution-38.md).

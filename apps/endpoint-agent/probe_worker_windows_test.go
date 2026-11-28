@@ -134,7 +134,7 @@ func TestProbeWorkerWindowsLimits(t *testing.T) {
 }
 
 func TestAssignedProbeWindowsCommand(t *testing.T) {
-	store, stateDir, _, receipt := admittedStore(t)
+	store, stateDir, identity, receipt := admittedStore(t)
 	store.close()
 	key, private, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -184,12 +184,17 @@ func TestAssignedProbeWindowsCommand(t *testing.T) {
 		return out, cmd.ProcessState.ExitCode()
 	}
 	out, code := run(a)
-	var failure probeFailure
-	if code != 1 || json.Unmarshal(out, &failure) != nil || failure.Detail != "output_budget" {
+	var result contracts.DiagnosticResultV1
+	if code != 1 || json.Unmarshal(out, &result) != nil || result.State != "failed" ||
+		result.Reason == nil || *result.Reason != "budget_exhausted" ||
+		result.VerifySignature(identity.signing.Public().(ed25519.PublicKey)) != nil || result.CheckAssignment(a) != nil {
 		t.Fatalf("signed cap: exit %d, %s", code, out)
 	}
+	if out, code := run(a); code != 2 || !bytes.Contains(out, []byte("stale or replayed")) {
+		t.Fatalf("replay: exit %d, %s", code, out)
+	}
 	a.Budget.MaxOutputBytes++
-	if out, code := run(a); code != 2 || !bytes.Contains(out, []byte("signature or target rejected")) {
+	if out, code := run(a); code != 2 || !bytes.Contains(out, []byte("unauthorized")) {
 		t.Fatalf("changed signed cap: exit %d, %s", code, out)
 	}
 }

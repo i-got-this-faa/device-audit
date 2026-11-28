@@ -24,23 +24,34 @@ func (r *ProbeRunner) Run(ctx context.Context, req Request) ([]byte, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	return r.run(ctx, req, time.Time{})
+	return r.run(ctx, req, time.Time{}, time.Now().Add(time.Duration(req.Budget.WallSeconds)*time.Second))
 }
 
 // RunAssigned verifies the pinned controller and target before allocating a
 // worker. Assignment delivery and durable deduplication are caller concerns.
 func (r *ProbeRunner) RunAssigned(ctx context.Context, a contracts.DiagnosticAssignmentV1, key ed25519.PublicKey, deployment, device string) ([]byte, error) {
-	if a.VerifySignature(key) != nil || a.DeploymentID != deployment || a.DeviceID != device {
-		return nil, errors.New("diagnostic assignment signature or target rejected")
+	if err := verifyAssignmentTarget(a, key, deployment, device); err != nil {
+		return nil, err
 	}
-	if a.CanStart(time.Now()) != nil {
+	started := time.Now()
+	if a.CanStart(started) != nil {
 		return nil, &Failure{Reason: ReasonExpired, Detail: "deadline_exceeded"}
 	}
 	deadline, _ := time.Parse(time.RFC3339, a.ExpiresAt)
-	return r.run(ctx, Request{ProbeID: a.ProbeID, Arguments: a.Arguments, Budget: a.Budget}, deadline)
+	return r.run(ctx, Request{ProbeID: a.ProbeID, Arguments: a.Arguments, Budget: a.Budget}, deadline, started.Add(time.Duration(a.Budget.WallSeconds)*time.Second))
 }
 
-func (r *ProbeRunner) run(ctx context.Context, req Request, expires time.Time) ([]byte, error) {
+func verifyAssignmentTarget(a contracts.DiagnosticAssignmentV1, key ed25519.PublicKey, deployment, device string) error {
+	if a.Validate() != nil {
+		return ErrAssignmentInvalid
+	}
+	if a.VerifySignature(key) != nil || a.DeploymentID != deployment || a.DeviceID != device {
+		return ErrAssignmentUnauthorized
+	}
+	return nil
+}
+
+func (r *ProbeRunner) run(ctx context.Context, req Request, expires, deadline time.Time) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, stoppedProbe(err, false)
 	}
@@ -50,13 +61,15 @@ func (r *ProbeRunner) run(ctx context.Context, req Request, expires time.Time) (
 	default:
 		return nil, &Failure{Reason: ReasonBudgetExhausted, Detail: "concurrency_budget"}
 	}
-	deadline := time.Now().Add(time.Duration(req.Budget.WallSeconds) * time.Second)
 	signedDeadline := !expires.IsZero() && !deadline.Before(expires)
 	if signedDeadline {
 		deadline = expires
 	}
 	ctx, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return nil, stoppedProbe(err, signedDeadline && !time.Now().Before(expires))
+	}
 	data, err := r.execute(ctx, req)
 	var failure *Failure
 	// A worker may cross a limit and then be reaped after the caller's
