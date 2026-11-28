@@ -304,6 +304,10 @@ func finalizeAssessment(out Assessment, latest *EvidenceSummary, maxAge time.Dur
 	if latest == nil {
 		return out, nil
 	}
+	expires := out.AsOf.Add(maxAge)
+	if out.Health.Status != HealthStatusUnknown {
+		expires = latest.CollectedAt.Add(maxAge)
+	}
 	prediction := contracts.PredictionV2{
 		SchemaVersion: contracts.PredictionV2Version,
 		DeviceID:      out.DeviceID,
@@ -313,7 +317,7 @@ func finalizeAssessment(out Assessment, latest *EvidenceSummary, maxAge time.Dur
 			TelemetrySchemaVersion: latest.TelemetrySchemaVersion,
 		},
 		GeneratedAt: out.AsOf,
-		ExpiresAt:   out.AsOf.Add(maxAge),
+		ExpiresAt:   expires,
 		Health:      out.Health,
 		Forecasts:   []contracts.FaultForecastV2{},
 	}

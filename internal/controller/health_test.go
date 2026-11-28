@@ -496,7 +496,8 @@ func TestEvaluateDeviceHealthModelFailuresAndBoundaries(t *testing.T) {
 	writeEvalReportFile(t, evalDir, failedDigest, failedBytes)
 	registerAndActivateModel(t, b.repo, publisher, artifact, health.ControllerInferenceRuntime(), failedDigest, health.ML05PolicyVersion)
 	got, err = b.repo.EvaluateDeviceHealth(ctx, cfg, dev, asOf)
-	if err != nil || got.ModelError != "evaluation_rejected" || got.Assessment.Health.UnknownReason != health.UnknownReasonModelUnavailable || got.Model != nil {
+	if err != nil || got.ModelError != "evaluation_rejected" || got.Assessment.Health.UnknownReason != health.UnknownReasonModelUnavailable ||
+		got.Model != nil || got.Assessment.Health.Probability != nil || got.Assessment.Health.HorizonHours != nil {
 		t.Fatalf("expected evaluation_rejected for ML06 failed report, got %+v err=%v", got, err)
 	}
 

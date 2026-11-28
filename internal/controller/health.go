@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"syscall"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -30,6 +31,9 @@ type EvaluationReportStore interface {
 type EvaluationReportFunc func(ctx context.Context, evaluationSHA256 string) ([]byte, error)
 
 func (f EvaluationReportFunc) EvaluationReport(ctx context.Context, evaluationSHA256 string) ([]byte, error) {
+	if f == nil {
+		return nil, errors.New("evaluation report lookup is unavailable")
+	}
 	return f(ctx, evaluationSHA256)
 }
 
@@ -42,7 +46,12 @@ func (d EvaluationReportDir) EvaluationReport(_ context.Context, evaluationSHA25
 	if d == "" || !evaluationSHA256Pattern.MatchString(evaluationSHA256) {
 		return nil, errors.New("valid evaluation directory and SHA-256 digest are required")
 	}
-	f, err := os.OpenInRoot(string(d), evaluationSHA256+".json")
+	root, err := os.OpenRoot(string(d))
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+	f, err := root.OpenFile(evaluationSHA256+".json", os.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +111,8 @@ type DeviceHealth struct {
 //
 // Unknown devices return ErrRepositoryNotFound and invalid queries return
 // ErrDeviceStateInvalid. Real telemetry v2 carries no SMART counter, so
-// production evaluation yields unknown (insufficient_evidence) rather than
-// inventing a numerical failure risk.
+// a ready model with fresh telemetry yields unknown (insufficient_evidence)
+// rather than inventing a numerical failure risk.
 func (s *PostgresRepository) EvaluateDeviceHealth(ctx context.Context, cfg HealthConfig, deviceID string, asOf time.Time) (DeviceHealth, error) {
 	return s.evaluateDeviceHealth(ctx, cfg, deviceID, asOf, func(r evidenceRef) health.SMARTReading {
 		return health.SMARTReading{ObservedAt: r.CollectedAt}

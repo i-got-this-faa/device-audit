@@ -243,6 +243,11 @@ func TestVerifyEvaluationReportAndRealBaselineModel(t *testing.T) {
 	forged := buildPassingEvaluationMap(manifest, 0.0, 1.0)
 	forgedMetrics := forged["metrics"].(map[string]map[string]float64)
 	forgedMetrics["brier_skill_vs_prevalence"] = map[string]float64{"point": 0.02, "lower": -0.01, "upper": 0.05}
+	for _, check := range forged["gate"].(map[string]any)["checks"].([]map[string]any) {
+		if check["metric"] == "brier_skill_vs_prevalence" {
+			check["observed"] = -0.01
+		}
+	}
 	forgedBytes, forgedDigest := marshalEvaluation(t, forged)
 	if _, err := health.VerifyEvaluationReport(forgedBytes, forgedDigest, manifest); !errors.Is(err, health.ErrEvaluationRejected) {
 		t.Fatalf("expected forged passing status over failing metric to be rejected, got %v", err)
@@ -307,6 +312,10 @@ func TestVerifyEvaluationReportAndRealBaselineModel(t *testing.T) {
 		}},
 		{"wrong bootstrap replicates", func(m map[string]any) ([]byte, string) {
 			m["bootstrap"].(map[string]any)["replicates"] = 500
+			return marshalEvaluation(t, m)
+		}},
+		{"ROC AUC above one", func(m map[string]any) ([]byte, string) {
+			m["metrics"].(map[string]map[string]float64)["roc_auc"]["upper"] = 1.01
 			return marshalEvaluation(t, m)
 		}},
 		{"insufficient test positive events", func(m map[string]any) ([]byte, string) {
@@ -680,7 +689,7 @@ func TestAssessHealthRules(t *testing.T) {
 				if got.Health.Probability == nil || got.Health.HorizonHours == nil {
 					t.Fatalf("expected probability and horizon, got prob=%v horizon=%v", got.Health.Probability, got.Health.HorizonHours)
 				}
-				if math.Abs(*got.Health.Probability-tc.wantProb) >= 1e-12 || *got.Health.HorizonHours != 168 {
+				if !(math.Abs(*got.Health.Probability-tc.wantProb) < 1e-12) || *got.Health.HorizonHours != 168 {
 					t.Fatalf("unexpected prob/horizon: %v (want %.17f) / %v", *got.Health.Probability, tc.wantProb, *got.Health.HorizonHours)
 				}
 			} else if got.Health.Probability != nil || got.Health.HorizonHours != nil {
@@ -696,6 +705,9 @@ func TestAssessHealthRules(t *testing.T) {
 				}
 				if err := got.Prediction.Validate(); err != nil {
 					t.Fatalf("PredictionV2 failed contract validation: %v", err)
+				}
+				if tc.wantProb > 0 && !got.Prediction.ExpiresAt.Equal(tc.input.LatestEvidence.CollectedAt.Add(health.MaxEvidenceAge)) {
+					t.Fatalf("prediction outlives freshness window: %v", got.Prediction.ExpiresAt)
 				}
 				if len(got.Prediction.Forecasts) != 0 {
 					t.Fatalf("expected empty forecasts without horizon model, got %d", len(got.Prediction.Forecasts))

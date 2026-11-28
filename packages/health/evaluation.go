@@ -327,6 +327,9 @@ func checkEvaluationMetricsAndGate(report evaluationReportWire, manifest contrac
 		if *interval.Lower > *interval.Point || *interval.Point > *interval.Upper {
 			return fmt.Errorf("%w: inconsistent interval for %q", ErrEvaluationRejected, spec.metric)
 		}
+		if spec.metric == "roc_auc" && (*interval.Lower < 0 || *interval.Upper > 1) {
+			return fmt.Errorf("%w: ROC AUC interval outside [0,1]", ErrEvaluationRejected)
+		}
 		observed, ok := intervalBound(interval, spec.bound)
 		if !ok || !evalOp(observed, spec.op, spec.threshold) {
 			return fmt.Errorf("%w: gate %q failed threshold", ErrEvaluationRejected, spec.id)

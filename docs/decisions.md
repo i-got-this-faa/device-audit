@@ -1309,8 +1309,10 @@ statuses.
 enrollment state, latest persisted `device_evidence` up to `asOf`, `active`
 model registry references, CT03 features (`FeatureEvidence`), and 28-day ML10
 fault history (`DeviceFaultHistory`) inside one `REPEATABLE READ READ ONLY`
-transaction snapshot. Latest telemetry aged `>= 1h` (`MaxEvidenceAge`) or
-collected after `asOf` yields `unknown` (`stale_evidence`). Missing or failed
+transaction snapshot. The repository excludes telemetry collected after
+`asOf`. The health rules reject future samples and enforce a default
+one-hour freshness window. Known predictions expire with the source evidence.
+Missing or failed
 models, mismatched policy/runtime/digest, incomplete CT03 vectors (including
 all real `device-audit.telemetry.v2` samples, which carry no SMART counters),
 or insufficient fault windows fail closed to `unknown` (`model_unavailable` or
