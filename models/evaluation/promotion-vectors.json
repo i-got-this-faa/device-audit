@@ -1,0 +1,283 @@
+{
+  "schema_version": "device-audit.promotion-vectors.v1",
+  "policy_version": "fed10.v1",
+  "cases": [
+    {
+      "name": "first promotion has no active baseline",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": null,
+      "outcome": "promoted",
+      "reasons": []
+    },
+    {
+      "name": "equal metrics are not a regression",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "promoted",
+      "reasons": []
+    },
+    {
+      "name": "improvement and tolerated losses promote",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.25,
+          "roc_auc": 0.876,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.0059,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "promoted",
+      "reasons": []
+    },
+    {
+      "name": "average precision may not fall at all",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.1999,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "rejected",
+      "reasons": [
+        "regression:active_average_precision"
+      ]
+    },
+    {
+      "name": "several regressions are all reported",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.86,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.0014,
+          "never_positive_device_alert_fraction": 0.06
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "rejected",
+      "reasons": [
+        "regression:active_roc_auc",
+        "regression:active_window_fpr_critical",
+        "regression:active_device_false_alarm"
+      ]
+    },
+    {
+      "name": "failed evaluation is rejected before comparison",
+      "candidate": {
+        "verdict": "fail",
+        "reasons": [
+          "gate_failed:brier_skill"
+        ],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "rejected",
+      "reasons": [
+        "evaluation_fail",
+        "gate_failed:brier_skill"
+      ]
+    },
+    {
+      "name": "blocked evaluation is rejected",
+      "candidate": {
+        "verdict": "blocked",
+        "reasons": [
+          "insufficient:test_devices"
+        ],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": null,
+      "outcome": "rejected",
+      "reasons": [
+        "evaluation_blocked",
+        "insufficient:test_devices"
+      ]
+    },
+    {
+      "name": "different held-out examples cannot be compared",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "rejected",
+      "reasons": [
+        "baseline_not_comparable"
+      ]
+    },
+    {
+      "name": "an active baseline that no longer passes cannot be compared",
+      "candidate": {
+        "verdict": "pass",
+        "reasons": [],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "active": {
+        "verdict": "fail",
+        "reasons": [
+          "gate_failed:brier_skill"
+        ],
+        "test_partition_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "metrics": {
+          "average_precision": 0.2,
+          "roc_auc": 0.88,
+          "event_recall_within_horizon": 0.5,
+          "window_false_positive_rate_degraded": 0.005,
+          "window_false_positive_rate_critical": 0.001,
+          "never_positive_device_alert_fraction": 0.04
+        }
+      },
+      "outcome": "rejected",
+      "reasons": [
+        "baseline_not_comparable"
+      ]
+    }
+  ]
+}

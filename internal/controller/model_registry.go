@@ -19,7 +19,6 @@ import (
 
 	"github.com/i-got-this-faa/device-audit/internal/controller/auth"
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ErrModelArtifactCorrupt means stored bytes no longer match their signed
@@ -131,55 +130,9 @@ func (s *PostgresRepository) modelArtifactBytes(ctx context.Context, q dbQueryer
 	return manifest, artifact, nil
 }
 
-// ApproveModel records the one approval an artifact can have. created is false
-// for a repeat of the stored approval; a different one is a version_conflict.
-func (s *PostgresRepository) ApproveModel(ctx context.Context, request contracts.ModelApprovalRequestV1, actor contracts.ModelActorV1) (contracts.ModelArtifactV1, bool, error) {
-	if err := request.Validate(); err != nil {
-		return contracts.ModelArtifactV1{}, false, err
-	}
-	if err := actor.Validate(); err != nil {
-		return contracts.ModelArtifactV1{}, false, err
-	}
-	record, err := s.ModelArtifact(ctx, request.ModelVersion)
-	if err != nil {
-		return contracts.ModelArtifactV1{}, false, err
-	}
-	if record.Manifest.ArtifactSHA256 != request.ArtifactSHA256 {
-		return contracts.ModelArtifactV1{}, false, contracts.ModelRejectionReferenceMismatch
-	}
-	if a := record.Approval; a != nil {
-		if a.EvaluationSHA256 == request.EvaluationSHA256 && a.PolicyVersion == request.PolicyVersion {
-			return record, false, nil
-		}
-		return contracts.ModelArtifactV1{}, false, contracts.ModelRejectionVersionConflict
-	}
-	digest, _ := hex.DecodeString(request.ArtifactSHA256)
-	evaluation, _ := hex.DecodeString(request.EvaluationSHA256)
-	tx, err := s.beginWrite(ctx)
-	if err != nil {
-		return contracts.ModelArtifactV1{}, false, err
-	}
-	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `INSERT INTO model_approvals (deployment_id, model_version, artifact_sha256, evaluation_sha256,
-		policy_version, approved_at, actor_issuer, actor_subject) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-		s.deploymentID, request.ModelVersion, digest, evaluation, request.PolicyVersion, s.now().UTC().Truncate(time.Microsecond),
-		actor.Issuer, actor.Subject); err != nil {
-		var pgError *pgconn.PgError
-		if errors.As(err, &pgError) && pgError.Code == postgresUniqueViolationSQLState {
-			// A concurrent approval won; report it as a repeat or a conflict.
-			return s.ApproveModel(ctx, request, actor)
-		}
-		return contracts.ModelArtifactV1{}, false, repositoryUnavailable(err)
-	}
-	if err := repositoryCommit(tx); err != nil {
-		return contracts.ModelArtifactV1{}, false, err
-	}
-	record, err = s.ModelArtifact(ctx, request.ModelVersion)
-	return record, err == nil, err
-}
-
 // SetModelReference points one slot at a stored artifact. Activation needs an
-// approval and the inference purpose; activating the candidate clears it.
+// approval, which only a passing promotion creates, and the inference purpose;
+// activating the candidate clears it.
 // A refusal leaves both slots unchanged.
 func (s *PostgresRepository) SetModelReference(ctx context.Context, slot contracts.ModelSlotV1, request contracts.ModelReferenceRequestV1, actor contracts.ModelActorV1) (contracts.ModelReferencesV1, error) {
 	if slot != contracts.ModelSlotActive && slot != contracts.ModelSlotCandidate {
@@ -212,6 +165,9 @@ func (s *PostgresRepository) SetModelReference(ctx context.Context, slot contrac
 		return contracts.ModelReferencesV1{}, err
 	}
 	defer tx.Rollback()
+	if err := s.lockModelPromotions(ctx, tx); err != nil {
+		return contracts.ModelReferencesV1{}, err
+	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO model_references (deployment_id, slot, model_version, artifact_sha256, set_at, actor_issuer, actor_subject)
 		VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (deployment_id, slot) DO UPDATE SET model_version=EXCLUDED.model_version,
 		artifact_sha256=EXCLUDED.artifact_sha256, set_at=EXCLUDED.set_at, actor_issuer=EXCLUDED.actor_issuer, actor_subject=EXCLUDED.actor_subject`,
@@ -265,7 +221,8 @@ func (s *PostgresRepository) modelReferences(ctx context.Context, q dbQueryer) (
 
 // ModelRegistryService exposes the registry to console administrators. Writes
 // need a fresh administrator; artifact bytes need an administrator; metadata
-// needs a viewer. Uploads must verify against the configured publisher key.
+// needs a viewer. Uploads and evaluations must verify against the configured
+// publisher key. An approval exists only as the result of a promotion.
 type ModelRegistryService struct {
 	repository   *PostgresRepository
 	auth         *auth.Service
@@ -283,7 +240,10 @@ func (s *ModelRegistryService) Register(mux *http.ServeMux) {
 	mux.Handle("POST /console/api/models", s.auth.RequireFreshAdmin(http.HandlerFunc(s.upload)))
 	mux.Handle("GET /console/api/models/{version}", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.artifact)))
 	mux.Handle("GET /console/api/models/{version}/artifact", s.auth.RequireRole(auth.RoleAdmin, http.HandlerFunc(s.download)))
-	mux.Handle("POST /console/api/models/{version}/approval", s.auth.RequireFreshAdmin(http.HandlerFunc(s.approve)))
+	mux.Handle("POST /console/api/models/{version}/evaluation", s.auth.RequireFreshAdmin(http.HandlerFunc(s.submitEvaluation)))
+	mux.Handle("GET /console/api/models/{version}/evaluation", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.evaluation)))
+	mux.Handle("POST /console/api/models/{version}/promotion", s.auth.RequireFreshAdmin(http.HandlerFunc(s.promote)))
+	mux.Handle("GET /console/api/models/{version}/promotion", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.promotion)))
 	mux.Handle("GET /console/api/model-references", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.references)))
 	mux.Handle("PUT /console/api/model-references/{slot}", s.auth.RequireFreshAdmin(http.HandlerFunc(s.setReference)))
 }
@@ -357,23 +317,6 @@ func (s *ModelRegistryService) download(w http.ResponseWriter, r *http.Request) 
 	_, _ = w.Write(artifact)
 }
 
-func (s *ModelRegistryService) approve(w http.ResponseWriter, r *http.Request) {
-	var request contracts.ModelApprovalRequestV1
-	if !decodeModelRequest(w, r, 16<<10, &request) {
-		return
-	}
-	if request.ModelVersion != r.PathValue("version") {
-		http.Error(w, string(contracts.ModelRejectionInvalidRequest), http.StatusBadRequest)
-		return
-	}
-	actor, ok := sessionActor(w, r)
-	if !ok {
-		return
-	}
-	record, created, err := s.repository.ApproveModel(r.Context(), request, actor)
-	writeModelResult(w, record, created, err)
-}
-
 func (s *ModelRegistryService) references(w http.ResponseWriter, r *http.Request) {
 	refs, err := s.repository.ModelReferences(r.Context())
 	writeModelResult(w, refs, false, err)
@@ -417,7 +360,7 @@ func modelRejectionStatus(rejection contracts.ModelRejection) int {
 	case contracts.ModelRejectionKeyMismatch, contracts.ModelRejectionInvalidSignature:
 		// The artifact is not from the trusted publisher.
 		return http.StatusForbidden
-	case contracts.ModelRejectionVersionConflict, contracts.ModelRejectionNotApproved, contracts.ModelRejectionReferenceMismatch:
+	case contracts.ModelRejectionVersionConflict, contracts.ModelRejectionNotApproved, contracts.ModelRejectionReferenceMismatch, contracts.ModelRejectionNotCandidate:
 		return http.StatusConflict
 	case contracts.ModelRejectionArtifactTooLarge:
 		return http.StatusRequestEntityTooLarge

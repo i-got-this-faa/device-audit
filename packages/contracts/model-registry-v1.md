@@ -13,7 +13,10 @@ reader yet, because the only consumer is the controller's console API.
 | --- | --- | --- |
 | `device-audit.model-artifact-upload.v1` | request | Signed manifest, artifact bytes (base64 in JSON) and an opaque `source_reference`. |
 | `device-audit.model-artifact.v1` | response | One stored entry: manifest, byte size, source reference, upload time and uploader, and the approval or null. |
-| `device-audit.model-approval-request.v1` | request | Approves one exact artifact digest, citing `evaluation_sha256` and `policy_version`. |
+| `device-audit.model-evaluation-submission.v1` | request | One ML05 held-out report (base64) for a stored artifact, signed by the model publisher over the version, artifact digest and report digest. |
+| `device-audit.model-evaluation.v1` | response | The controller's `pass`, `fail` or `blocked` verdict with reason codes and the report's metric intervals (null when the report was unreadable). |
+| `device-audit.model-promotion-request.v1` | request | Asks for a decision on one candidate, citing its artifact and evaluation digests. It carries no verdict. |
+| `device-audit.model-promotion.v1` | response | The immutable `promoted` or `rejected` decision: reasons, the active baseline it was compared with (or null), each regression check, time and actor. |
 | `device-audit.model-reference-request.v1` | request | Points the `active` or `candidate` slot at one stored version and its digest. |
 | `device-audit.model-references.v1` | response | Both slots. A null slot names no model; there is no fallback. |
 
@@ -42,9 +45,14 @@ them against itself.
 - **Immutable.** A version and its bytes are stored once. A repeat of the same
   manifest and bytes returns the stored entry. Any other upload of a stored
   version, or of stored bytes under another version, is `version_conflict`.
-- **Approval.** One approval per artifact, bound to its digest. A repeat of the
-  same approval returns it; a different one is `version_conflict`. A digest that
-  is not the stored one is `reference_mismatch`.
+- **Approval.** One approval per artifact, bound to its digest. It exists only
+  as the result of a promotion from a stored passing evaluation (FED10 #115);
+  there is no request to approve a model. A digest that is not the stored one
+  is `reference_mismatch`.
+- **Evaluation and promotion.** One evaluation per candidate version, signed by
+  the publisher and read by the controller. One decision per candidate:
+  `promoted` or `rejected`, immutable. A repeat returns the stored record;
+  other evidence afterwards is `version_conflict`.
 - **Active.** Only an approved artifact that declares `inference` can be active:
   otherwise `not_approved` or `purpose_unsupported`. Activating the candidate
   clears the candidate slot.

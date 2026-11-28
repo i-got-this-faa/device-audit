@@ -115,6 +115,7 @@ func buildPassingML05Report(t *testing.T, manifest contracts.ModelManifestV1, de
 		"calibration_slope":                     {"point": 0.98, "lower": 0.82, "upper": 1.14},
 		"event_recall_within_horizon":           {"point": 0.45, "lower": 0.28, "upper": 0.62},
 		"median_first_alert_lead_days":          {"point": 3.5, "lower": 2.2, "upper": 4.8},
+		"average_precision":                     {"point": 0.20, "lower": 0.10, "upper": 0.30},
 	}
 	checks := []map[string]any{
 		{"id": "baseline_average_precision", "kind": "baseline", "metric": "average_precision_minus_best_baseline", "bound": "lower", "op": ">", "threshold": 0.0, "observed": metrics["average_precision_minus_best_baseline"]["lower"], "status": "pass"},
@@ -151,8 +152,9 @@ func buildPassingML05Report(t *testing.T, manifest contracts.ModelManifestV1, de
 			"test_positive_events": 35, "test_positive_windows": 120, "test_negative_windows": 12000,
 			"test_devices": 1200, "validation_negative_windows": 12000,
 		},
-		"metrics":          metrics,
-		"operating_points": map[string]any{"degraded_logit": degradedLogit, "critical_logit": criticalLogit},
+		"metrics":                   metrics,
+		"partition_examples_sha256": map[string]string{"test": strings.Repeat("7", 64)},
+		"operating_points":          map[string]any{"degraded_logit": degradedLogit, "critical_logit": criticalLogit},
 		"gate": map[string]any{
 			"schema_version": health.EvaluationGateV1Version, "status": "pass",
 			"policy_sha256": health.ML05PolicySHA256, "blocking_reasons": []string{},
@@ -190,15 +192,7 @@ func registerAndActivateModel(t *testing.T, repo *PostgresRepository, publisher 
 	if _, _, err := repo.PutModelArtifact(ctx, up, pub, actor); err != nil {
 		t.Fatalf("PutModelArtifact %s: %v", version, err)
 	}
-	if _, _, err := repo.ApproveModel(ctx, contracts.ModelApprovalRequestV1{
-		SchemaVersion:    contracts.ModelApprovalRequestV1Version,
-		ModelVersion:     version,
-		ArtifactSHA256:   manifest.ArtifactSHA256,
-		EvaluationSHA256: evalDigest,
-		PolicyVersion:    policyVersion,
-	}, actor); err != nil {
-		t.Fatalf("ApproveModel %s: %v", version, err)
-	}
+	approveWithoutEvaluationGate(t, repo, version, manifest.ArtifactSHA256, evalDigest, policyVersion)
 	if _, err := repo.SetModelReference(ctx, contracts.ModelSlotActive, contracts.ModelReferenceRequestV1{
 		SchemaVersion:  contracts.ModelReferenceRequestV1Version,
 		ModelVersion:   version,

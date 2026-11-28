@@ -33,6 +33,10 @@ history over bounded windows. Every persisted report is `unclassified`.
 Follow-up: [FED07 model artifact registry, 24 November 2026](validation/model-registry-112.md)
 stores signed artifacts immutably; the database refuses an unapproved active model.
 
+Follow-up: [FED10 evaluation-gated promotion, 28 November 2026](validation/model-promotion-115.md)
+promotes a candidate only from a stored held-out evaluation and leaves the active
+model unchanged on a failed, blocked or regressing candidate.
+
 Follow-up: [ML09 controller feature extraction, 23 November 2026](validation/controller-features-105.md)
 runs the endpoint's CT03 preprocessing over persisted evidence with window
 provenance. Telemetry v2 holds no SMART counter, so every controller vector is

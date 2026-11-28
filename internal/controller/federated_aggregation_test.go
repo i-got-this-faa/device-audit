@@ -415,15 +415,7 @@ func TestFederatedAggregationConcurrencyDatabaseGuardsAndSyntheticCandidate(t *t
 	if _, _, err := b.repo.PutModelArtifact(ctx, upload(preMan, candBytesApp), b.publisher.Public().(ed25519.PublicKey), contracts.ModelActorV1(b.actor)); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := b.repo.ApproveModel(ctx, contracts.ModelApprovalRequestV1{
-		SchemaVersion:    contracts.ModelApprovalRequestV1Version,
-		ModelVersion:     rApproved.CandidateID,
-		ArtifactSHA256:   preMan.ArtifactSHA256,
-		EvaluationSHA256: strings.Repeat("e", 64),
-		PolicyVersion:    health.ML05PolicyVersion,
-	}, contracts.ModelActorV1(b.actor)); err != nil {
-		t.Fatal(err)
-	}
+	approveWithoutEvaluationGate(t, b.repo, rApproved.CandidateID, preMan.ArtifactSHA256, strings.Repeat("e", 64), health.ML05PolicyVersion)
 	if recApp, _, err := b.repo.AggregateRound(ctx, rApproved.RoundID, b.publisher, b.actor); !errors.Is(err, federated.ErrAggregationFailed) || recApp.FailureReason != "aggregation_failed" {
 		t.Fatalf("pre-approved candidate reuse rec=%+v err=%v want ErrAggregationFailed", recApp, err)
 	}

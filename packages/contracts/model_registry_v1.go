@@ -14,7 +14,6 @@ import (
 const (
 	ModelArtifactUploadV1Version   = "device-audit.model-artifact-upload.v1"
 	ModelArtifactV1Version         = "device-audit.model-artifact.v1"
-	ModelApprovalRequestV1Version  = "device-audit.model-approval-request.v1"
 	ModelReferenceRequestV1Version = "device-audit.model-reference-request.v1"
 	ModelReferencesV1Version       = "device-audit.model-references.v1"
 	// ModelArtifactMaxBytesV1 is the ML05 #86 inference artifact budget.
@@ -39,6 +38,8 @@ const (
 	ModelRejectionVersionConflict   ModelRejection = "version_conflict"
 	ModelRejectionReferenceMismatch ModelRejection = "reference_mismatch"
 	ModelRejectionNotApproved       ModelRejection = "not_approved"
+	// ModelRejectionNotCandidate: only the model in the candidate slot can be promoted.
+	ModelRejectionNotCandidate ModelRejection = "not_candidate"
 )
 
 // ModelArtifactUploadV1 carries one signed manifest and the exact artifact
@@ -57,17 +58,8 @@ type ModelActorV1 struct {
 	Subject string `json:"subject"`
 }
 
-// ModelApprovalRequestV1 approves one exact artifact for activation, citing the
-// evaluation that justified it. Approval is permanent for that artifact.
-type ModelApprovalRequestV1 struct {
-	SchemaVersion    string `json:"schema_version"`
-	ModelVersion     string `json:"model_version"`
-	ArtifactSHA256   string `json:"artifact_sha256"`
-	EvaluationSHA256 string `json:"evaluation_sha256"`
-	PolicyVersion    string `json:"policy_version"`
-}
-
-// ModelApprovalV1 is a stored approval.
+// ModelApprovalV1 is a stored approval. Only a promotion creates one, and only
+// from a passing evaluation; EvaluationSHA256 names that report.
 type ModelApprovalV1 struct {
 	EvaluationSHA256 string       `json:"evaluation_sha256"`
 	PolicyVersion    string       `json:"policy_version"`
@@ -118,11 +110,6 @@ func (u *ModelArtifactUploadV1) UnmarshalJSON(data []byte) error {
 	return decodeEnvelopeJSON(data, (*wire)(u), []string{"schema_version", "manifest", "artifact", "source_reference"})
 }
 
-func (r *ModelApprovalRequestV1) UnmarshalJSON(data []byte) error {
-	type wire ModelApprovalRequestV1
-	return decodeEnvelopeJSON(data, (*wire)(r), []string{"schema_version", "model_version", "artifact_sha256", "evaluation_sha256", "policy_version"})
-}
-
 func (r *ModelReferenceRequestV1) UnmarshalJSON(data []byte) error {
 	type wire ModelReferenceRequestV1
 	return decodeEnvelopeJSON(data, (*wire)(r), []string{"schema_version", "model_version", "artifact_sha256"})
@@ -149,14 +136,6 @@ func (u ModelArtifactUploadV1) Verify(trustedKey ed25519.PublicKey) error {
 	}
 	if sum := sha256.Sum256(u.Artifact); hex.EncodeToString(sum[:]) != u.Manifest.ArtifactSHA256 {
 		return ModelRejectionDigestMismatch
-	}
-	return nil
-}
-
-func (r ModelApprovalRequestV1) Validate() error {
-	if r.SchemaVersion != ModelApprovalRequestV1Version || !opaqueIDPattern.MatchString(r.ModelVersion) ||
-		!fixedEnvelopeHex(r.ArtifactSHA256, sha256.Size) || !fixedEnvelopeHex(r.EvaluationSHA256, sha256.Size) || !opaqueIDPattern.MatchString(r.PolicyVersion) {
-		return ModelRejectionInvalidRequest
 	}
 	return nil
 }
