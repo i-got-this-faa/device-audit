@@ -5,20 +5,21 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/hex"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
 )
 
-func TestExecuteAssignedToResultTransitions(t *testing.T) {
+func TestExecuteDiagnosticAssignmentTransitions(t *testing.T) {
 	ctrlPriv := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x11}, ed25519.SeedSize))
 	ctrlPub := ctrlPriv.Public().(ed25519.PublicKey)
 	ctrlKeyID, _ := contracts.SigningKeyIDV1(ctrlPub)
 	devPriv := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{0x22}, ed25519.SeedSize))
 	devPub := devPriv.Public().(ed25519.PublicKey)
 
-	now := time.Date(2026, 11, 28, 12, 0, 0, 0, time.UTC)
+	now := time.Now().UTC().Truncate(time.Second)
 	comp := "storage:disk-0"
 	a := contracts.DiagnosticAssignmentV1{
 		EnvelopeHeaderV1: contracts.EnvelopeHeaderV1{
@@ -41,30 +42,40 @@ func TestExecuteAssignedToResultTransitions(t *testing.T) {
 	}
 	a.Signature = hex.EncodeToString(ed25519.Sign(ctrlPriv, msg))
 
+	execution := AssignmentExecution{
+		DeploymentID: a.DeploymentID, DeviceID: a.DeviceID, BootID: "boot:1", SigningKey: devPriv,
+		Claim:        func(string, time.Time) (uint64, error) { return 2, nil },
+		SaveEvidence: func([]byte) (string, error) { return "ref:1", nil },
+	}
 	runner := NewProbeRunner(func(_ context.Context, _ Request) ([]byte, error) {
-		return []byte(`{"schema_version":"device-audit.probe-evidence.v1","status":"ok"}`), nil
+		return []byte("{}"), nil
 	})
-	res, err := ExecuteAssignedToResult(context.Background(), runner, a, ctrlPub, devPriv, "deployment:diag", "device:diag", "boot:1", "ref:1", 2, func() time.Time { return now })
+	res, err := ExecuteDiagnosticAssignment(context.Background(), runner, a, ctrlPub, execution)
 	if err != nil || res.State != "succeeded" || res.VerifySignature(devPub) != nil || res.CheckAssignment(a) != nil {
 		t.Fatalf("succeeded result failed: state=%s err=%v verify=%v check=%v", res.State, err, res.VerifySignature(devPub), res.CheckAssignment(a))
 	}
 
-	// Wrong target yields signed rejected result without calling probe.
-	called := 0
-	badTargetRunner := NewProbeRunner(func(_ context.Context, _ Request) ([]byte, error) {
-		called++
+	// Cancel after durable admission and before starting the worker.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	execution.Claim = func(string, time.Time) (uint64, error) {
+		cancel()
+		return 3, nil
+	}
+	runner = NewProbeRunner(func(context.Context, Request) ([]byte, error) {
+		t.Fatal("cancelled assignment started a probe")
 		return nil, nil
 	})
-	rej, err := ExecuteAssignedToResult(context.Background(), badTargetRunner, a, ctrlPub, devPriv, "deployment:diag", "device:other", "boot:1", "ref:1", 2, func() time.Time { return now })
-	if err != nil || called != 0 || rej.State != "rejected" {
-		t.Fatalf("wrong target state=%s called=%d err=%v", rej.State, called, err)
+	canc, err := ExecuteDiagnosticAssignment(ctx, runner, a, ctrlPub, execution)
+	if err != nil || canc.State != "cancelled" || canc.StartedAt != nil || canc.CheckAssignment(a) != nil || canc.VerifySignature(devPub) != nil {
+		t.Fatalf("cancelled result failed: state=%s err=%v check=%v", canc.State, err, canc.CheckAssignment(a))
 	}
 
-	// Canceled context produces signed cancelled terminal result.
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	canc, err := ExecuteAssignedToResult(ctx, runner, a, ctrlPub, devPriv, "deployment:diag", "device:diag", "boot:1", "ref:1", 2, func() time.Time { return now })
-	if err != nil || canc.State != "cancelled" || canc.CheckAssignment(a) != nil {
-		t.Fatalf("cancelled result failed: state=%s err=%v check=%v", canc.State, err, canc.CheckAssignment(a))
+	execution.Claim = func(string, time.Time) (uint64, error) { return 4, nil }
+	execution.SaveEvidence = func([]byte) (string, error) { return "", errors.New("disk unavailable") }
+	runner = NewProbeRunner(func(context.Context, Request) ([]byte, error) { return []byte("{}"), nil })
+	failed, err := ExecuteDiagnosticAssignment(context.Background(), runner, a, ctrlPub, execution)
+	if err != nil || failed.State != "failed" || len(failed.Evidence) != 0 || failed.CheckAssignment(a) != nil || failed.VerifySignature(devPub) != nil {
+		t.Fatalf("failed evidence write: state=%s err=%v", failed.State, err)
 	}
 }

@@ -233,24 +233,39 @@ and reaps it on cancellation or overrun. The output cap applies to evidence,
 including any partial evidence. The small structured failure wrapper is
 separate. Successful and partial evidence keep the existing schema.
 
-Use the following command for a local signed CT06 assignment check with the
-same worker limits:
+Use the following command to execute a controller-signed CT06 assignment
+with the same worker limits:
 
 ```powershell
 Get-Content -Raw assignment.json | endpoint-agent --run-assigned-probe `
   --state-dir C:\private\identity --diagnostic-controller-key-file controller.pem
 ```
 
-The runner verifies the signature under the pinned diagnostic controller key,
-matches the deployment and device against local admission, and requires the
-signed wall budget to fit before expiry. The expiry and any caller deadline
-also constrain execution. Cancellation, expiry, and wall, CPU, memory,
-concurrency or output exhaustion are reported separately when observed.
-The local assignment command requires the identity lock. Stop the installed
-service before using it with that installation and run it under the same
-authorized identity. The service does not run assigned diagnostics while
-sampling. Assignment intake, deduplication and signed remote result delivery
-remain part of the diagnostic workflow.
+Use the `signed_assignment` object from the controller record or a single
+assignment object from the poll response. Pin the diagnostic authority’s
+Ed25519 public key on the endpoint through a trusted channel. The command validates the CT06 schema, signature, enrolled
+deployment and device, and remaining wall budget. Execute assignments in
+controller sequence order. The private identity directory holds claims by
+assignment ID and a sequence high-water mark per diagnostic authority key.
+The agent reserves a shared evidence sequence and commits the claim before
+starting its worker. A second delivery is refused even after restarting the
+command. Keep the claim and sequence state together with the admitted identity
+during backup and restore.
+
+The command prints one device-signed `device-audit.diagnostic-result.v1` JSON
+document on stdout. Exit 0 indicates success and exit 1 indicates a signed
+non-success outcome, or a failure writing stdout. Exit 2 indicates that no
+result is available, such as for an invalid or duplicate assignment. Bounded
+evidence referenced by a result is stored as `<reference_id>.evidence` in
+the private identity directory. Retain the signed JSON separately if it needs
+to be submitted or retried. If execution is interrupted after the claim is
+committed, the assignment stays consumed.
+
+Use an identity enrolled by the account running the command. The command
+holds the identity lock for the duration of execution. Automated polling,
+service-hosted execution, result delivery, reconciliation of interrupted
+claims and offline recovery are tracked in the diagnostic workflow. See
+[diagnostic-execution-38.md](../../docs/validation/diagnostic-execution-38.md).
 
 ## Windows service host, TEL02 #26
 
