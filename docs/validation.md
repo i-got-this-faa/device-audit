@@ -4,6 +4,10 @@ Follow-up: the [measured release capability matrix, CAP01 #58](requirements.md#m
 classifies every claimed capability by where its evidence was measured. How to
 reproduce each class is [below](#reproducing-the-capability-matrix-cap01-58).
 
+Follow-up: [FED03 reproducible candidate aggregation, 28 November 2026](validation/federated-aggregation-43.md)
+aggregates accepted round updates under `sample-count-weighted.v1` and persists
+reproducible unapproved candidates without altering the active model.
+
 Follow-up: [FED09 signed federated update validation, 28 November 2026](validation/federated-updates-114.md)
 validates and stores signed participant updates while blocking conflicting,
 replayed, expired, revoked, oversized, and nonfinite inputs.
