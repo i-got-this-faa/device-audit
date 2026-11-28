@@ -89,6 +89,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	tlsCertFile := flags.String("tls-cert-file", defaults.TLSCertFile, "TLS certificate PEM file for the controller listener")
 	tlsKeyFile := flags.String("tls-key-file", defaults.TLSKeyFile, "TLS private-key PEM file for the controller listener")
 	publisherKeyFile := flags.String("model-publisher-key-file", "", "PKIX PEM Ed25519 public key that model manifests must verify against; enables the model registry")
+	diagnosticKeyFile := flags.String("diagnostic-signing-key-file", "", "PKCS#8 PEM Ed25519 private key that signs controller diagnostic assignments; enables diagnostics")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -192,6 +193,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 	var deviceState *controller.DeviceStateService
 	var revocation *controller.RevocationService
 	var modelRegistry *controller.ModelRegistryService
+	var diagnostics *controller.DiagnosticService
 	if *publisherKeyFile != "" {
 		if repository == nil || consoleAuth == nil {
 			return errors.New("the model registry requires --deployment-id, a durable database and administrator authentication")
@@ -201,6 +203,20 @@ func run(ctx context.Context, args []string, defaults environment) error {
 			return err
 		}
 		if modelRegistry, err = controller.NewModelRegistryService(repository, consoleAuth, publisherKey); err != nil {
+			return err
+		}
+	}
+	if *diagnosticKeyFile != "" {
+		if repository == nil || consoleAuth == nil {
+			return errors.New("diagnostics requires --deployment-id, a durable database and administrator authentication")
+		}
+		diagKey, err := loadEd25519PrivateKey(*diagnosticKeyFile, "--diagnostic-signing-key-file")
+		if err != nil {
+			return err
+		}
+		diagKeyID, _ := contracts.SigningKeyIDV1(diagKey.Public().(ed25519.PublicKey))
+		slog.Info("diagnostic assignment key loaded", "controller_key_id", diagKeyID)
+		if diagnostics, err = controller.NewDiagnosticService(repository, consoleAuth, diagKey); err != nil {
 			return err
 		}
 	}
@@ -238,6 +254,7 @@ func run(ctx context.Context, args []string, defaults environment) error {
 		DeviceState:    deviceState,
 		Revocation:     revocation,
 		ModelRegistry:  modelRegistry,
+		Diagnostics:    diagnostics,
 		MeshStatus:     *transport,
 	})
 	if tlsConfig != nil {
@@ -320,21 +337,32 @@ func run(ctx context.Context, args []string, defaults environment) error {
 // loadAcknowledgementKey reads the controller's CT04 signing key. Endpoints pin
 // its public half; it must not be the mesh, TLS, device or chain key.
 func loadAcknowledgementKey(path string) (ed25519.PrivateKey, error) {
+	if path == "" {
+		return nil, errors.New("mesh requires a readable --ack-key-file")
+	}
+	key, err := loadEd25519PrivateKey(path, "--ack-key-file")
+	if err != nil {
+		return nil, err
+	}
+	keyID, _ := contracts.SigningKeyIDV1(key.Public().(ed25519.PublicKey))
+	slog.Info("evidence acknowledgement key loaded", "controller_key_id", keyID)
+	return key, nil
+}
+
+func loadEd25519PrivateKey(path, flagName string) (ed25519.PrivateKey, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.New("mesh requires a readable --ack-key-file")
+		return nil, fmt.Errorf("readable %s required", flagName)
 	}
 	block, _ := pem.Decode(data)
 	if block == nil || block.Type != "PRIVATE KEY" {
-		return nil, errors.New("--ack-key-file must be a PKCS#8 PEM private key")
+		return nil, fmt.Errorf("%s must be a PKCS#8 PEM private key", flagName)
 	}
 	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	key, ok := parsed.(ed25519.PrivateKey)
 	if err != nil || !ok {
-		return nil, errors.New("--ack-key-file must hold an Ed25519 private key")
+		return nil, fmt.Errorf("%s must hold an Ed25519 private key", flagName)
 	}
-	keyID, _ := contracts.SigningKeyIDV1(key.Public().(ed25519.PublicKey))
-	slog.Info("evidence acknowledgement key loaded", "controller_key_id", keyID)
 	return key, nil
 }
 

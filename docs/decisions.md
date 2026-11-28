@@ -1383,3 +1383,24 @@ candidate artifact in `model_artifacts` (updating `model_references.candidate`
 without approval or activation). Retrying a completed aggregation returns the
 stored record unchanged, preserving candidate identity across retries and
 restarts. Held-out evaluation and promotion remain scoped to `FED10 #115`.
+
+## Signed diagnostic assignments and terminal ingestion, DIA05 #109
+
+Migration `012_diagnostic_assignments.sql` adds `diagnostic_controller_sequences`,
+`diagnostic_assignments`, `diagnostic_results`, and append-only
+`diagnostic_assignment_events`. Controller-signed `DiagnosticAssignmentV1`
+messages use `--diagnostic-signing-key-file` (an Ed25519 key separate from mesh,
+TLS, CT04 acknowledgement, publisher, and chain keys) and monotonic
+per-(deployment, device) sequences. Fresh console administrators request and
+cancel assignments (`POST /console/api/diagnostics/assignments`, `.../cancel`),
+viewers query status/pages (`GET /console/api/diagnostics/assignments/{id}`,
+`/console/api/devices/{id}/diagnostics/assignments`), and authenticated mesh
+peers poll/submit (`POST /v1/diagnostics/poll`, `/v1/diagnostics/results`)
+under `device_enrollments -> diagnostic_controller_sequences ->
+diagnostic_assignments` lock order. Triggers and controller logic guarantee
+at most one terminal state (`succeeded`, `failed`, `cancelled`, `expired`,
+`rebooted`, or `rejected`), refuse creation/dispatch/results for revoked
+devices, expire overdue leases/deadlines once, keep pending cancellations
+queryable across restarts, and advance `device_enrollments.last_sequence`
+atomically on result ingestion. Endpoint offline spool/reboot recovery remains
+scoped to `DIA06 #110` and forecast-driven triggers to `FED06 #70`.

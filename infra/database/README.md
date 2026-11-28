@@ -70,6 +70,13 @@ telemetry ingestion remains separate work.
   artifact (`model_artifacts` / `model_references.candidate`) for closed rounds,
   or terminal `failed` reasons (`no_updates`, `insufficient_participants`,
   `aggregation_failed`, `cancelled`) without altering `model_references.active`.
+- `012_diagnostic_assignments.sql` adds `diagnostic_controller_sequences`,
+  `diagnostic_assignments`, `diagnostic_results`, and append-only
+  `diagnostic_assignment_events`. Triggers enforce unrevoked target enrollments,
+  immutable assignment identities/contracts, valid status transitions (`pending`
+  -> `leased` / `cancelled` / `expired`, `leased` -> `cancel_requested` /
+  terminal states), and at most one final terminal transition/result per
+  assignment.
 - A PostgreSQL advisory lock serializes concurrent migration runs.
 - Each migration runs in one transaction. A failed migration rolls back and
   leaves the previous ledger version in place.
@@ -94,7 +101,7 @@ The integration tests create isolated databases and cover:
 - concurrent migration attempts that apply each migration once;
 - controller startup failure on an unavailable database and on a migration
   ledger conflict, with no listener left open;
-- health output for a connected database, schema version 11 and the configured
+- health output for a connected database, schema version 12 and the configured
   auth mode;
 - the PostgreSQL auth store lifecycle, including role bindings, one-use login
   transactions, session touch/revocation and subject-session revocation;
