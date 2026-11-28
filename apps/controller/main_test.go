@@ -98,7 +98,7 @@ func TestRunReportsConfiguredSchema(t *testing.T) {
 	if health == nil {
 		t.Fatal("controller did not become healthy")
 	}
-	if health["database"] != "connected" || health["schema_version"] != float64(14) || health["auth"] != "not_configured" || health["sample_storage"] != "memory" {
+	if health["database"] != "connected" || health["schema_version"] != float64(15) || health["auth"] != "not_configured" || health["sample_storage"] != "memory" {
 		t.Fatalf("health=%v", health)
 	}
 	cancel()
@@ -151,7 +151,7 @@ func TestRunReportsConfiguredAuth(t *testing.T) {
 	if health == nil {
 		t.Fatal("controller did not become healthy")
 	}
-	if health["auth"] != "oidc" || health["schema_version"] != float64(14) {
+	if health["auth"] != "oidc" || health["schema_version"] != float64(15) {
 		t.Fatalf("health=%v", health)
 	}
 	response, err := client.Get(base + "/console")

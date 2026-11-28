@@ -21,6 +21,7 @@ type DiagnosticService struct {
 	deployment string
 	auth       *auth.Service
 	signer     ed25519.PrivateKey
+	forecasts  *PostgresRepository
 }
 
 func NewDiagnosticService(repository *PostgresRepository, consoleAuth *auth.Service, signer ed25519.PrivateKey) (*DiagnosticService, error) {
@@ -32,6 +33,7 @@ func NewDiagnosticService(repository *PostgresRepository, consoleAuth *auth.Serv
 		deployment: repository.deploymentID,
 		auth:       consoleAuth,
 		signer:     signer,
+		forecasts:  repository,
 	}, nil
 }
 
@@ -39,6 +41,8 @@ func (s *DiagnosticService) Register(mux *http.ServeMux) {
 	mux.Handle("POST /console/api/diagnostics/assignments", s.auth.RequireFreshAdmin(http.HandlerFunc(s.create)))
 	mux.Handle("POST /console/api/diagnostics/assignments/{id}/cancel", s.auth.RequireFreshAdmin(http.HandlerFunc(s.cancel)))
 	mux.Handle("GET /console/api/diagnostics/assignments/{id}", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.get)))
+	mux.Handle("POST /console/api/devices/{id}/forecast-diagnostics", s.auth.RequireFreshAdmin(http.HandlerFunc(s.triggerForecast)))
+	mux.Handle("GET /console/api/devices/{id}/forecast-diagnostics", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.forecastTrace)))
 	mux.Handle("GET /console/api/devices/{id}/diagnostics/assignments", s.auth.RequireRole(auth.RoleViewer, http.HandlerFunc(s.listForDevice)))
 }
 

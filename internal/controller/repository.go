@@ -54,6 +54,8 @@ type PostgresRepository struct {
 	now          func() time.Time
 	// auditEvidenceMaxBytes overrides contracts.AuditEvidenceMaxBytesV1 in tests.
 	auditEvidenceMaxBytes int
+	// forecastDiagnosticMinProbability overrides the policy threshold in tests.
+	forecastDiagnosticMinProbability float64
 }
 
 type EnrollmentChallenge struct {
