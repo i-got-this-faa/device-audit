@@ -1539,3 +1539,13 @@ corrects an issue. Inference uses the configured publisher trust root and
 rechecks the selected snapshot whenever it scores.
 
 See [FED11 validation](validation/model-activation-116.md).
+
+## Federated round failure containment, FED05 #50
+
+The round pipeline has regression coverage at the PostgreSQL and HTTP
+boundaries. Only accepted updates count toward quorum and advance the signing
+sequence. A below-quorum deadline closure preserves the registry, and a reported
+held-out regression keeps the candidate off the approved download route.
+Finite outliers with large declared sample counts can influence the aggregate.
+The [validation record](validation/federated-containment-50.md) documents the
+fixtures, checks, and residual poisoning cases.
