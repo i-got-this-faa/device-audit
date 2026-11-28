@@ -80,6 +80,13 @@ func LogisticLogit(manifest contracts.ModelManifestV1, artifact []byte, vector c
 	return model.score(values)
 }
 
+// ValidateLogisticArtifact checks the endpoint runtime's artifact format and
+// feature layout. The caller authenticates the manifest and bytes separately.
+func ValidateLogisticArtifact(manifest contracts.ModelManifestV1, artifact []byte) error {
+	_, err := readLogisticParameters(manifest, artifact)
+	return err
+}
+
 func readLogisticParameters(manifest contracts.ModelManifestV1, artifact []byte) (logisticParameters, error) {
 	var params logisticParameters
 	names, _, err := contracts.FeatureNamesV1(manifest.FeatureVersion)

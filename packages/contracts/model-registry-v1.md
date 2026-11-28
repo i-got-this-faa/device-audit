@@ -5,7 +5,8 @@ model registry accepts and returns. It builds on the
 [model manifest](model-manifest-v1.md): the registry stores a signed manifest
 and the exact artifact bytes, and never stores an artifact whose manifest it
 cannot verify. These types are Go only. There is no JSON Schema or Python
-reader yet, because the only consumer is the controller's console API.
+reader. The device mesh uses the separate
+[FED04 download contract](model-download-v1.md).
 
 ## Namespaces
 
@@ -59,13 +60,9 @@ them against itself.
 - **Candidate.** Any stored artifact. It needs no approval and is never served
   as the active model.
 
-The approval request is the seam for FED10 #115, which must decide promotion
-from held-out evaluation. Until then an administrator records it and cites the
-evaluation digest. The registry does not read or check the evaluation.
-
 ## Not claimed
 
 Nothing here selects who holds the publisher key, rotates or revokes it, or
 revokes an approved artifact. There is no reference history beyond the current
-actor and time of each slot, no endpoint download over the mesh, and no
-rollback rule other than activating another approved version.
+actor and time of each slot, and no rollback rule other than activating
+another approved version.

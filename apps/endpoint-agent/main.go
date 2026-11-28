@@ -57,7 +57,22 @@ func main() {
 	trainFederatedUpdate := flag.Bool("train-federated-update", false, "fit and stage one budgeted signed update from a local round request")
 	localTrainingWorker := flag.Bool("local-training-worker", false, "internal: fit one isolated local training candidate")
 	trainingPublisherKey := flag.String("training-publisher-key-file", "", "pinned Ed25519 publisher key for local training")
+	stageModel := flag.Bool("stage-approved-model", false, "download and verify the approved registry model over the admitted mesh")
+	modelPublisherKey := flag.String("model-publisher-key-file", "", "pinned Ed25519 publisher key for model staging")
 	flag.Parse()
+	if *stageModel || *modelPublisherKey != "" {
+		if !*stageModel || *stateDir == "" || *meshServerKey == "" || *regionFile == "" || *modelPublisherKey == "" || flag.NFlag() != 5 || flag.NArg() != 0 {
+			fail(fmt.Errorf("--stage-approved-model requires --state-dir, --mesh-server-key, --derp-region-file and --model-publisher-key-file"))
+		}
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		metadata, err := stageApprovedModel(ctx, *stateDir, *meshServerKey, *regionFile, *modelPublisherKey)
+		stop()
+		if err != nil {
+			fail(err)
+		}
+		fmt.Printf("staged %s %s in %s\n", metadata.Manifest.ModelVersion, metadata.Manifest.ArtifactSHA256, stagedModelFile)
+		return
+	}
 	if *trainFederatedUpdate {
 		if *stateDir == "" || *trainingPublisherKey == "" || flag.NFlag() != 3 || flag.NArg() != 0 {
 			fail(fmt.Errorf("--train-federated-update requires --state-dir and --training-publisher-key-file"))

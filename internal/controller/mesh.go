@@ -39,8 +39,9 @@ type DiagnosticMeshRepository interface {
 
 // MeshConfig wires the device-only server. Nil Logger and Now use the process defaults.
 type MeshConfig struct {
-	Node       mesh.Server
-	Repository MeshRepository
+	Node           mesh.Server
+	Repository     MeshRepository
+	ModelDownloads ModelDownloadRepository
 	// AcknowledgementKey signs CT04 receipts. It is a controller application
 	// key, separate from the mesh key, device keys and any chain signer.
 	AcknowledgementKey ed25519.PrivateKey
@@ -115,6 +116,12 @@ func MeshHTTPServer(cfg MeshConfig) (*http.Server, error) {
 	})
 	mux.HandleFunc("POST /v1/diagnostics/results", func(w http.ResponseWriter, r *http.Request) {
 		handleDiagnosticResult(w, r, cfg)
+	})
+	mux.HandleFunc("GET "+contracts.ModelDownloadMetadataPathV1, func(w http.ResponseWriter, r *http.Request) {
+		handleModelDownload(w, r, cfg, false)
+	})
+	mux.HandleFunc("GET "+contracts.ModelDownloadArtifactPrefixV1+"{sha256}", func(w http.ResponseWriter, r *http.Request) {
+		handleModelDownload(w, r, cfg, true)
 	})
 	return &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 30 * time.Second,
 		ConnContext: func(ctx context.Context, conn net.Conn) context.Context {
