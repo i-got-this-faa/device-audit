@@ -1569,3 +1569,24 @@ handles that remote state before retrying. The selected hardware and platform
 matrix remains the release gate. See the
 [Windows package runbook](../packaging/windows/README.md) and
 [PKG01 evidence](validation/windows-package-57.md).
+
+
+## PKG03 uses one live endpoint state across image cutover and recovery
+
+The Windows updater treats the unmarked PKG01 layout as state version 1 and
+records that version beside service configuration. The release manifest
+declares the candidate version from the exact packaged Go source. An
+unsupported declaration or installed marker fails preflight.
+
+An administrator-owned recovery record precedes any SCM changes. The
+updater stages the image side by side, stops the service and starts the
+candidate with the same LocalService account, per-service SID and
+configuration. A trial readiness signal confirms that the candidate can
+open the admitted identity and spool, check the reservation mark and run
+the retained models. The SCM registration becomes Automatic after trial
+readiness. Failure and interrupted-update recovery restore the prior
+image registration against the same live data. Copying back ProgramData
+could rewind sequence reservations after a trial had signed or delivered
+records. The updater therefore preserves the live files throughout.
+Release signing, mesh admission, device signatures and controller
+acknowledgements retain their separate trust roles.

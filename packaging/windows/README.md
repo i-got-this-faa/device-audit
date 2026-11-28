@@ -43,8 +43,8 @@ openssl x509 -in release.crt -outform DER | sha256sum
 
 Distribute the ZIP, provenance JSON and detached CMS signature together.
 Publish the expected full commit and SHA-256 of the DER release certificate
-through a trusted operator channel outside the download. Supply the installer
-script from a trusted checkout at the reviewed commit. When rotating or
+through a trusted operator channel outside the download. Run the installer or updater from a trusted checkout at the reviewed commit,
+with `Distribution.ps1` alongside it. When rotating or
 revoking a release signer, distribute the updated pin through that same
 channel. The installer checks the pinned certificate and its current validity
 period. The pin is the trust anchor for this CMS signature.
@@ -107,5 +107,62 @@ any private `DeviceAudit-install-*` staging directory identified by the
 installer after an interrupted attempt.
 
 For a successful installation, preserve or retire device state according to
-the deployment's retention policy before purging it. Binary upgrades and
-state-preserving reinstall need a separate path.
+the deployment's retention policy before purging it.
+
+## Upgrade a signed installation
+
+Use an elevated x64 PowerShell 7.4+ session. The starting point is a
+successfully enrolled PKG01 release installed at the standard Program Files
+and ProgramData paths with Automatic startup. The first supported prior
+package is main commit `792361a21bd696db605577bc1168893ba501d012`. Keep the
+existing service registration and state. Obtain the new package, release
+certificate pin and exact source commit through the same process as clean
+install.
+
+```powershell
+./packaging/windows/Update-DeviceAudit.ps1 `
+    -PackageDir C:\Downloads\device-audit-release `
+    -SignerSHA256 $releaseCertificatePin -SourceCommit $reviewedCommit
+```
+
+Use `-ModelPublisherSHA256` if the candidate archive includes a model. The
+updater verifies the bundle's publisher pin and keeps the model and publisher
+already provisioned for the service. A telemetry-only candidate archive
+can upgrade a model-bearing installation. Model activation continues through
+[the endpoint's existing activation path](../../apps/endpoint-agent/README.md).
+
+The signed provenance must declare `endpoint_state_version: 1`. Migration
+records `1` in the administrator-owned `endpoint-state.version` beside
+`service.json` when adopting the unmarked PKG01 layout. This migration is
+additive. Both images use the original DPAPI identity, admission, sequence
+reservation, spool, delivery settings, and model journal and slots. The trial
+runs under the existing LocalService account and SID. It validates the live
+counter against durable evidence, opens the signed spool and checks the
+provisioned model and any active or last-working slots before reporting
+readiness. Ephemeral controller outages can delay delivery after a successful
+upgrade. Confirm catch-up by checking controller receipt and the endpoint's
+backlog.
+
+## Recover an interrupted upgrade
+
+The updater records the prior image before changing the registration. A
+failed trial attempts to restore the prior image and Automatic startup. If the
+updater was terminated or automatic recovery could not finish, use the same
+trusted checkout in an elevated shell:
+
+```powershell
+./packaging/windows/Update-DeviceAudit.ps1 -Recover
+```
+
+The prior service resumes on the live ProgramData files. It retains sequence
+reservations and acknowledged or queued evidence from the trial. Retry the
+upgrade after recovery completes. If recovery fails, keep
+`%ProgramFiles%\DeviceAudit\upgrade-pending.json` and both image directories
+intact and review the SCM errors and
+`%ProgramData%\DeviceAudit\Endpoint\evidence\service.log`. Avoid restoring
+old copies of identity or spool files, which could rewind reservations or
+reintroduce retired evidence. A prior installation and its bundled model files
+may still be referenced from `service.json`. Keep them in place. A forced stop
+during package verification may leave an administrator-only
+`DeviceAudit-install-*` staging directory. Remove that abandoned directory
+after confirming no installer is using it.

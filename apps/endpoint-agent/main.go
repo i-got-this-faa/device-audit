@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/i-got-this-faa/device-audit/packages/contracts"
@@ -60,6 +62,7 @@ func main() {
 	trainingPublisherKey := flag.String("training-publisher-key-file", "", "pinned Ed25519 publisher key for local training")
 	stageModel := flag.Bool("stage-approved-model", false, "download and verify the approved registry model over the admitted mesh")
 	modelPublisherKey := flag.String("model-publisher-key-file", "", "pinned Ed25519 publisher key for model staging")
+	upgradeToken := flag.String("upgrade-readiness-token", "", "internal: identify the installer trial start")
 	flag.Parse()
 	if *stageModel || *modelPublisherKey != "" {
 		if !*stageModel || *stateDir == "" || *meshServerKey == "" || *regionFile == "" || *modelPublisherKey == "" || flag.NFlag() != 5 || flag.NArg() != 0 {
@@ -189,11 +192,19 @@ func main() {
 		}
 		return
 	}
-	if *service || *serviceConfigPath != "" {
-		if !*service || *serviceConfigPath == "" || flag.NFlag() != 2 || flag.NArg() != 0 {
+	if *service || *serviceConfigPath != "" || *upgradeToken != "" {
+		expected := 2
+		if *upgradeToken != "" {
+			expected++
+			_, err := hex.DecodeString(*upgradeToken)
+			if len(*upgradeToken) != 32 || err != nil || strings.ToLower(*upgradeToken) != *upgradeToken {
+				fail(fmt.Errorf("invalid installer trial start token"))
+			}
+		}
+		if !*service || *serviceConfigPath == "" || flag.NFlag() != expected || flag.NArg() != 0 {
 			fail(fmt.Errorf("--service runs alone and requires --service-config"))
 		}
-		if err := runService(*serviceConfigPath); err != nil {
+		if err := runService(*serviceConfigPath, *upgradeToken); err != nil {
 			fail(err)
 		}
 		return

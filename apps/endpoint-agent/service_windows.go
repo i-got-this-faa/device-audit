@@ -34,7 +34,7 @@ const (
 var allowedServicePrivileges = []string{"SeChangeNotifyPrivilege"}
 
 // runService hands control to the SCM. It refuses an interactive session.
-func runService(configPath string) error {
+func runService(configPath, upgradeToken string) error {
 	inService, err := svc.IsWindowsService()
 	if err != nil {
 		return errors.New("cannot determine the Windows session type")
@@ -42,10 +42,10 @@ func runService(configPath string) error {
 	if !inService {
 		return errors.New("--service runs only under the Windows service control manager; install it with tools/service/Install-EndpointService.ps1")
 	}
-	return svc.Run(serviceName, &endpointService{configPath: configPath})
+	return svc.Run(serviceName, &endpointService{configPath: configPath, upgradeToken: upgradeToken})
 }
 
-type endpointService struct{ configPath string }
+type endpointService struct{ configPath, upgradeToken string }
 
 func (h *endpointService) Execute(_ []string, requests <-chan svc.ChangeRequest, status chan<- svc.Status) (bool, uint32) {
 	status <- svc.Status{State: svc.StartPending}
@@ -59,6 +59,13 @@ func (h *endpointService) Execute(_ []string, requests <-chan svc.ChangeRequest,
 	if err != nil {
 		log.printf("refusing to start: %s", err)
 		return true, exitAccount
+	}
+	if h.upgradeToken != "" {
+		if err := checkEndpointState(h.configPath, true); err != nil {
+			log.printf("refusing upgrade trial: %s", err)
+			return true, exitConfig
+		}
+		cfg.upgradeToken = h.upgradeToken
 	}
 	if err := checkEvidenceACL(cfg.EvidenceDir); err != nil {
 		log.printf("refusing to start: %s", err)
